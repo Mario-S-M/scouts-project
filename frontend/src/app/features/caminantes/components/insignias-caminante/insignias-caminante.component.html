@@ -1,0 +1,18 @@
+<div class="grid mt-3">
+  <div *ngFor="let ins of insignias" class="col-12 sm:col-6 md:col-3">
+    <p-card styleClass="text-center badge-card shadow-2"
+            [class.earned]="ins.otorgada"
+            [class.locked]="!ins.otorgada">
+      <div class="badge-icon mb-3" [class]="'badge-' + ins.tipo">
+        <span>{{ insigniaIcons[ins.tipo]?.emoji }}</span>
+      </div>
+      <div class="font-bold text-xl mb-1">{{ ins.tipo }}</div>
+      <div class="text-xs text-color-secondary mb-2">{{ insigniaIcons[ins.tipo]?.desc }}</div>
+      <p-tag [value]="ins.otorgada ? '¡Otorgada!' : 'Pendiente'"
+             [severity]="ins.otorgada ? 'success' : 'secondary'"></p-tag>
+      <div *ngIf="ins.fechaOtorgada" class="text-xs mt-2 text-color-secondary">
+        {{ ins.fechaOtorgada | date:'dd/MM/yyyy' }}
+      </div>
+    </p-card>
+  </div>
+</div>

@@ -1,0 +1,173 @@
+<div class="page-header">
+  <h1><i class="pi pi-home mr-2"></i>Dashboard</h1>
+  <p>Panel de control — Comunidad de Caminantes</p>
+</div>
+
+<div *ngIf="loading" class="flex justify-content-center p-5">
+  <p-progressSpinner strokeWidth="4" styleClass="w-4rem h-4rem"></p-progressSpinner>
+</div>
+
+<ng-container *ngIf="!loading && stats">
+
+  <!-- Stats Cards Row -->
+  <div class="grid mb-4">
+    <div class="col-12 md:col-6 lg:col-3">
+      <p-card styleClass="stat-card border-round-lg shadow-2">
+        <div class="text-center">
+          <div class="stat-icon text-green-600 mb-2">
+            <i class="pi pi-users" style="font-size: 2.5rem;"></i>
+          </div>
+          <div class="stat-number text-green-700">{{ stats.totalCaminantes }}</div>
+          <div class="stat-label">Caminantes Registrados</div>
+        </div>
+      </p-card>
+    </div>
+
+    <div class="col-12 md:col-6 lg:col-3">
+      <p-card styleClass="stat-card border-round-lg shadow-2">
+        <div class="text-center">
+          <div class="stat-icon text-orange-500 mb-2">
+            <i class="pi pi-clock" style="font-size: 2.5rem;"></i>
+          </div>
+          <div class="stat-number" style="color: #E65100;">{{ stats.evidencias.pendientes }}</div>
+          <div class="stat-label">Evidencias Pendientes</div>
+        </div>
+      </p-card>
+    </div>
+
+    <div class="col-12 md:col-6 lg:col-3">
+      <p-card styleClass="stat-card border-round-lg shadow-2">
+        <div class="text-center">
+          <div class="stat-icon mb-2" style="color: #FFD700;">
+            <i class="pi pi-star-fill" style="font-size: 2.5rem;"></i>
+          </div>
+          <div class="stat-number" style="color: #B8860B;">{{ stats.insignias.total }}</div>
+          <div class="stat-label">Insignias Otorgadas</div>
+        </div>
+      </p-card>
+    </div>
+
+    <div class="col-12 md:col-6 lg:col-3">
+      <p-card styleClass="stat-card border-round-lg shadow-2">
+        <div class="text-center">
+          <div class="stat-icon text-blue-500 mb-2">
+            <i class="pi pi-check-circle" style="font-size: 2.5rem;"></i>
+          </div>
+          <div class="stat-number text-blue-700">{{ stats.evidencias.aprobadas }}</div>
+          <div class="stat-label">Evidencias Aprobadas</div>
+        </div>
+      </p-card>
+    </div>
+  </div>
+
+  <!-- Insignias breakdown + Recent activity -->
+  <div class="grid">
+
+    <!-- Insignias Breakdown -->
+    <div class="col-12 lg:col-4">
+      <p-card header="Insignias por Tipo" styleClass="h-full shadow-2">
+        <div class="flex flex-column gap-3">
+          <div class="flex align-items-center justify-content-between p-3 border-round"
+               style="background: linear-gradient(135deg, #37474F22, #607D8B22);">
+            <div class="flex align-items-center gap-2">
+              <span style="font-size:1.5rem;">🖤</span>
+              <span class="font-semibold">Obsidiana</span>
+            </div>
+            <p-badge [value]="stats.insignias.Obsidiana.toString()" severity="secondary"></p-badge>
+          </div>
+
+          <div class="flex align-items-center justify-content-between p-3 border-round"
+               style="background: linear-gradient(135deg, #1B5E2022, #4CAF5022);">
+            <div class="flex align-items-center gap-2">
+              <span style="font-size:1.5rem;">💚</span>
+              <span class="font-semibold">Jade</span>
+            </div>
+            <p-badge [value]="stats.insignias.Jade.toString()" severity="success"></p-badge>
+          </div>
+
+          <div class="flex align-items-center justify-content-between p-3 border-round"
+               style="background: linear-gradient(135deg, #7B1FA222, #CE93D822);">
+            <div class="flex align-items-center gap-2">
+              <span style="font-size:1.5rem;">💜</span>
+              <span class="font-semibold">Ópalo</span>
+            </div>
+            <p-badge [value]="stats.insignias.Opalo.toString()" severity="info"></p-badge>
+          </div>
+
+          <div class="flex align-items-center justify-content-between p-3 border-round"
+               style="background: linear-gradient(135deg, #0D47A122, #90CAF922);">
+            <div class="flex align-items-center gap-2">
+              <span style="font-size:1.5rem;">💎</span>
+              <span class="font-semibold">Diamante</span>
+            </div>
+            <p-badge [value]="stats.insignias.Diamante.toString()" severity="warning"></p-badge>
+          </div>
+        </div>
+
+        <div class="mt-4 p-3 border-round surface-100">
+          <div class="flex justify-content-between">
+            <span class="text-sm text-color-secondary">Total evidencias:</span>
+            <span class="font-bold">{{ stats.evidencias.total }}</span>
+          </div>
+          <div class="flex justify-content-between mt-2">
+            <span class="text-sm text-color-secondary">Senderos completados:</span>
+            <span class="font-bold text-green-700">{{ stats.senderosCompletados }}</span>
+          </div>
+          <div class="flex justify-content-between mt-2">
+            <span class="text-sm text-color-secondary">Rechazadas:</span>
+            <span class="font-bold text-red-600">{{ stats.evidencias.rechazadas }}</span>
+          </div>
+        </div>
+      </p-card>
+    </div>
+
+    <!-- Recent Caminantes -->
+    <div class="col-12 lg:col-4">
+      <p-card header="Caminantes Recientes" styleClass="h-full shadow-2">
+        <div *ngIf="stats.recentCaminantes.length === 0" class="text-center text-color-secondary p-3">
+          <i class="pi pi-users text-4xl mb-2 block"></i>
+          <p>No hay caminantes registrados aún.</p>
+        </div>
+        <div *ngFor="let c of stats.recentCaminantes"
+             class="flex align-items-center gap-3 p-2 border-bottom-1 surface-border">
+          <div class="avatar-circle flex-shrink-0" style="width:40px;height:40px;font-size:1rem;">
+            {{ c.nombre.charAt(0) }}{{ c.apellidos.charAt(0) }}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="font-semibold text-sm white-space-nowrap overflow-hidden text-overflow-ellipsis">
+              {{ c.nombre }} {{ c.apellidos }}
+            </div>
+            <div class="text-xs text-color-secondary">{{ c.grupo }} — {{ c.comunidad }}</div>
+          </div>
+        </div>
+      </p-card>
+    </div>
+
+    <!-- Recent Evidencias -->
+    <div class="col-12 lg:col-4">
+      <p-card header="Actividad Reciente" styleClass="h-full shadow-2">
+        <div *ngIf="stats.recentEvidencias.length === 0" class="text-center text-color-secondary p-3">
+          <i class="pi pi-inbox text-4xl mb-2 block"></i>
+          <p>No hay evidencias aún.</p>
+        </div>
+        <div *ngFor="let ev of stats.recentEvidencias"
+             class="flex align-items-start gap-2 p-2 border-bottom-1 surface-border">
+          <p-tag [severity]="getEstadoSeverity(ev.estado)"
+                 [value]="ev.estado"
+                 styleClass="flex-shrink-0 text-xs"></p-tag>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-semibold">{{ getCaminanteName(ev) }}</div>
+            <div class="text-xs text-color-secondary">
+              {{ getTipoLabel(ev.tipo) }} — {{ ev.categoria }}
+            </div>
+            <div class="text-xs text-color-secondary">
+              {{ ev.fechaSubida | date:'dd/MM/yyyy HH:mm' }}
+            </div>
+          </div>
+        </div>
+      </p-card>
+    </div>
+
+  </div>
+
+</ng-container>

@@ -1,0 +1,796 @@
+<div class="page-header no-print">
+  <div class="flex align-items-center justify-content-between flex-wrap gap-2">
+    <div>
+      <h1><i class="pi pi-file-export mr-2"></i>Aviso de Salida Oficial</h1>
+      <p>Completa el formulario y genera el aviso para imprimir</p>
+    </div>
+    <div class="flex gap-2">
+      <button pButton icon="pi pi-save" label="Guardar"
+              class="p-button-success" [loading]="guardando" (click)="guardar()"></button>
+    </div>
+  </div>
+</div>
+
+<div class="grid no-print">
+
+  <!-- ══ COLUMNA FORMULARIO ══════════════════════════════════════════════════ -->
+  <div class="col-12" [formGroup]="form">
+
+    <!-- Actividad -->
+    <p-card header="Actividad" styleClass="shadow-2 mb-3">
+      <div class="grid">
+        <div class="col-12 md:col-6 p-field">
+          <label class="font-semibold block mb-1">Tipo <span class="text-red-500">*</span></label>
+          <p-dropdown formControlName="tipo" [options]="tiposActividad"
+                      styleClass="w-full" placeholder="Selecciona..."></p-dropdown>
+        </div>
+        <div class="col-12 md:col-6 p-field">
+          <label class="font-semibold block mb-1">Nombre de la actividad <span class="text-red-500">*</span></label>
+          <input pInputText formControlName="nombre" class="w-full"
+                 placeholder="Ej: Cuitzeo del Porvenir" />
+        </div>
+      </div>
+    </p-card>
+
+    <!-- Salida -->
+    <p-card styleClass="shadow-2 mb-3">
+      <ng-template pTemplate="header">
+        <div class="px-3 pt-3 font-bold text-lg flex align-items-center gap-2">
+          <i class="pi pi-map-marker" style="color:#5B21B6"></i> Salida
+        </div>
+      </ng-template>
+      <div class="grid" formGroupName="salida">
+        <div class="col-12 p-field">
+          <label class="font-semibold block mb-1">Lugar <span class="text-red-500">*</span></label>
+          <input pInputText formControlName="lugar" class="w-full"
+                 placeholder="Ej: Central Camionera Norte" />
+        </div>
+        <div class="col-6 p-field">
+          <label class="font-semibold block mb-1">Fecha <span class="text-red-500">*</span></label>
+          <p-calendar formControlName="fecha" dateFormat="dd/mm/yy"
+                      [showIcon]="true" styleClass="w-full"></p-calendar>
+        </div>
+        <div class="col-6 p-field">
+          <label class="font-semibold block mb-1">Hora <span class="text-red-500">*</span></label>
+          <input type="time" pInputText formControlName="hora" class="w-full" />
+        </div>
+      </div>
+    </p-card>
+
+    <!-- Llegada -->
+    <p-card styleClass="shadow-2 mb-3">
+      <ng-template pTemplate="header">
+        <div class="px-3 pt-3 font-bold text-lg flex align-items-center gap-2">
+          <i class="pi pi-flag" style="color:#5B21B6"></i> Llegada (regreso)
+        </div>
+      </ng-template>
+      <div class="grid" formGroupName="llegada">
+        <div class="col-12 p-field">
+          <label class="font-semibold block mb-1">Lugar</label>
+          <input pInputText formControlName="lugar" class="w-full"
+                 placeholder="Ej: Central Camionera Norte" />
+        </div>
+        <div class="col-6 p-field">
+          <label class="font-semibold block mb-1">Fecha</label>
+          <p-calendar formControlName="fecha" dateFormat="dd/mm/yy"
+                      [showIcon]="true" styleClass="w-full"></p-calendar>
+        </div>
+        <div class="col-6 p-field">
+          <label class="font-semibold block mb-1">Hora</label>
+          <input type="time" pInputText formControlName="hora" class="w-full" />
+        </div>
+      </div>
+    </p-card>
+
+    <!-- Transporte y Lugar -->
+    <p-card header="Transporte y Lugar" styleClass="shadow-2 mb-3">
+      <div class="p-field mb-3">
+        <label class="font-semibold block mb-1">Descripción del transporte</label>
+        <input pInputText formControlName="transporte" class="w-full"
+               placeholder="Ej: Camión a Cuitzeo, costo 33 pesos" />
+      </div>
+      <div class="p-field">
+        <label class="font-semibold block mb-1">Descripción del lugar</label>
+        <textarea pInputTextarea formControlName="lugarDescripcion" [rows]="2"
+                  class="w-full" placeholder="Referencia o descripción del destino"></textarea>
+      </div>
+      <div class="p-field mt-3">
+        <label class="font-semibold block mb-1">
+          <i class="pi pi-map-marker mr-1" style="color:#5B21B6"></i>
+          Link de Google Maps <span class="text-xs text-color-secondary font-normal">(opcional — se incluirá foto del mapa en el PDF)</span>
+        </label>
+        <input pInputText formControlName="mapUrl" class="w-full"
+               placeholder="https://maps.app.goo.gl/... o https://www.google.com/maps/..." />
+      </div>
+    </p-card>
+
+    <!-- Contactos -->
+    <p-card header="Contactos de Responsabilidad" styleClass="shadow-2 mb-3">
+
+      <!-- En el Local -->
+      <div class="mb-3">
+        <div class="font-semibold mb-2 flex align-items-center gap-2">
+          <p-tag value="En el Local" severity="warning"></p-tag>
+          <span class="text-sm text-color-secondary">Responsable que queda en el grupo</span>
+        </div>
+        <!-- Selector rápido -->
+        <div class="mb-2">
+          <label class="text-sm block mb-1">Seleccionar de la lista</label>
+          <p-dropdown [options]="staffOptions" optionLabel="label"
+                      placeholder="Seleccionar jefe/subjefe..."
+                      [filter]="true"
+                      [showClear]="true"
+                      styleClass="w-full"
+                      (onChange)="onSelectContacto('local', $event.value)"></p-dropdown>
+        </div>
+        <div class="grid" formGroupName="contactoLocal">
+          <div class="col-12 md:col-5 p-field">
+            <label class="text-sm block mb-1">Nombre</label>
+            <input pInputText formControlName="nombre" class="w-full" placeholder="Nombre completo" />
+          </div>
+          <div class="col-6 md:col-4 p-field">
+            <label class="text-sm block mb-1">Cargo</label>
+            <input pInputText formControlName="cargo" class="w-full" placeholder="Ej: Jefa de Grupo" />
+          </div>
+          <div class="col-6 md:col-3 p-field">
+            <label class="text-sm block mb-1">Teléfono</label>
+            <input pInputText formControlName="telefono" class="w-full" placeholder="44-XX-XX-XX-XX" />
+          </div>
+        </div>
+      </div>
+
+      <p-divider></p-divider>
+
+      <!-- En Actividad -->
+      <div>
+        <div class="font-semibold mb-2 flex align-items-center gap-2">
+          <p-tag value="En Actividad" severity="info"></p-tag>
+          <span class="text-sm text-color-secondary">Responsable que va a la actividad</span>
+        </div>
+        <!-- Selector rápido -->
+        <div class="mb-2">
+          <label class="text-sm block mb-1">Seleccionar de la lista</label>
+          <p-dropdown [options]="staffOptions" optionLabel="label"
+                      placeholder="Seleccionar jefe/subjefe..."
+                      [filter]="true"
+                      [showClear]="true"
+                      styleClass="w-full"
+                      (onChange)="onSelectContacto('actividad', $event.value)"></p-dropdown>
+        </div>
+        <div class="grid" formGroupName="contactoActividad">
+          <div class="col-12 md:col-5 p-field">
+            <label class="text-sm block mb-1">Nombre</label>
+            <input pInputText formControlName="nombre" class="w-full" placeholder="Nombre completo" />
+          </div>
+          <div class="col-6 md:col-4 p-field">
+            <label class="text-sm block mb-1">Cargo</label>
+            <input pInputText formControlName="cargo" class="w-full" placeholder="Ej: Jefe de Comunidad" />
+          </div>
+          <div class="col-6 md:col-3 p-field">
+            <label class="text-sm block mb-1">Teléfono</label>
+            <input pInputText formControlName="telefono" class="w-full" placeholder="44-XX-XX-XX-XX" />
+          </div>
+        </div>
+      </div>
+
+    </p-card>
+
+    <!-- Scouters -->
+    <p-card styleClass="shadow-2 mb-3">
+      <ng-template pTemplate="header">
+        <div class="px-3 pt-3 flex align-items-center justify-content-between">
+          <span class="font-bold text-lg">Scouters / Dirigentes</span>
+          <span class="text-sm font-semibold" style="color:#5B21B6">
+            {{ scouterCount }} seleccionados
+          </span>
+        </div>
+      </ng-template>
+
+      <div *ngIf="!staff.length" class="text-color-secondary text-sm text-center p-2">
+        Cargando personal...
+      </div>
+
+      <div *ngFor="let s of staff"
+           class="flex align-items-center gap-2 p-2 border-round cursor-pointer mb-1"
+           [ngClass]="isScouterSelected(s) ? 'surface-100' : 'hover:surface-50'"
+           [style]="isScouterSelected(s) ? {'border':'2px solid #5B21B6'} : {'border':'2px solid transparent'}"
+           (click)="toggleScouter(s)">
+        <p-checkbox [binary]="true" [ngModel]="isScouterSelected(s)" [ngModelOptions]="{standalone:true}"
+                    style="pointer-events:none"></p-checkbox>
+        <div class="flex-1">
+          <div class="font-medium text-sm">{{ s.nombre }}</div>
+          <div class="text-xs text-color-secondary">{{ authService.getRolLabel(s.rol) }}</div>
+        </div>
+      </div>
+    </p-card>
+
+    <!-- Invitados -->
+    <p-card styleClass="shadow-2 mb-3">
+      <ng-template pTemplate="header">
+        <div class="px-3 pt-3 flex align-items-center justify-content-between">
+          <span class="font-bold text-lg">Invitados / Invitadas</span>
+          <button pButton icon="pi pi-plus" label="Agregar" class="p-button-sm p-button-outlined"
+                  (click)="addInvitado()"></button>
+        </div>
+      </ng-template>
+      <div *ngFor="let inv of invitadosArray.controls; let i = index" [formGroup]="$any(inv)"
+           class="flex gap-2 mb-2 align-items-center">
+        <input pInputText formControlName="nombre" class="flex-1" placeholder="Nombre completo" />
+        <input pInputText formControlName="cum" style="width:130px" placeholder="CUM (opcional)" />
+        <button pButton icon="pi pi-trash" class="p-button-text p-button-danger p-button-sm"
+                (click)="removeInvitado(i)"></button>
+      </div>
+      <p *ngIf="invitadosArray.length === 0" class="text-color-secondary text-sm text-center p-2">
+        Sin invitados registrados
+      </p>
+    </p-card>
+
+    <!-- Participantes -->
+    <p-card styleClass="shadow-2 mb-3">
+      <ng-template pTemplate="header">
+        <div class="px-3 pt-3 flex align-items-center justify-content-between">
+          <span class="font-bold text-lg">Participantes</span>
+          <span class="text-sm font-semibold" style="color:#5B21B6">
+            {{ participantesSeleccionados.length }} seleccionados
+          </span>
+        </div>
+      </ng-template>
+
+      <div *ngIf="loadingCaminantes" class="flex justify-content-center p-3">
+        <p-progressSpinner [style]="{'width':'40px','height':'40px'}"></p-progressSpinner>
+      </div>
+
+      <div *ngFor="let sec of secciones">
+        <ng-container *ngIf="caminantesPorSeccion(sec.key).length > 0">
+          <!-- Header sección -->
+          <div class="flex align-items-center justify-content-between mb-2 mt-3">
+            <div class="flex align-items-center gap-2">
+              <span class="font-bold text-sm px-2 py-1 border-round"
+                    [style]="{'background': seccionColors[sec.key].bg,
+                              'color': seccionColors[sec.key].text}">
+                {{ sec.label }}
+              </span>
+              <span class="text-xs text-color-secondary">
+                {{ selectedPorSeccion(sec.key) }}/{{ caminantesPorSeccion(sec.key).length }}
+              </span>
+            </div>
+            <div class="flex gap-1">
+              <button pButton label="Todos" class="p-button-sm p-button-text"
+                      [style]="{'color': seccionColors[sec.key].bg}"
+                      (click)="selectAllSeccion(sec.key)"></button>
+              <button pButton label="Ninguno" class="p-button-sm p-button-text p-button-secondary"
+                      (click)="deselectAllSeccion(sec.key)"></button>
+            </div>
+          </div>
+
+          <!-- Lista de caminantes -->
+          <div class="grid" style="gap:4px;margin-bottom:8px">
+            <div *ngFor="let c of caminantesPorSeccion(sec.key)"
+                 class="col-12 md:col-6 flex align-items-center gap-2 p-2 border-round cursor-pointer"
+                 [ngClass]="isSelected(c) ? 'surface-100' : 'hover:surface-50'"
+                 [style]="isSelected(c) ? {'border': '2px solid ' + seccionColors[sec.key].bg} : {'border': '2px solid transparent'}"
+                 (click)="toggleParticipante(c)">
+              <p-checkbox [binary]="true" [ngModel]="isSelected(c)" [ngModelOptions]="{standalone:true}"
+                          style="pointer-events:none"></p-checkbox>
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-sm truncate">{{ c.nombre }} {{ c.apellidos }}</div>
+                <div class="text-xs text-color-secondary">{{ c.cum }}</div>
+              </div>
+            </div>
+          </div>
+          <p-divider styleClass="my-1"></p-divider>
+        </ng-container>
+      </div>
+
+    </p-card>
+
+  </div><!-- fin columna formulario -->
+
+</div><!-- fin grid no-print -->
+
+<!-- ══ ZONA SOLO IMPRESIÓN ════════════════════════════════════════════════════ -->
+<div class="print-only">
+  <ng-container *ngTemplateOutlet="previewTemplate"></ng-container>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════════
+     TEMPLATE DE VISTA PREVIA (compartido entre pantalla e impresión)
+     ════════════════════════════════════════════════════════════════════════════ -->
+<ng-template #previewTemplate>
+
+  <!-- ── PÁGINA 1: Aviso de Salida ──────────────────────────────────────────── -->
+  <div class="aviso-page">
+
+    <!-- Encabezado institucional -->
+    <div class="aviso-inst-header">
+      <div class="aviso-inst-logo">⚜</div>
+      <div>
+        <div class="aviso-inst-title">ASOCIACIÓN DE SCOUTS DE MÉXICO, A.C.</div>
+        <div class="aviso-inst-sub">PROVINCIA MICHOACÁN &nbsp;·&nbsp; GRUPO 7 MORELIA</div>
+      </div>
+    </div>
+
+    <!-- Título principal -->
+    <div class="aviso-main-title">
+      <div class="aviso-pill-title">AVISO DE SALIDA</div>
+    </div>
+
+    <!-- Bloque superior: Tipo+Nombre | Muchachos | Adultos -->
+    <div class="aviso-top-grid">
+
+      <!-- Tipo y Nombre -->
+      <div class="aviso-col-left">
+        <div class="aviso-pill">TIPO</div>
+        <div class="aviso-box">{{ form.get('tipo').value || '—' }}</div>
+        <div class="aviso-pill mt-2">NOMBRE</div>
+        <div class="aviso-box">{{ form.get('nombre').value || '—' }}</div>
+      </div>
+
+      <!-- Muchachos -->
+      <div class="aviso-col-center">
+        <div class="aviso-pill">MUCHACHOS DEL GRUPO</div>
+        <div class="aviso-counts-grid mt-2">
+          <div class="aviso-count-row">
+            <div class="aviso-count-num">{{ counts.lobatos }}</div>
+            <div class="aviso-seccion-badge" style="background:#FBBF24;color:#000">Lobatos</div>
+          </div>
+          <div class="aviso-count-row">
+            <div class="aviso-count-num">{{ counts.scouts }}</div>
+            <div class="aviso-seccion-badge" style="background:#16A34A;color:#fff">Scouts</div>
+          </div>
+          <div class="aviso-count-row">
+            <div class="aviso-count-num">{{ counts.caminantes }}</div>
+            <div class="aviso-seccion-badge" style="background:#2563EB;color:#fff">Caminantes</div>
+          </div>
+          <div class="aviso-count-row">
+            <div class="aviso-count-num">{{ counts.rovers }}</div>
+            <div class="aviso-seccion-badge" style="background:#DC2626;color:#fff">Rovers</div>
+          </div>
+          <div class="aviso-count-row aviso-count-total">
+            <div class="aviso-count-num">{{ counts.total }}</div>
+            <div class="aviso-seccion-badge" style="background:#5B21B6;color:#fff">Muchachos</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Adultos -->
+      <div class="aviso-col-right">
+        <div class="aviso-pill">ADULTOS</div>
+        <div class="aviso-adultos-box">
+          <div class="aviso-count-num" style="font-size:1.6rem">{{ scouterCount }}</div>
+          <div class="aviso-seccion-badge" style="background:#6B7280;color:#fff">Scouters</div>
+          <div class="text-xs mt-2" style="color:#6B7280;font-style:italic">*Ver lista anexa</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="aviso-separator"><span>◆</span><span>○ ○</span><span>◆</span></div>
+
+    <!-- Salida | Transporte | Llegada -->
+    <div class="aviso-mid-grid">
+
+      <div class="aviso-section-block">
+        <div class="aviso-pill">SALIDA</div>
+        <ul class="aviso-ul mt-2">
+          <li><strong>Lugar:</strong> {{ form.get('salida.lugar').value || '—' }}</li>
+          <li><strong>Fecha:</strong> {{ formatDate(form.get('salida.fecha').value) }}</li>
+          <li><strong>Hora:</strong> {{ formatTime(form.get('salida.hora').value) }}</li>
+        </ul>
+      </div>
+
+      <div class="aviso-section-block aviso-transporte">
+        <div class="aviso-pill">TRANSPORTE</div>
+        <div class="aviso-transporte-text mt-2">
+          {{ form.get('transporte').value || '—' }}
+        </div>
+      </div>
+
+      <div class="aviso-section-block">
+        <div class="aviso-pill">LLEGADA</div>
+        <ul class="aviso-ul mt-2">
+          <li><strong>Lugar:</strong> {{ form.get('llegada.lugar').value || '—' }}</li>
+          <li><strong>Fecha:</strong> {{ formatDate(form.get('llegada.fecha').value) }}</li>
+          <li><strong>Hora:</strong> {{ formatTime(form.get('llegada.hora').value) }}</li>
+        </ul>
+      </div>
+
+    </div>
+
+    <div class="aviso-separator"><span>◆</span><span>○ ○</span><span>◆</span></div>
+
+    <!-- En el Local | En Actividad -->
+    <div class="aviso-contact-grid">
+
+      <div class="aviso-section-block">
+        <div class="aviso-pill">EN EL LOCAL</div>
+        <ul class="aviso-ul mt-2">
+          <li><strong>Nombre:</strong> {{ form.get('contactoLocal.nombre').value || '—' }}</li>
+          <li><strong>Cargo:</strong> {{ form.get('contactoLocal.cargo').value || '—' }}</li>
+          <li><strong>Teléfono:</strong> {{ form.get('contactoLocal.telefono').value || '—' }}</li>
+        </ul>
+      </div>
+
+      <div class="aviso-section-block">
+        <div class="aviso-pill">EN ACTIVIDAD</div>
+        <ul class="aviso-ul mt-2">
+          <li><strong>Nombre:</strong> {{ form.get('contactoActividad.nombre').value || '—' }}</li>
+          <li><strong>Cargo:</strong> {{ form.get('contactoActividad.cargo').value || '—' }}</li>
+          <li><strong>Teléfono:</strong> {{ form.get('contactoActividad.telefono').value || '—' }}</li>
+        </ul>
+      </div>
+
+    </div>
+
+    <div class="aviso-separator"><span>◆</span><span>○ ○</span><span>◆</span></div>
+
+    <!-- Lugar -->
+    <div>
+      <div class="aviso-pill" style="display:inline-block;margin-bottom:8px">LUGAR</div>
+      <div class="aviso-box" style="min-height:48px">
+        {{ form.get('lugarDescripcion').value || 'Sin descripción adicional del lugar.' }}
+      </div>
+    </div>
+
+  </div><!-- fin página 1 -->
+
+  <!-- ── PÁGINA 2: Lista de Asistentes ─────────────────────────────────────── -->
+  <div class="aviso-page print-page-break">
+
+    <!-- Encabezado -->
+    <div class="aviso-inst-header">
+      <div class="aviso-inst-logo">⚜</div>
+      <div>
+        <div class="aviso-inst-title">ASOCIACIÓN DE SCOUTS DE MÉXICO, A.C.</div>
+        <div class="aviso-inst-sub">PROVINCIA MICHOACÁN &nbsp;·&nbsp; GRUPO 7 MORELIA</div>
+      </div>
+    </div>
+
+    <div class="aviso-main-title">
+      <div class="aviso-pill-title" style="display:flex;align-items:center;gap:16px;justify-content:space-between">
+        <span>LISTA DE ASISTENTES</span>
+        <span class="aviso-total-badge">{{ totalAsistentes }}</span>
+      </div>
+    </div>
+
+    <div class="aviso-separator"><span>◆</span><span>○ ○</span><span>◆</span></div>
+
+    <!-- Scouters/Dirigentes -->
+    <div *ngIf="scouterCount > 0" class="aviso-lista-seccion mb-3">
+      <div class="aviso-pill aviso-pill-full mb-3">SCOUTERS / DIRIGENTES DEL GRUPO 7</div>
+      <div class="aviso-scouters-grid">
+        <div *ngFor="let s of scoutersSeleccionados" class="aviso-scouter-card">
+          <div><strong>Nombre:</strong> {{ s.nombre }}</div>
+          <div><strong>Cargo:</strong> {{ authService.getRolLabel(s.rol) }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Participantes por sección -->
+    <div *ngFor="let sec of secciones">
+      <ng-container *ngIf="selectedPorSeccion(sec.key) > 0">
+        <div class="aviso-lista-seccion mb-3">
+          <div class="aviso-pill aviso-pill-full mb-2"
+               [style]="{'background': seccionColors[sec.key].bg,
+                         'color': seccionColors[sec.key].text}">
+            {{ sec.label | uppercase }}
+          </div>
+          <table class="aviso-tabla w-full">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Nombre</th>
+                <th>CUM</th>
+                <th>Fecha de Nacimiento</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let c of participantesSeleccionados | seccionFilter:sec.key; let i = index">
+                <td>{{ i + 1 }}</td>
+                <td>
+                  <span class="aviso-nombre-badge"
+                        [style]="{'background': seccionColors[sec.key].bg + '22',
+                                  'color': sec.key === 'manada' ? '#92400E' : seccionColors[sec.key].bg,
+                                  'border': '1px solid ' + seccionColors[sec.key].bg}">
+                    {{ c.nombre }} {{ c.apellidos }}
+                  </span>
+                </td>
+                <td>{{ c.cum || '—' }}</td>
+                <td>{{ c.fechaNacimiento ? (c.fechaNacimiento | date:'dd/MM/yyyy') : '—' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </ng-container>
+    </div>
+
+    <!-- Invitados -->
+    <div *ngIf="invitadosArray.length > 0" class="aviso-lista-seccion mb-3">
+      <div class="aviso-pill aviso-pill-full mb-2">INVITADOS / INVITADAS</div>
+      <table class="aviso-tabla w-full">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Nombre</th>
+            <th>CUM / ID</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let inv of invitadosArray.controls; let i = index">
+            <ng-container *ngIf="$any(inv).get('nombre').value?.trim()">
+              <td>{{ i + 1 }}</td>
+              <td>{{ $any(inv).get('nombre').value }}</td>
+              <td>{{ $any(inv).get('cum').value || '—' }}</td>
+            </ng-container>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Firma al final -->
+    <div class="aviso-firmas">
+      <div class="aviso-firma-box">
+        <div class="aviso-firma-line"></div>
+        <div class="text-xs text-center">Jefe(a) de Grupo</div>
+      </div>
+      <div class="aviso-firma-box">
+        <div class="aviso-firma-line"></div>
+        <div class="text-xs text-center">Responsable en Actividad</div>
+      </div>
+    </div>
+
+  </div><!-- fin página 2 -->
+
+</ng-template>
+
+<!-- ══ ESTILOS ════════════════════════════════════════════════════════════════ -->
+<style>
+  /* ── Variables ── */
+  :root {
+    --aviso-purple: #5B21B6;
+    --aviso-purple-light: #EDE9FE;
+    --aviso-bg: #F9F5F0;
+    --aviso-border: #D8D0F0;
+  }
+
+  /* ── Página del aviso ── */
+  .aviso-page {
+    background: var(--aviso-bg);
+    border: 2px solid var(--aviso-border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 0.88rem;
+    color: #1e1e2e;
+  }
+
+  /* ── Encabezado institucional ── */
+  .aviso-inst-header {
+    background: var(--aviso-purple);
+    color: white;
+    border-radius: 6px;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .aviso-inst-logo { font-size: 1.8rem; }
+  .aviso-inst-title { font-weight: 700; font-size: 0.95rem; letter-spacing: 0.5px; }
+  .aviso-inst-sub { font-size: 0.78rem; opacity: 0.85; }
+
+  /* ── Título principal ── */
+  .aviso-main-title { text-align: center; margin-bottom: 12px; }
+  .aviso-pill-title {
+    display: inline-block;
+    background: var(--aviso-purple);
+    color: white;
+    border-radius: 20px;
+    padding: 6px 28px;
+    font-weight: 800;
+    font-size: 1.05rem;
+    letter-spacing: 1px;
+  }
+
+  /* ── Pills de sección ── */
+  .aviso-pill {
+    background: var(--aviso-purple);
+    color: white;
+    border-radius: 12px;
+    padding: 3px 14px;
+    font-weight: 700;
+    font-size: 0.78rem;
+    letter-spacing: 0.5px;
+    display: inline-block;
+  }
+  .aviso-pill-full { display: block; text-align: center; width: 100%; }
+
+  /* ── Cajas de contenido ── */
+  .aviso-box {
+    border: 1.5px solid var(--aviso-border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    background: white;
+    margin-top: 4px;
+  }
+
+  /* ── Grid superior ── */
+  .aviso-top-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr 0.8fr;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .aviso-col-left, .aviso-col-center, .aviso-col-right {
+    border: 1.5px solid var(--aviso-border);
+    border-radius: 8px;
+    padding: 10px;
+    background: white;
+  }
+
+  /* ── Conteos por sección ── */
+  .aviso-counts-grid { display: flex; flex-direction: column; gap: 6px; }
+  .aviso-count-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .aviso-count-total { border-top: 2px solid var(--aviso-border); padding-top: 6px; margin-top: 2px; }
+  .aviso-count-num {
+    font-weight: 800;
+    font-size: 1.1rem;
+    min-width: 28px;
+    text-align: center;
+  }
+  .aviso-seccion-badge {
+    border-radius: 6px;
+    padding: 2px 10px;
+    font-weight: 700;
+    font-size: 0.82rem;
+  }
+
+  /* ── Adultos ── */
+  .aviso-adultos-box {
+    text-align: center;
+    padding-top: 8px;
+  }
+
+  /* ── Separador ── */
+  .aviso-separator {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--aviso-purple);
+    font-size: 1rem;
+    padding: 6px 0;
+    margin: 4px 0;
+  }
+
+  /* ── Grid medio (Salida|Transporte|Llegada) ── */
+  .aviso-mid-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  /* ── Grid contactos ── */
+  .aviso-contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .aviso-section-block {
+    border: 1.5px solid var(--aviso-border);
+    border-radius: 8px;
+    padding: 10px;
+    background: white;
+  }
+  .aviso-transporte {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .aviso-transporte-text {
+    text-align: center;
+    font-style: italic;
+    color: #374151;
+  }
+
+  /* ── Listas ul ── */
+  .aviso-ul { margin: 0; padding-left: 14px; line-height: 1.7; }
+
+  /* ── Tabla de asistentes ── */
+  .aviso-tabla {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.82rem;
+  }
+  .aviso-tabla th {
+    background: var(--aviso-purple);
+    color: white;
+    padding: 4px 8px;
+    text-align: left;
+    font-weight: 600;
+  }
+  .aviso-tabla td {
+    border-bottom: 1px solid #E5E7EB;
+    padding: 4px 8px;
+    vertical-align: middle;
+  }
+  .aviso-tabla tr:nth-child(even) td { background: #F9F5FF; }
+
+  /* ── Badge nombre en tabla ── */
+  .aviso-nombre-badge {
+    display: inline-block;
+    border-radius: 4px;
+    padding: 1px 7px;
+    font-weight: 600;
+    font-size: 0.82rem;
+  }
+
+  /* ── Scouters grid ── */
+  .aviso-scouters-grid {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .aviso-scouter-card {
+    background: var(--aviso-purple-light);
+    border: 1.5px solid var(--aviso-border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    min-width: 200px;
+  }
+
+  /* ── Total asistentes badge ── */
+  .aviso-total-badge {
+    background: white;
+    color: var(--aviso-purple);
+    border-radius: 50%;
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.1rem;
+  }
+
+  /* ── Firmas ── */
+  .aviso-firmas {
+    display: flex;
+    gap: 40px;
+    justify-content: center;
+    margin-top: 24px;
+  }
+  .aviso-firma-box { text-align: center; min-width: 160px; }
+  .aviso-firma-line {
+    border-bottom: 1.5px solid #374151;
+    margin-bottom: 6px;
+    height: 32px;
+  }
+
+  .aviso-lista-seccion { margin-bottom: 16px; }
+
+  /* ── Utilidades de impresión ── */
+  .no-print { }
+  .print-only { display: none; }
+
+  @media print {
+    .no-print { display: none !important; }
+    .print-only { display: block !important; }
+    .aviso-page {
+      border: none;
+      padding: 12px 16px;
+      margin-bottom: 0;
+    }
+    .print-page-break { page-break-before: always; }
+  }
+</style>

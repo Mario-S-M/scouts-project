@@ -1,0 +1,9 @@
+<p-card styleClass="stat-card border-round-lg shadow-2">
+  <div class="text-center">
+    <div class="stat-icon mb-2" [style]="{ color: color }">
+      <i [class]="'pi ' + icon" style="font-size: 2.5rem;"></i>
+    </div>
+    <div class="stat-number" [style]="{ color: color }">{{ value }}</div>
+    <div class="stat-label">{{ label }}</div>
+  </div>
+</p-card>

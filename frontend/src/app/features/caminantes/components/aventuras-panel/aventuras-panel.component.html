@@ -1,0 +1,14 @@
+<div class="grid mt-3">
+  <div *ngFor="let av of aventuras" class="col-12 sm:col-6 md:col-3">
+    <p-card styleClass="text-center shadow-2 border-round-xl"
+            [style]="av.completado ? {'border': '2px solid #2E7D32', 'background': '#F1F8E9'} : {}">
+      <div style="font-size:3rem;" class="mb-2">{{ aventuraIcons[av.aventura] }}</div>
+      <div class="font-bold text-lg mb-1">{{ av.aventura }}</div>
+      <p-tag [value]="av.completado ? 'Completada' : 'Pendiente'"
+             [severity]="av.completado ? 'success' : 'secondary'"></p-tag>
+      <div *ngIf="av.fechaCompletado" class="text-xs text-color-secondary mt-2">
+        {{ av.fechaCompletado | date:'dd/MM/yyyy' }}
+      </div>
+    </p-card>
+  </div>
+</div>

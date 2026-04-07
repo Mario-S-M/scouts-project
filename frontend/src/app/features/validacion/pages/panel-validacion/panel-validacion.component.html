@@ -1,0 +1,237 @@
+<div class="page-header">
+  <div class="flex align-items-center justify-content-between flex-wrap gap-2">
+    <div>
+      <h1><i class="pi pi-shield mr-2"></i>Panel de Validación</h1>
+      <p>Revisa y aprueba las evidencias enviadas por los caminantes</p>
+    </div>
+    <button pButton icon="pi pi-refresh" label="Actualizar"
+            class="p-button-outlined" (click)="loadEvidencias()"></button>
+  </div>
+</div>
+
+<!-- Filter -->
+<div class="mb-3">
+  <p-selectButton [options]="estadoOptions" [(ngModel)]="filterEstado"
+                  optionLabel="label" optionValue="value"></p-selectButton>
+</div>
+
+<!-- Count badges -->
+<div class="flex gap-3 mb-3 flex-wrap">
+  <div class="flex align-items-center gap-2">
+    <p-badge [value]="(evidencias | estadoFilter:'pendiente')?.length?.toString() || '0'"
+             severity="warning"></p-badge>
+    <span class="text-sm">Pendientes</span>
+  </div>
+  <div class="flex align-items-center gap-2">
+    <p-badge [value]="(evidencias | estadoFilter:'aprobada')?.length?.toString() || '0'"
+             severity="success"></p-badge>
+    <span class="text-sm">Aprobadas</span>
+  </div>
+  <div class="flex align-items-center gap-2">
+    <p-badge [value]="(evidencias | estadoFilter:'rechazada')?.length?.toString() || '0'"
+             severity="danger"></p-badge>
+    <span class="text-sm">Rechazadas</span>
+  </div>
+</div>
+
+<p-card styleClass="shadow-2">
+  <p-table [value]="filteredEvidencias" [loading]="loading"
+           [paginator]="true" [rows]="20"
+           styleClass="p-datatable-sm p-datatable-striped"
+           [globalFilterFields]="['categoria','subcategoria','tipo']"
+           #dt>
+    <ng-template pTemplate="caption">
+      <div class="flex justify-content-end">
+        <span class="p-input-icon-left">
+          <i class="pi pi-search"></i>
+          <input pInputText type="text"
+                 (input)="dt.filterGlobal($event.target['value'], 'contains')"
+                 placeholder="Buscar..." />
+        </span>
+      </div>
+    </ng-template>
+
+    <ng-template pTemplate="header">
+      <tr>
+        <th pSortableColumn="fechaSubida">Fecha <p-sortIcon field="fechaSubida"></p-sortIcon></th>
+        <th>Caminante</th>
+        <th pSortableColumn="tipo">Tipo <p-sortIcon field="tipo"></p-sortIcon></th>
+        <th>Categoría / Camino</th>
+        <th>Etapa</th>
+        <th pSortableColumn="estado">Estado <p-sortIcon field="estado"></p-sortIcon></th>
+        <th>Acciones</th>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="body" let-ev>
+      <tr>
+        <td class="text-sm">{{ ev.fechaSubida | date:'dd/MM/yy HH:mm' }}</td>
+        <td>
+          <div class="font-semibold text-sm">{{ getCaminanteName(ev) }}</div>
+        </td>
+        <td>
+          <p-chip [label]="tipoLabels[ev.tipo] || ev.tipo"></p-chip>
+        </td>
+        <td>
+          <div class="font-semibold text-sm">{{ ev.categoria }}</div>
+          <div class="text-xs text-color-secondary">{{ ev.subcategoria }}</div>
+        </td>
+        <td>
+          <p-tag *ngIf="ev.etapa"
+                 [value]="etapaLabels[ev.etapa] || ev.etapa"
+                 severity="info"></p-tag>
+          <span *ngIf="!ev.etapa" class="text-color-secondary text-sm">—</span>
+        </td>
+        <td>
+          <p-tag [value]="ev.estado"
+                 [severity]="getEstadoSeverity(ev.estado)"></p-tag>
+        </td>
+        <td>
+          <button pButton icon="pi pi-eye" class="p-button-text p-button-sm"
+                  pTooltip="Ver y validar"
+                  (click)="openDialog(ev)"
+                  [disabled]="ev.estado !== 'pendiente'"></button>
+          <button pButton icon="pi pi-eye" class="p-button-text p-button-info p-button-sm"
+                  *ngIf="ev.estado !== 'pendiente'"
+                  pTooltip="Ver detalle"
+                  (click)="openDialog(ev)"></button>
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td colspan="7" class="text-center p-5 text-color-secondary">
+          <i class="pi pi-inbox text-4xl mb-2 block"></i>
+          No hay evidencias {{ filterEstado ? 'con estado "' + filterEstado + '"' : '' }}.
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</p-card>
+
+<!-- Validation Dialog -->
+<p-dialog [(visible)]="showDialog" [modal]="true" [style]="{ width: '700px', maxWidth: '95vw' }"
+          header="Revisar Evidencia" [closable]="true" (onHide)="closeDialog()">
+
+  <div *ngIf="selectedEvidencia" class="p-2">
+
+    <!-- Info grid -->
+    <div class="grid mb-3">
+      <div class="col-6">
+        <label class="text-xs text-color-secondary font-bold uppercase">Caminante</label>
+        <div class="font-semibold">{{ getCaminanteName(selectedEvidencia) }}</div>
+      </div>
+      <div class="col-6">
+        <label class="text-xs text-color-secondary font-bold uppercase">Tipo</label>
+        <div>
+          <p-chip [label]="tipoLabels[selectedEvidencia.tipo] || selectedEvidencia.tipo"></p-chip>
+        </div>
+      </div>
+      <div class="col-6 mt-2">
+        <label class="text-xs text-color-secondary font-bold uppercase">Categoría</label>
+        <div class="font-semibold">{{ selectedEvidencia.categoria }}</div>
+        <div class="text-sm text-color-secondary">{{ selectedEvidencia.subcategoria }}</div>
+      </div>
+      <div class="col-6 mt-2">
+        <label class="text-xs text-color-secondary font-bold uppercase">Etapa</label>
+        <div>
+          <p-tag *ngIf="selectedEvidencia.etapa"
+                 [value]="etapaLabels[selectedEvidencia.etapa] || selectedEvidencia.etapa"
+                 severity="info"></p-tag>
+          <span *ngIf="!selectedEvidencia.etapa" class="text-color-secondary">N/A</span>
+        </div>
+      </div>
+      <div class="col-12 mt-2">
+        <label class="text-xs text-color-secondary font-bold uppercase">Fecha de envío</label>
+        <div>{{ selectedEvidencia.fechaSubida | date:'dd/MM/yyyy HH:mm' }}</div>
+      </div>
+    </div>
+
+    <!-- Descripcion -->
+    <div *ngIf="selectedEvidencia.descripcion" class="mb-3">
+      <label class="text-xs text-color-secondary font-bold uppercase block mb-1">Descripción</label>
+      <div class="p-3 surface-100 border-round">{{ selectedEvidencia.descripcion }}</div>
+    </div>
+
+    <!-- Archivo adjunto -->
+    <div *ngIf="selectedEvidencia.archivoUrl" class="mb-3">
+      <label class="text-xs text-color-secondary font-bold uppercase block mb-1">Archivo adjunto</label>
+
+      <!-- Imagen -->
+      <img *ngIf="isImageFile(selectedEvidencia.archivoUrl)"
+           [src]="selectedEvidencia.archivoUrl" alt="Evidencia"
+           style="max-width:100%;max-height:360px;border-radius:8px;object-fit:contain;display:block;" />
+
+      <!-- PDF -->
+      <iframe *ngIf="isPdfFile(selectedEvidencia.archivoUrl)"
+              [src]="safePdfUrl(selectedEvidencia.archivoUrl)"
+              style="width:100%;height:420px;border:1px solid #e5e7eb;border-radius:8px;">
+      </iframe>
+
+      <!-- Video -->
+      <video *ngIf="isVideoFile(selectedEvidencia.archivoUrl)"
+             controls
+             style="width:100%;max-height:360px;border-radius:8px;background:#000;">
+        <source [src]="selectedEvidencia.archivoUrl" />
+      </video>
+
+      <!-- Otro tipo de archivo: abrir en nueva pestaña -->
+      <div *ngIf="!isImageFile(selectedEvidencia.archivoUrl) &&
+                  !isPdfFile(selectedEvidencia.archivoUrl) &&
+                  !isVideoFile(selectedEvidencia.archivoUrl)">
+        <a [href]="selectedEvidencia.archivoUrl" target="_blank"
+           class="p-button p-button-outlined p-button-sm">
+          <i class="pi pi-external-link mr-1"></i> Abrir en nueva pestaña
+        </a>
+      </div>
+    </div>
+
+    <!-- Estado actual si no es pendiente -->
+    <div *ngIf="selectedEvidencia.estado !== 'pendiente'" class="mb-3">
+      <p-message
+        [severity]="selectedEvidencia.estado === 'aprobada' ? 'success' : 'error'"
+        [text]="selectedEvidencia.estado === 'aprobada' ? 'Esta evidencia fue APROBADA' : 'Esta evidencia fue RECHAZADA'">
+      </p-message>
+      <div *ngIf="selectedEvidencia.comentarioValidador" class="mt-2">
+        <label class="text-xs text-color-secondary font-bold uppercase block mb-1">Comentario del validador</label>
+        <div class="p-3 surface-100 border-round">{{ selectedEvidencia.comentarioValidador }}</div>
+      </div>
+    </div>
+
+    <!-- Validation form for pending -->
+    <div *ngIf="selectedEvidencia.estado === 'pendiente'">
+      <p-divider></p-divider>
+      <div class="mt-3">
+        <div class="flex align-items-center gap-2 mb-3 text-sm text-color-secondary">
+          <i class="pi pi-user"></i>
+          <span>Validando como <strong>{{ validadoPor }}</strong></span>
+        </div>
+        <div class="p-field mb-3">
+          <label class="block mb-2 font-semibold">Comentario</label>
+          <textarea pInputTextarea [(ngModel)]="comentario" class="w-full" rows="3"
+                    placeholder="Observaciones (requerido para rechazar)"></textarea>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <ng-template pTemplate="footer">
+    <div *ngIf="selectedEvidencia?.estado === 'pendiente'" class="flex justify-content-end gap-2">
+      <button pButton label="Cerrar" icon="pi pi-times"
+              class="p-button-text" (click)="closeDialog()"></button>
+      <button pButton label="Rechazar" icon="pi pi-times-circle"
+              class="p-button-danger p-button-outlined"
+              [loading]="processing" (click)="rechazar()"></button>
+      <button pButton label="Aprobar" icon="pi pi-check-circle"
+              class="p-button-success"
+              [loading]="processing" (click)="aprobar()"></button>
+    </div>
+    <div *ngIf="selectedEvidencia?.estado !== 'pendiente'">
+      <button pButton label="Cerrar" icon="pi pi-times"
+              class="p-button-outlined" (click)="closeDialog()"></button>
+    </div>
+  </ng-template>
+
+</p-dialog>

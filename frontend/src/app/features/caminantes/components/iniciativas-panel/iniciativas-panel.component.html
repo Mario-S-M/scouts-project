@@ -1,0 +1,14 @@
+<div class="grid mt-3">
+  <div *ngFor="let ini of iniciativas" class="col-12 md:col-6">
+    <div class="flex align-items-center gap-3 p-3 border-round shadow-1"
+         [style]="ini.completado ? 'background:#E8F5E9;border-left:4px solid #2E7D32' : 'background:#fff;border-left:4px solid #ddd'">
+      <i class="pi pi-globe text-2xl" [style]="ini.completado ? 'color:#2E7D32' : 'color:#ccc'"></i>
+      <div class="flex-1">
+        <div class="font-bold">{{ iniciativaLabels[ini.iniciativa] || ini.iniciativa }}</div>
+        <div class="text-sm text-color-secondary">Nivel: {{ ini.nivel }}</div>
+      </div>
+      <p-tag [value]="ini.completado ? 'Completada' : 'Pendiente'"
+             [severity]="ini.completado ? 'success' : 'secondary'"></p-tag>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,129 @@
+<div class="page-header">
+  <h1><i class="pi pi-user-plus mr-2"></i>Registro de Caminante</h1>
+  <p>Registra un nuevo miembro en la Comunidad de Caminantes</p>
+</div>
+
+<div class="grid justify-content-center">
+  <div class="col-12 lg:col-8">
+    <p-card styleClass="shadow-3">
+
+      <!-- Banner del grupo (fijo, no editable) -->
+      <ng-template pTemplate="header">
+        <div class="grupo-banner">
+          <div class="grupo-banner-icon">⚜️</div>
+          <div class="grupo-banner-info">
+            <div class="grupo-banner-nombre">Grupo Scout {{ GRUPO }} · {{ COMUNIDAD }}</div>
+            <div class="grupo-banner-lugar">
+              <i class="pi pi-map-marker"></i> {{ CIUDAD }}, {{ PROVINCIA }}
+            </div>
+          </div>
+          <div class="grupo-banner-tags">
+            <span class="grupo-tag">Grupo {{ GRUPO }}</span>
+            <span class="grupo-tag">{{ PROVINCIA }}</span>
+            <span class="grupo-tag">{{ COMUNIDAD }}</span>
+          </div>
+        </div>
+      </ng-template>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="scout-form p-3">
+        <div class="grid">
+
+          <!-- ── Datos personales ── -->
+          <div class="col-12">
+            <div class="seccion-titulo"><i class="pi pi-user mr-2"></i>Datos personales</div>
+          </div>
+
+          <!-- Nombre -->
+          <div class="col-12 md:col-6 p-field">
+            <label for="nombre">Nombre(s) <span class="text-red-500">*</span></label>
+            <input pInputText id="nombre" formControlName="nombre"
+                   class="w-full" placeholder="Ej. Juan Carlos" />
+            <small *ngIf="isInvalid('nombre')" class="p-error">El nombre es requerido (mínimo 2 caracteres).</small>
+          </div>
+
+          <!-- Apellidos -->
+          <div class="col-12 md:col-6 p-field">
+            <label for="apellidos">Apellidos <span class="text-red-500">*</span></label>
+            <input pInputText id="apellidos" formControlName="apellidos"
+                   class="w-full" placeholder="Ej. Ramírez Morales" />
+            <small *ngIf="isInvalid('apellidos')" class="p-error">Los apellidos son requeridos.</small>
+          </div>
+
+          <!-- CUM -->
+          <div class="col-12 md:col-6 p-field">
+            <label for="cum">CUM</label>
+            <input pInputText id="cum" formControlName="cum"
+                   class="w-full" placeholder="Clave Única de Miembro" />
+          </div>
+
+          <!-- Fecha de Nacimiento -->
+          <div class="col-12 md:col-6 p-field">
+            <label for="fechaNacimiento">Fecha de Cumpleaños</label>
+            <p-calendar id="fechaNacimiento" formControlName="fechaNacimiento"
+                        [showIcon]="true" dateFormat="dd/mm/yy"
+                        styleClass="w-full" placeholder="dd/mm/aaaa"
+                        [maxDate]="hoy"></p-calendar>
+          </div>
+
+          <!-- Sección -->
+          <div class="col-12 md:col-6 p-field">
+            <label for="seccion">Sección <span class="text-red-500">*</span></label>
+            <p-dropdown id="seccion" formControlName="seccion"
+                        [options]="secciones"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Selecciona la sección"
+                        styleClass="w-full"></p-dropdown>
+            <small *ngIf="isInvalid('seccion')" class="p-error">La sección es requerida.</small>
+          </div>
+
+          <!-- Correo -->
+          <div class="col-12 md:col-6 p-field">
+            <label for="email">Correo Electrónico</label>
+            <input pInputText id="email" formControlName="email" type="email"
+                   class="w-full" placeholder="correo@ejemplo.com" />
+            <small *ngIf="isInvalid('email')" class="p-error">Ingresa un correo válido.</small>
+          </div>
+
+          <!-- Equipo -->
+          <div class="col-12 md:col-6 p-field">
+            <label for="equipo">Equipo</label>
+            <input pInputText id="equipo" formControlName="equipo"
+                   class="w-full" placeholder="Nombre del equipo (opcional)" />
+          </div>
+
+          <!-- ── Fechas scout ── -->
+          <div class="col-12 mt-2">
+            <div class="seccion-titulo"><i class="pi pi-calendar mr-2"></i>Fechas Scout</div>
+          </div>
+
+          <!-- Fecha Promesa -->
+          <div class="col-12 md:col-6 p-field">
+            <label for="fechaPromesa">Fecha de Promesa</label>
+            <p-calendar id="fechaPromesa" formControlName="fechaPromesa"
+                        [showIcon]="true" dateFormat="dd/mm/yy"
+                        styleClass="w-full" placeholder="dd/mm/aaaa"></p-calendar>
+          </div>
+
+          <!-- Fecha Pase de Inicio -->
+          <div class="col-12 md:col-6 p-field">
+            <label for="fechaPaseInicio">Fecha Pase de Inicio</label>
+            <p-calendar id="fechaPaseInicio" formControlName="fechaPaseInicio"
+                        [showIcon]="true" dateFormat="dd/mm/yy"
+                        styleClass="w-full" placeholder="dd/mm/aaaa"></p-calendar>
+          </div>
+
+        </div>
+
+        <div class="flex justify-content-end gap-2 mt-4 pt-3 border-top-1 surface-border">
+          <button pButton type="button" label="Cancelar" icon="pi pi-times"
+                  class="p-button-outlined p-button-secondary"
+                  routerLink="/caminantes"></button>
+          <button pButton type="submit" label="Registrar Caminante" icon="pi pi-check"
+                  [loading]="submitting" [disabled]="submitting"></button>
+        </div>
+
+      </form>
+    </p-card>
+  </div>
+</div>

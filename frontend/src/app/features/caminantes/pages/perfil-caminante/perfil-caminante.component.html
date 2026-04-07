@@ -1,0 +1,159 @@
+<div *ngIf="loading" class="flex justify-content-center p-5">
+  <p-progressSpinner strokeWidth="4" styleClass="w-4rem h-4rem"></p-progressSpinner>
+</div>
+
+<ng-container *ngIf="!loading && caminante && progreso">
+
+  <!-- Profile Header -->
+  <div class="grid mb-4">
+    <div class="col-12">
+      <p-card styleClass="shadow-2" style="background: linear-gradient(135deg, #E8F5E9, #F9FBE7);">
+        <div class="flex flex-wrap align-items-center gap-4">
+          <div class="avatar-circle" style="width:80px;height:80px;font-size:2rem;flex-shrink:0;">
+            {{ getInitials() }}
+          </div>
+          <div class="flex-1">
+            <h2 class="mt-0 mb-1 text-green-900">{{ caminante.nombre }} {{ caminante.apellidos }}</h2>
+            <div class="flex flex-wrap gap-2 mb-2">
+              <p-chip [label]="caminante.grupo" icon="pi pi-shield"></p-chip>
+              <p-chip [label]="caminante.comunidad" icon="pi pi-home"></p-chip>
+              <p-chip [label]="caminante.provincia" icon="pi pi-map-marker"></p-chip>
+              <p-chip *ngIf="caminante.equipo" [label]="caminante.equipo" icon="pi pi-users"></p-chip>
+            </div>
+            <div class="text-sm text-color-secondary flex flex-wrap gap-3">
+              <span *ngIf="caminante.email"><i class="pi pi-envelope mr-1"></i>{{ caminante.email }}</span>
+              <span *ngIf="caminante.fechaPaseInicio">
+                <i class="pi pi-calendar mr-1"></i>Inicio: {{ caminante.fechaPaseInicio | date:'dd/MM/yyyy' }}
+              </span>
+              <span *ngIf="progreso.mesesEnPrograma > 0">
+                <i class="pi pi-clock mr-1"></i>{{ getMesesLabel(progreso.mesesEnPrograma) }} en el programa
+              </span>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <button pButton icon="pi pi-file-export" label="Subir Evidencia"
+                    class="p-button-outlined p-button-success p-button-sm"
+                    [routerLink]="['/evidencias/nueva']"
+                    [queryParams]="{caminanteId: caminante.id}"></button>
+            <button pButton icon="pi pi-star" label="Calcular Insignias"
+                    class="p-button-sm" style="background:#FFD700;border-color:#FFD700;color:#333;"
+                    [loading]="calculatingInsignias"
+                    (click)="calcularInsignias()"></button>
+          </div>
+        </div>
+      </p-card>
+    </div>
+  </div>
+
+  <!-- Tabs for detailed progress -->
+  <p-tabView>
+
+    <!-- SENDEROS Tab -->
+    <p-tabPanel header="Senderos" leftIcon="pi pi-compass">
+      <app-senderos-panel [senderos]="progreso.senderos"></app-senderos-panel>
+    </p-tabPanel>
+
+    <!-- ESPECIALIDADES Tab -->
+    <p-tabPanel header="Especialidades" leftIcon="pi pi-bookmark">
+      <app-especialidades-panel [especialidades]="progreso.especialidades"></app-especialidades-panel>
+    </p-tabPanel>
+
+    <!-- AVENTURAS Tab -->
+    <p-tabPanel header="Aventuras" leftIcon="pi pi-map">
+      <app-aventuras-panel
+        [aventuras]="progreso.aventuras"
+        [terraNova]="progreso.terraNova">
+      </app-aventuras-panel>
+    </p-tabPanel>
+
+    <!-- INICIATIVAS Tab -->
+    <p-tabPanel header="Iniciativas Mundiales" leftIcon="pi pi-globe">
+      <app-iniciativas-panel [iniciativas]="progreso.iniciativas"></app-iniciativas-panel>
+    </p-tabPanel>
+
+    <!-- EVENTOS Tab -->
+    <p-tabPanel header="Eventos" leftIcon="pi pi-calendar">
+      <div class="mt-3">
+        <div *ngIf="progreso.eventos.length === 0"
+             class="text-center p-5 text-color-secondary">
+          <i class="pi pi-calendar text-4xl mb-3 block"></i>
+          <p>No hay eventos registrados aún.</p>
+        </div>
+
+        <div class="grid mb-3" *ngIf="progreso.eventos.length > 0">
+          <div class="col-4 text-center">
+            <div class="font-bold text-2xl text-blue-700">{{ progreso.eventosProvincia }}</div>
+            <div class="text-sm">Provincia</div>
+          </div>
+          <div class="col-4 text-center">
+            <div class="font-bold text-2xl text-orange-600">{{ progreso.eventosNacional }}</div>
+            <div class="text-sm">Nacional</div>
+          </div>
+          <div class="col-4 text-center">
+            <div class="font-bold text-2xl text-purple-700">{{ progreso.eventosInternacional }}</div>
+            <div class="text-sm">Internacional</div>
+          </div>
+        </div>
+
+        <p-table [value]="progreso.eventos" styleClass="p-datatable-sm" [paginator]="true" [rows]="10">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Evento</th>
+              <th>Tipo</th>
+              <th>Fecha</th>
+              <th>Eje Temático</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-ev>
+            <tr>
+              <td class="font-semibold">{{ ev.nombre }}</td>
+              <td>
+                <p-tag [value]="ev.tipo"
+                       [severity]="ev.tipo === 'Internacional' ? 'danger' : ev.tipo === 'Nacional' ? 'warning' : 'info'">
+                </p-tag>
+              </td>
+              <td>{{ ev.fecha | date:'dd/MM/yyyy' }}</td>
+              <td>{{ ev.ejeTematico || '—' }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+    </p-tabPanel>
+
+    <!-- PUNTA DE FLECHA Tab -->
+    <p-tabPanel header="Punta de Flecha" leftIcon="pi pi-send">
+      <div class="grid mt-3 justify-content-center">
+        <div class="col-12 md:col-5">
+          <p-card styleClass="text-center shadow-2"
+                  [style]="progreso.puntaParticipacion ? {'border':'2px solid #2E7D32','background':'#F1F8E9'} : {}">
+            <div style="font-size:3rem;" class="mb-2">🏹</div>
+            <div class="font-bold text-xl mb-2">Participación</div>
+            <p-tag [value]="progreso.puntaParticipacion ? 'Lograda' : 'Pendiente'"
+                   [severity]="progreso.puntaParticipacion ? 'success' : 'secondary'"></p-tag>
+            <div class="text-sm text-color-secondary mt-2">Nivel básico de Punta de Flecha</div>
+          </p-card>
+        </div>
+        <div class="col-12 md:col-5">
+          <p-card styleClass="text-center shadow-2"
+                  [style]="progreso.puntaCertificacion ? {'border':'2px solid #FFD700','background':'#FFFDE7'} : {}">
+            <div style="font-size:3rem;" class="mb-2">🎯</div>
+            <div class="font-bold text-xl mb-2">Certificación</div>
+            <p-tag [value]="progreso.puntaCertificacion ? 'Lograda' : 'Pendiente'"
+                   [severity]="progreso.puntaCertificacion ? 'success' : 'secondary'"></p-tag>
+            <div class="text-sm text-color-secondary mt-2">Nivel avanzado de Punta de Flecha</div>
+          </p-card>
+        </div>
+      </div>
+    </p-tabPanel>
+
+    <!-- INSIGNIAS Tab -->
+    <p-tabPanel header="Insignias" leftIcon="pi pi-star">
+      <app-insignias-caminante
+        [insignias]="progreso.insignias"
+        [camisola]="progreso.terraNova">
+      </app-insignias-caminante>
+    </p-tabPanel>
+
+  </p-tabView>
+
+</ng-container>

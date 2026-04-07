@@ -1,0 +1,311 @@
+<!-- ── Loading ──────────────────────────────────────────────────────────────── -->
+<div *ngIf="loading" class="flex justify-content-center align-items-center" style="height:60vh">
+  <p-progressSpinner></p-progressSpinner>
+</div>
+
+<ng-container *ngIf="!loading && caminante">
+
+  <!-- ── Encabezado del scout ───────────────────────────────────────────────── -->
+  <div class="page-header mb-4" style="padding-bottom:0">
+    <div class="flex align-items-center gap-3 flex-wrap">
+      <div class="avatar-circle" style="width:56px;height:56px;font-size:1.2rem;flex-shrink:0">
+        <img *ngIf="caminante.foto" [src]="caminante.foto"
+             style="width:100%;height:100%;object-fit:cover;border-radius:50%" />
+        <span *ngIf="!caminante.foto">
+          {{ caminante.nombre.charAt(0) }}{{ caminante.apellidos?.charAt(0) }}
+        </span>
+      </div>
+      <div>
+        <h1 class="m-0">¡Hola, {{ caminante.nombre }}!</h1>
+        <p class="m-0 text-color-secondary">
+          Comunidad de Caminantes · Equipo {{ caminante.equipo || 'Sin equipo' }}
+        </p>
+      </div>
+      <div class="ml-auto text-right">
+        <div class="text-3xl font-bold" style="color:#002CFF">{{ totalProgreso }}%</div>
+        <div class="text-xs text-color-secondary">Progreso total</div>
+      </div>
+    </div>
+
+    <!-- Barra de progreso total -->
+    <p-progressBar [value]="totalProgreso" [showValue]="false" styleClass="mt-3"
+                   [style]="{'height':'10px','border-radius':'5px'}"></p-progressBar>
+  </div>
+
+  <!-- ── Tabs ───────────────────────────────────────────────────────────────── -->
+  <p-tabView styleClass="mb-0">
+
+    <!-- ══ Tab 1: Mi Progreso ══════════════════════════════════════════════════ -->
+    <p-tabPanel header="Mi Progreso" leftIcon="pi pi-compass">
+
+  <!-- ── Explicación ────────────────────────────────────────────────────────── -->
+  <p-card styleClass="shadow-1 mb-4 surface-50">
+    <div class="flex align-items-start gap-3">
+      <i class="pi pi-info-circle text-2xl mt-1" style="color:#002CFF"></i>
+      <div>
+        <div class="font-semibold mb-1">¿Cómo funciona?</div>
+        <p class="text-sm text-color-secondary m-0">
+          Tu progreso está organizado en <strong>4 Ejes Temáticos</strong>, cada uno con
+          5 Caminos. En cada Camino debes completar 3 etapas: <strong>Conozco → Aplico → Comparto</strong>.
+          Para marcar una etapa, sube una evidencia de tu actividad. Tu jefe de comunidad
+          la revisará y, al aprobarla, la etapa quedará completada.
+        </p>
+      </div>
+    </div>
+  </p-card>
+
+  <!-- ── Los 4 Ejes Temáticos ───────────────────────────────────────────────── -->
+  <div class="grid">
+    <div class="col-12 lg:col-6" *ngFor="let eje of ejes; let i = index">
+
+      <!-- Tarjeta del eje -->
+      <p-card styleClass="shadow-2 mb-3 eje-card" [style]="{'border-top': '4px solid ' + eje.color}">
+
+        <!-- Encabezado clicable -->
+        <div class="flex align-items-center gap-3 cursor-pointer" (click)="toggleEje(i)">
+          <div class="eje-icon-circle" [style]="{'background': eje.color + '20', 'color': eje.color}">
+            <i [class]="eje.icono" style="font-size:1.4rem"></i>
+          </div>
+          <div class="flex-1">
+            <div class="font-bold text-lg">{{ eje.nombre }}</div>
+            <div class="text-xs text-color-secondary">
+              Sendero {{ eje.sendero }} · {{ eje.completados }}/{{ eje.totalCaminos }} caminos
+            </div>
+          </div>
+          <div class="text-right mr-2">
+            <div class="text-xl font-bold" [style]="{'color': eje.color}">{{ eje.porcentaje }}%</div>
+          </div>
+          <i [class]="ejeExpandido === i ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
+             class="text-color-secondary"></i>
+        </div>
+
+        <!-- Barra de progreso del eje -->
+        <p-progressBar [value]="eje.porcentaje" [showValue]="false" class="mt-3"
+                       [style]="{'height':'6px','border-radius':'3px','--p-progressbar-value-background': eje.color}">
+        </p-progressBar>
+
+        <!-- ── Contenido expandido: los caminos ────────────────────────────── -->
+        <div *ngIf="ejeExpandido === i" class="mt-4">
+
+          <!-- Descripción del eje -->
+          <p class="text-sm text-color-secondary mb-3 mt-0">
+            <i [class]="eje.icono" class="mr-1" [style]="{'color': eje.color}"></i>
+            {{ eje.descripcion }}
+          </p>
+
+          <p-divider class="mt-0 mb-3"></p-divider>
+
+          <!-- Lista de caminos -->
+          <div class="camino-row" *ngFor="let camino of eje.caminos">
+
+            <!-- Nombre del camino + indicador de completado -->
+            <div class="camino-header">
+              <i class="pi mr-2"
+                 [class.pi-check-circle]="camino.completado"
+                 [class.pi-circle]="!camino.completado"
+                 [style]="{'color': camino.completado ? eje.color : '#D1D5DB'}"></i>
+              <span class="font-medium text-sm">{{ camino.nombre }}</span>
+              <span *ngIf="camino.completado" class="ml-2 text-xs font-semibold"
+                    [style]="{'color': eje.color}">Completado</span>
+            </div>
+
+            <!-- Las 3 etapas -->
+            <div class="etapas-row mt-2 ml-4">
+              <div class="etapa-item" *ngFor="let etapa of camino.etapas">
+
+                <!-- Estado visual -->
+                <div class="etapa-badge" [style]="etapaStyle(etapa)">
+                  <i [class]="etapaIcon(etapa)" class="mr-1 text-sm"></i>
+                  <span class="text-xs font-semibold">{{ etapa.label }}</span>
+                </div>
+
+                <!-- Comentario de rechazo -->
+                <div *ngIf="etapa.estadoEvidencia === 'rechazada' && etapa.comentario"
+                     class="text-xs text-red-500 mt-1 ml-1">
+                  {{ etapa.comentario }}
+                </div>
+
+                <!-- Estado pendiente (solo texto) -->
+                <div *ngIf="etapa.estadoEvidencia === 'pendiente' && !etapa.completado"
+                     class="text-xs mt-1 ml-1" style="color:#D97706">
+                  En revisión
+                </div>
+
+                <!-- Etapa bloqueada: falta completar la anterior -->
+                <div *ngIf="etapasBloqueada(etapa, camino.etapas)"
+                     class="text-xs mt-1 ml-1 flex align-items-center gap-1"
+                     style="color:#9CA3AF">
+                  <i class="pi pi-lock text-xs"></i>
+                  <span>Completa "{{ camino.etapas[camino.etapas.indexOf(etapa) - 1].label }}" primero</span>
+                </div>
+
+                <!-- Botón subir evidencia -->
+                <button *ngIf="puedeSubir(etapa, camino.etapas)"
+                        pButton
+                        [label]="etapa.estadoEvidencia === 'rechazada' ? 'Reintentar' : 'Subir'"
+                        [icon]="etapa.estadoEvidencia === 'rechazada' ? 'pi pi-refresh' : 'pi pi-upload'"
+                        class="p-button-sm p-button-outlined mt-1"
+                        [style]="{'border-color': eje.color, 'color': eje.color}"
+                        (click)="abrirDialog(eje, camino.nombre, etapa.etapa)">
+                </button>
+
+              </div>
+            </div>
+
+            <p-divider styleClass="my-2"></p-divider>
+          </div>
+        </div>
+
+      </p-card>
+    </div>
+  </div>
+
+    </p-tabPanel><!-- fin Tab 1 -->
+
+    <!-- ══ Tab 2: Mis Evidencias ═══════════════════════════════════════════════ -->
+    <p-tabPanel leftIcon="pi pi-list">
+      <ng-template pTemplate="header">
+        <span>Mis Evidencias</span>
+        <p-badge *ngIf="(evidencias | estadoFilter:'pendiente')?.length"
+                 [value]="(evidencias | estadoFilter:'pendiente').length.toString()"
+                 severity="warning" styleClass="ml-2"></p-badge>
+      </ng-template>
+
+      <p *ngIf="!evidencias.length" class="text-center text-color-secondary p-4">
+        <i class="pi pi-inbox text-4xl block mb-2"></i>
+        Todavía no has enviado ninguna evidencia.
+      </p>
+
+      <div *ngFor="let ev of evidencias" class="evidencia-card mb-3 p-3 border-round border-1"
+           [ngClass]="{
+             'border-green-300 surface-0': ev.estado === 'aprobada',
+             'border-red-300 surface-0':   ev.estado === 'rechazada',
+             'border-yellow-300 surface-50': ev.estado === 'pendiente'
+           }">
+
+        <!-- Encabezado de la evidencia -->
+        <div class="flex align-items-start justify-content-between gap-2 flex-wrap">
+          <div>
+            <div class="font-semibold text-sm">{{ ev.categoria }} — {{ ev.subcategoria }}</div>
+            <div class="text-xs text-color-secondary mt-1">
+              <p-tag *ngIf="ev.etapa"
+                     [value]="etapaLabels[ev.etapa] || ev.etapa"
+                     severity="info" styleClass="mr-2"></p-tag>
+              {{ ev.fechaSubida | date:'dd/MM/yyyy HH:mm' }}
+            </div>
+          </div>
+          <p-tag [value]="ev.estado | titlecase"
+                 [severity]="estadoSeverity(ev.estado)"></p-tag>
+        </div>
+
+        <!-- Descripción enviada -->
+        <div *ngIf="ev.descripcion" class="mt-2 text-sm text-color-secondary">
+          {{ ev.descripcion }}
+        </div>
+
+        <!-- Comentario del validador -->
+        <div *ngIf="ev.comentarioValidador" class="mt-2 p-2 border-round text-sm"
+             [ngClass]="ev.estado === 'aprobada' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'">
+          <i class="pi mr-1"
+             [ngClass]="ev.estado === 'aprobada' ? 'pi-check-circle' : 'pi-times-circle'"></i>
+          <strong>{{ ev.estado === 'aprobada' ? 'Aprobada' : 'Rechazada' }}:</strong>
+          {{ ev.comentarioValidador }}
+        </div>
+
+        <!-- Pendiente sin comentario -->
+        <div *ngIf="ev.estado === 'pendiente'" class="mt-2 text-xs flex align-items-center gap-1"
+             style="color:#D97706">
+          <i class="pi pi-clock"></i>
+          <span>En revisión por tu jefe de comunidad</span>
+        </div>
+
+      </div>
+
+    </p-tabPanel><!-- fin Tab 2 -->
+
+  </p-tabView>
+
+</ng-container>
+
+<!-- ── Dialog: Subir Evidencia ────────────────────────────────────────────── -->
+<p-dialog [(visible)]="showDialog" [modal]="true" [closable]="!dialogLoading"
+          [style]="{'width':'480px','max-width':'95vw'}"
+          header="Subir Evidencia">
+
+  <ng-container *ngIf="dialogEje">
+
+    <!-- Contexto (solo lectura) -->
+    <div class="context-banner mb-4 p-3 border-round"
+         [style]="{'background': dialogEje.color + '15', 'border-left': '4px solid ' + dialogEje.color}">
+      <div class="text-xs text-color-secondary mb-1">Eje Temático</div>
+      <div class="font-bold" [style]="{'color': dialogEje.color}">{{ dialogEje.nombre }}</div>
+      <div class="mt-2 flex gap-2 flex-wrap">
+        <span class="px-2 py-1 border-round text-xs font-semibold surface-100">
+          <i class="pi pi-map mr-1"></i>{{ dialogCamino }}
+        </span>
+        <span class="px-2 py-1 border-round text-xs font-semibold"
+              [style]="{'background': dialogEje.color + '20', 'color': dialogEje.color}">
+          {{ etapaLabels[dialogEtapa] }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Instrucción -->
+    <p class="text-sm text-color-secondary mb-3">
+      Describe qué actividad realizaste para cumplir con esta etapa. Puedes adjuntar
+      una foto, video, documento u otro archivo como evidencia.
+    </p>
+
+    <!-- Descripción -->
+    <div class="p-field mb-3">
+      <label class="font-medium text-sm block mb-1">
+        Descripción <span class="text-red-500">*</span>
+      </label>
+      <textarea pInputTextarea [(ngModel)]="descripcion" [rows]="4"
+                class="w-full"
+                placeholder="Ej: Realicé una sesión de 30 minutos de actividad física junto con mi equipo y aprendí sobre los beneficios...">
+      </textarea>
+    </div>
+
+    <!-- Archivo -->
+    <div class="p-field mb-1">
+      <label class="font-medium text-sm block mb-1">Archivo adjunto (opcional)</label>
+      <p-fileUpload mode="basic" name="archivo" chooseLabel="Seleccionar archivo"
+                    [maxFileSize]="10000000"
+                    accept="image/*,video/*,.pdf,.doc,.docx"
+                    (onSelect)="onFileSelect($event)"
+                    (onClear)="onFileRemove()"
+                    styleClass="w-full">
+      </p-fileUpload>
+      <small class="text-color-secondary">Máx. 10 MB. Foto, video, PDF o documento.</small>
+    </div>
+
+  </ng-container>
+
+  <ng-template pTemplate="footer">
+    <button pButton label="Cancelar" icon="pi pi-times"
+            class="p-button-outlined p-button-secondary"
+            [disabled]="dialogLoading"
+            (click)="showDialog = false"></button>
+    <button pButton label="Enviar Evidencia" icon="pi pi-send"
+            [loading]="dialogLoading"
+            [disabled]="dialogLoading || !descripcion.trim()"
+            (click)="subirEvidencia()"></button>
+  </ng-template>
+</p-dialog>
+
+<!-- Estilos del componente -->
+<style>
+  .eje-icon-circle {
+    width: 48px; height: 48px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .camino-row { padding: 4px 0; }
+  .camino-header { display: flex; align-items: center; }
+  .etapas-row {
+    display: flex; gap: 12px; flex-wrap: wrap; padding-bottom: 4px;
+  }
+  .etapa-item { display: flex; flex-direction: column; min-width: 90px; }
+  .etapa-badge { display: flex; align-items: center; }
+</style>

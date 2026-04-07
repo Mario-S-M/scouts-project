@@ -1,0 +1,193 @@
+<!-- Encabezado -->
+<div class="page-header">
+  <div class="flex align-items-center justify-content-between flex-wrap gap-2">
+    <div>
+      <h1><i class="pi pi-users mr-2"></i>{{ seccionLabel }}</h1>
+      <p>Lista de miembros registrados</p>
+    </div>
+    <button pButton label="Registrar Miembro" icon="pi pi-user-plus"
+            class="p-button-success" routerLink="/caminantes/registro"></button>
+  </div>
+</div>
+
+<!-- Barra de filtros -->
+<p-card styleClass="shadow-1 mb-3">
+  <div class="grid align-items-end">
+
+    <!-- Búsqueda -->
+    <div class="col-12 md:col-4">
+      <label class="block text-sm font-medium mb-1">
+        <i class="pi pi-search mr-1"></i>Buscar
+      </label>
+      <span class="p-input-icon-left w-full">
+        <i class="pi pi-search"></i>
+        <input pInputText [(ngModel)]="searchTerm" class="w-full"
+               placeholder="Nombre, apellidos, CUM, email…" />
+      </span>
+    </div>
+
+    <!-- Filtro por sección (solo para roles de grupo) -->
+    <div class="col-12 md:col-2" *ngIf="esGrupo">
+      <label class="block text-sm font-medium mb-1">
+        <i class="pi pi-tag mr-1"></i>Sección
+      </label>
+      <p-dropdown [(ngModel)]="filtroSeccion"
+                  [options]="seccionOpciones"
+                  optionLabel="label" optionValue="value"
+                  placeholder="Todas" [showClear]="true"
+                  styleClass="w-full"></p-dropdown>
+    </div>
+
+    <!-- Filtro por equipo -->
+    <div class="col-12 md:col-2">
+      <label class="block text-sm font-medium mb-1">
+        <i class="pi pi-sitemap mr-1"></i>Equipo
+      </label>
+      <p-dropdown [(ngModel)]="filtroEquipo"
+                  [options]="equipoOpciones"
+                  optionLabel="label" optionValue="value"
+                  placeholder="Todos" [showClear]="true"
+                  styleClass="w-full"></p-dropdown>
+    </div>
+
+    <!-- Filtro por promesa -->
+    <div class="col-12 md:col-2">
+      <label class="block text-sm font-medium mb-1">
+        <i class="pi pi-check-circle mr-1"></i>Promesa
+      </label>
+      <p-dropdown [(ngModel)]="filtroPromesa"
+                  [options]="promesaOpciones"
+                  optionLabel="label" optionValue="value"
+                  placeholder="Todas" [showClear]="true"
+                  styleClass="w-full"></p-dropdown>
+    </div>
+
+    <!-- Limpiar filtros -->
+    <div class="col-12 md:col-2 flex align-items-end">
+      <button pButton label="Limpiar" icon="pi pi-filter-slash"
+              class="p-button-outlined p-button-secondary w-full"
+              [disabled]="!hayFiltrosActivos"
+              (click)="clearFiltros()"></button>
+    </div>
+
+  </div>
+
+  <!-- Contador de resultados -->
+  <div class="mt-2 text-sm text-color-secondary">
+    <span *ngIf="!loading">
+      <strong>{{ filteredCaminantes.length }}</strong>
+      de <strong>{{ caminantes.length }}</strong> miembros
+      <span *ngIf="hayFiltrosActivos"> (con filtros activos)</span>
+    </span>
+  </div>
+</p-card>
+
+<!-- Tabla -->
+<p-card styleClass="shadow-2">
+  <p-table [value]="filteredCaminantes" [loading]="loading"
+           [paginator]="true" [rows]="15"
+           [rowsPerPageOptions]="[10, 15, 25, 50]"
+           styleClass="p-datatable-striped p-datatable-sm">
+
+    <ng-template pTemplate="header">
+      <tr>
+        <th style="width:56px"></th>
+        <th pSortableColumn="apellidos">
+          Nombre <p-sortIcon field="apellidos"></p-sortIcon>
+        </th>
+        <th *ngIf="esGrupo" pSortableColumn="seccion">
+          Sección <p-sortIcon field="seccion"></p-sortIcon>
+        </th>
+        <th pSortableColumn="equipo">
+          Equipo <p-sortIcon field="equipo"></p-sortIcon>
+        </th>
+        <th pSortableColumn="cum">
+          CUM <p-sortIcon field="cum"></p-sortIcon>
+        </th>
+        <th pSortableColumn="fechaPromesa">
+          Promesa <p-sortIcon field="fechaPromesa"></p-sortIcon>
+        </th>
+        <th style="width:100px">Acciones</th>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="body" let-c>
+      <tr>
+        <!-- Avatar -->
+        <td>
+          <div class="avatar-circle" style="width:38px;height:38px;font-size:0.85rem;">
+            <img *ngIf="c.foto" [src]="c.foto" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />
+            <span *ngIf="!c.foto">{{ getInitials(c) }}</span>
+          </div>
+        </td>
+
+        <!-- Nombre -->
+        <td>
+          <div class="font-semibold">{{ c.nombre }} {{ c.apellidos }}</div>
+          <div class="text-xs text-color-secondary">{{ c.email }}</div>
+        </td>
+
+        <!-- Sección (solo grupo) -->
+        <td *ngIf="esGrupo">
+          <span *ngIf="c.seccion" class="px-2 py-1 border-round text-xs font-medium"
+                [style]="getSeccionStyle(c.seccion)">
+            {{ getSeccionLabel(c.seccion) }}
+          </span>
+          <span *ngIf="!c.seccion" class="text-color-secondary text-xs">—</span>
+        </td>
+
+        <!-- Equipo -->
+        <td>
+          <span *ngIf="c.equipo" class="text-sm">{{ c.equipo }}</span>
+          <span *ngIf="!c.equipo" class="text-color-secondary text-xs">—</span>
+        </td>
+
+        <!-- CUM -->
+        <td>
+          <span *ngIf="c.cum" class="font-mono text-sm">{{ c.cum }}</span>
+          <span *ngIf="!c.cum" class="text-color-secondary text-xs">—</span>
+        </td>
+
+        <!-- Promesa -->
+        <td>
+          <span *ngIf="c.fechaPromesa" class="flex align-items-center gap-1 text-green-600 text-sm">
+            <i class="pi pi-check-circle"></i>
+            {{ c.fechaPromesa | date:'dd/MM/yyyy' }}
+          </span>
+          <span *ngIf="!c.fechaPromesa" class="text-color-secondary text-xs">Sin promesa</span>
+        </td>
+
+        <!-- Acciones -->
+        <td>
+          <div class="flex gap-1">
+            <button pButton icon="pi pi-eye" class="p-button-text p-button-sm"
+                    pTooltip="Ver perfil" [routerLink]="['/caminantes', c.id]"></button>
+            <button pButton icon="pi pi-file-export" class="p-button-text p-button-success p-button-sm"
+                    pTooltip="Subir evidencia"
+                    [routerLink]="['/evidencias/nueva']"
+                    [queryParams]="{caminanteId: c.id}"></button>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td [attr.colspan]="esGrupo ? 7 : 6" class="text-center p-5">
+          <i class="pi pi-users text-4xl mb-3 block text-color-secondary"></i>
+          <p class="text-color-secondary mb-3">
+            <span *ngIf="hayFiltrosActivos">No hay miembros que coincidan con los filtros.</span>
+            <span *ngIf="!hayFiltrosActivos">No hay miembros registrados.</span>
+          </p>
+          <button *ngIf="hayFiltrosActivos" pButton label="Limpiar filtros"
+                  icon="pi pi-filter-slash" class="p-button-outlined mr-2"
+                  (click)="clearFiltros()"></button>
+          <button *ngIf="!hayFiltrosActivos" pButton label="Registrar el primero"
+                  icon="pi pi-user-plus" class="p-button-outlined"
+                  routerLink="/caminantes/registro"></button>
+        </td>
+      </tr>
+    </ng-template>
+
+  </p-table>
+</p-card>

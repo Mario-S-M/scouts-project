@@ -1,0 +1,66 @@
+<div class="app-container" [ngClass]="themeClass">
+
+  <!-- Navigation Bar -->
+  <p-menubar *ngIf="!isLoginPage" [model]="menuItems" styleClass="scout-menubar">
+
+    <!-- Logo -->
+    <ng-template pTemplate="start">
+      <div class="nav-brand mr-3">
+        <span class="nav-logo-icon">⚜️</span>
+        <div class="nav-logo-text">
+          <div class="nav-title">Comunidad de Caminantes</div>
+          <div class="nav-subtitle">Scouts México</div>
+        </div>
+      </div>
+    </ng-template>
+
+    <!-- Acciones + usuario -->
+    <ng-template pTemplate="end">
+      <div class="flex align-items-center gap-2">
+
+        <!-- Info usuario -->
+        <ng-container *ngIf="authService.user$ | async as user">
+          <div class="nav-user">
+            <div class="nav-user-avatar">{{ user.nombre[0] }}</div>
+            <div class="nav-user-info">
+              <div class="nav-user-name">{{ user.nombre.split(' ')[0] }} {{ user.nombre.split(' ')[2] ?? '' }}</div>
+              <div class="nav-user-role">{{ authService.getRolLabel(user.rol) }}</div>
+            </div>
+          </div>
+          <div class="nav-divider"></div>
+        </ng-container>
+
+        <!-- Botón Nueva Evidencia -->
+        <button pButton icon="pi pi-plus" label="Evidencia"
+                class="nav-btn nav-btn-primary"
+                routerLink="/evidencias/nueva"></button>
+
+        <!-- Tema -->
+        <button pButton icon="pi pi-adjust"
+                class="nav-btn nav-btn-outline"
+                pTooltip="Cambiar tema"
+                (click)="toggleTheme()"></button>
+
+        <!-- Cerrar sesión -->
+        <button pButton icon="pi pi-sign-out"
+                class="nav-btn nav-btn-danger"
+                pTooltip="Cerrar sesión"
+                (click)="logout()"></button>
+
+      </div>
+    </ng-template>
+  </p-menubar>
+
+  <!-- Main Content -->
+  <div [class]="isLoginPage ? '' : 'main-content'">
+    <router-outlet></router-outlet>
+  </div>
+
+  <!-- Footer -->
+  <div *ngIf="!isLoginPage" class="footer-bar">
+    Comunidad de Caminantes — Scouts México &copy; {{ currentYear }}
+  </div>
+
+</div>
+
+<p-toast position="top-right"></p-toast>

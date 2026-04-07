@@ -1,0 +1,143 @@
+<div class="page-header">
+  <h1><i class="pi pi-star mr-2"></i>Sistema de Insignias</h1>
+  <p>Conoce los requisitos y el camino para obtener cada insignia</p>
+</div>
+
+<!-- Insignias Grid -->
+<div class="grid mb-5">
+  <div *ngFor="let ins of insignias" class="col-12 md:col-6 lg:col-3">
+    <p-card styleClass="badge-card shadow-3 h-full">
+      <ng-template pTemplate="header">
+        <div [style]="{'background': ins.gradiente, 'padding': '2rem', 'text-align': 'center'}">
+          <div style="font-size:4rem;" class="mb-2">{{ ins.emoji }}</div>
+          <div class="text-white font-bold text-2xl">{{ ins.tipo }}</div>
+          <div class="mt-2">
+            <span *ngFor="let i of [].constructor(ins.nivel); let idx = index"
+                  style="color: #FFD700; font-size: 1.2rem;">★</span>
+            <span *ngFor="let i of [].constructor(4 - ins.nivel); let idx = index"
+                  style="color: rgba(255,255,255,0.3); font-size: 1.2rem;">★</span>
+          </div>
+        </div>
+      </ng-template>
+
+      <p class="text-sm text-color-secondary mb-3">{{ ins.descripcion }}</p>
+
+      <p-divider align="left">
+        <span class="text-xs font-bold text-color-secondary uppercase">Requisitos</span>
+      </p-divider>
+
+      <ul class="list-none p-0 m-0">
+        <li *ngFor="let req of ins.requisitos"
+            class="flex align-items-start gap-2 mb-2 text-sm">
+          <i class="pi pi-check-circle mt-1 flex-shrink-0" [style]="{'color': ins.color}"></i>
+          <span>{{ req }}</span>
+        </li>
+      </ul>
+    </p-card>
+  </div>
+</div>
+
+<!-- Senderos Section -->
+<h2 class="text-green-800 mb-3"><i class="pi pi-compass mr-2"></i>Los 4 Senderos</h2>
+<div class="grid mb-5">
+  <div *ngFor="let s of senderos" class="col-12 md:col-6 lg:col-3">
+    <p-card styleClass="shadow-2 h-full" [style]="{'border-left': '4px solid ' + s.color}">
+      <ng-template pTemplate="header">
+        <div class="p-3 flex align-items-center gap-2"
+             [style]="{'background': s.color + '15'}">
+          <span style="font-size:1.75rem;">{{ s.icon }}</span>
+          <div>
+            <div class="font-bold text-lg">{{ s.nombre }}</div>
+            <div class="text-xs text-color-secondary">{{ s.tema }}</div>
+          </div>
+        </div>
+      </ng-template>
+      <ul class="list-none p-0 m-0">
+        <li *ngFor="let camino of s.caminos"
+            class="flex align-items-center gap-2 p-2 border-bottom-1 surface-border text-sm">
+          <i class="pi pi-angle-right" [style]="{'color': s.color}"></i>
+          {{ camino }}
+        </li>
+      </ul>
+      <div class="mt-2 text-xs text-color-secondary text-center">
+        Cada camino: Conozco → Aplico → Comparto
+      </div>
+    </p-card>
+  </div>
+</div>
+
+<!-- Aventuras + Iniciativas -->
+<div class="grid mb-5">
+
+  <!-- Aventuras -->
+  <div class="col-12 lg:col-6">
+    <h2 class="text-green-800 mb-3"><i class="pi pi-map mr-2"></i>Aventuras en la Naturaleza</h2>
+    <div class="grid">
+      <div *ngFor="let av of aventuras" class="col-12 sm:col-6">
+        <p-card styleClass="shadow-1 text-center border-round-xl">
+          <div style="font-size:2.5rem;" class="mb-2">{{ av.icon }}</div>
+          <div class="font-bold mb-1">{{ av.nombre }}</div>
+          <div class="text-xs text-color-secondary">{{ av.desc }}</div>
+          <p-tag *ngIf="av.nombre === 'Terra Nova'" value="Obligatoria" severity="warning"
+                 styleClass="mt-2"></p-tag>
+        </p-card>
+      </div>
+    </div>
+  </div>
+
+  <!-- Iniciativas Mundiales -->
+  <div class="col-12 lg:col-6">
+    <h2 class="text-green-800 mb-3"><i class="pi pi-globe mr-2"></i>Iniciativas Mundiales</h2>
+    <div class="flex flex-column gap-2">
+      <div *ngFor="let ini of iniciativas"
+           class="flex align-items-center gap-3 p-3 border-round shadow-1 surface-card">
+        <span style="font-size:1.75rem;">{{ ini.icon }}</span>
+        <div>
+          <div class="font-semibold">{{ ini.nombre }}</div>
+          <div class="text-xs text-color-secondary">Niveles: Participación y Certificación</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Punta de Flecha -->
+<p-card header="Punta de Flecha" styleClass="shadow-2 mb-4">
+  <div class="grid">
+    <div class="col-12 md:col-6">
+      <div class="p-3 border-round" style="background:#FFF8E1;border-left:4px solid #FF8F00;">
+        <div class="font-bold text-lg mb-1">🏹 Participación</div>
+        <p class="text-sm text-color-secondary m-0">
+          Nivel básico. Primer paso en el proceso de Punta de Flecha.
+          Requerido para la insignia Obsidiana.
+        </p>
+      </div>
+    </div>
+    <div class="col-12 md:col-6">
+      <div class="p-3 border-round" style="background:#E8F5E9;border-left:4px solid #2E7D32;">
+        <div class="font-bold text-lg mb-1">🎯 Certificación</div>
+        <p class="text-sm text-color-secondary m-0">
+          Nivel avanzado. Complementa la Participación con mayor profundidad.
+          Requerido para las insignias Jade, Ópalo y Diamante.
+        </p>
+      </div>
+    </div>
+  </div>
+</p-card>
+
+<!-- Camisola Info -->
+<p-card styleClass="shadow-2" style="background: linear-gradient(135deg, #1B5E2010, #4CAF5010);">
+  <div class="flex align-items-center gap-4 flex-wrap">
+    <div style="font-size:4rem;">👕</div>
+    <div>
+      <h3 class="text-green-800 mt-0 mb-1">Camisola Scouts</h3>
+      <p class="text-color-secondary m-0">
+        La Camisola es otorgada automáticamente al alcanzar la insignia <strong>Jade</strong> o superior.
+        Representa el máximo reconocimiento visible del compromiso del caminante con el programa.
+      </p>
+    </div>
+    <p-tag value="Se otorga con Jade o superior" severity="success"
+           styleClass="ml-auto flex-shrink-0"></p-tag>
+  </div>
+</p-card>

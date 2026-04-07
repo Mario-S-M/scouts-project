@@ -1,0 +1,178 @@
+<div class="page-content">
+
+  <!-- Header -->
+  <div class="flex align-items-center justify-content-between mb-4">
+    <div>
+      <h2 class="m-0"><i class="pi pi-users mr-2" style="color:#2d5a3d"></i>Gestión de Usuarios</h2>
+      <p class="text-color-secondary mt-1 mb-0">Administra cuentas, roles y permisos</p>
+    </div>
+    <button pButton icon="pi pi-user-plus" label="Nuevo Usuario"
+            class="p-button-success"
+            (click)="openNew()"></button>
+  </div>
+
+  <!-- Tabla de usuarios -->
+  <p-table
+    [value]="usuarios"
+    [loading]="loading"
+    [paginator]="true"
+    [rows]="10"
+    [rowHover]="true"
+    styleClass="p-datatable-sm p-datatable-gridlines"
+    responsiveLayout="scroll">
+
+    <ng-template pTemplate="header">
+      <tr>
+        <th pSortableColumn="nombre">Nombre <p-sortIcon field="nombre"></p-sortIcon></th>
+        <th pSortableColumn="email">Correo <p-sortIcon field="email"></p-sortIcon></th>
+        <th pSortableColumn="rol">Rol <p-sortIcon field="rol"></p-sortIcon></th>
+        <th>Estado</th>
+        <th style="width:8rem">Acciones</th>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="body" let-user>
+      <tr>
+        <td>
+          <div class="flex align-items-center gap-2">
+            <p-avatar [label]="user.nombre[0]" shape="circle"
+                      [style]="{'background-color': user.activo ? '#2d5a3d' : '#aaa', 'color': '#fff'}">
+            </p-avatar>
+            <span class="font-semibold">{{ user.nombre }}</span>
+          </div>
+        </td>
+        <td>{{ user.email }}</td>
+        <td>
+          <p-tag [value]="getRolLabel(user.rol)" [style]="getRolStyle(user.rol)"></p-tag>
+        </td>
+        <td>
+          <p-tag
+            [value]="user.activo ? 'Activo' : 'Inactivo'"
+            [severity]="user.activo ? 'success' : 'danger'">
+          </p-tag>
+        </td>
+        <td>
+          <div class="flex gap-2">
+            <button pButton icon="pi pi-pencil"
+                    class="p-button-sm p-button-outlined p-button-secondary"
+                    pTooltip="Editar"
+                    (click)="openEdit(user)"></button>
+            <button pButton
+                    [icon]="user.activo ? 'pi pi-ban' : 'pi pi-check-circle'"
+                    [class]="user.activo ? 'p-button-sm p-button-outlined p-button-danger' : 'p-button-sm p-button-outlined p-button-success'"
+                    [pTooltip]="user.activo ? 'Desactivar cuenta' : 'Activar cuenta'"
+                    (click)="toggleActivo(user)"></button>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="emptymessage">
+      <tr><td colspan="5" class="text-center p-4">No hay usuarios registrados</td></tr>
+    </ng-template>
+  </p-table>
+
+</div>
+
+<!-- ========== DIÁLOGO EDITAR ========== -->
+<p-dialog
+  [(visible)]="editDialogVisible"
+  [modal]="true"
+  [style]="{width: '480px'}"
+  header="Editar Usuario"
+  [closable]="true">
+
+  <div class="flex flex-column gap-3 pt-2" *ngIf="editUser">
+
+    <div class="field">
+      <label>Nombre completo</label>
+      <input pInputText class="w-full" [(ngModel)]="editUser.nombre" />
+    </div>
+
+    <div class="field">
+      <label>Correo electrónico</label>
+      <input pInputText type="email" class="w-full" [(ngModel)]="editUser.email" />
+    </div>
+
+    <div class="field">
+      <label>Rol</label>
+      <p-dropdown
+        [options]="roles"
+        [(ngModel)]="editUser.rol"
+        optionLabel="label"
+        optionValue="value"
+        class="w-full"
+        styleClass="w-full">
+      </p-dropdown>
+    </div>
+
+    <div class="field">
+      <div class="flex align-items-center gap-2 mb-2">
+        <p-inputSwitch [(ngModel)]="cambiarPassword"></p-inputSwitch>
+        <label class="mb-0">Cambiar contraseña</label>
+      </div>
+      <input *ngIf="cambiarPassword"
+             pInputText type="password" class="w-full"
+             placeholder="Nueva contraseña (mínimo 6 caracteres)"
+             [(ngModel)]="editUser.newPassword" />
+    </div>
+
+  </div>
+
+  <ng-template pTemplate="footer">
+    <button pButton label="Cancelar" icon="pi pi-times"
+            class="p-button-text" (click)="editDialogVisible = false"></button>
+    <button pButton label="Guardar" icon="pi pi-check"
+            [loading]="editLoading" (click)="saveEdit()"></button>
+  </ng-template>
+</p-dialog>
+
+<!-- ========== DIÁLOGO NUEVO USUARIO ========== -->
+<p-dialog
+  [(visible)]="newDialogVisible"
+  [modal]="true"
+  [style]="{width: '480px'}"
+  header="Nuevo Usuario"
+  [closable]="true">
+
+  <div class="flex flex-column gap-3 pt-2">
+
+    <div class="field">
+      <label>Nombre completo</label>
+      <input pInputText class="w-full" [(ngModel)]="newUser.nombre" placeholder="Nombre y apellidos" />
+    </div>
+
+    <div class="field">
+      <label>Correo electrónico</label>
+      <input pInputText type="email" class="w-full" [(ngModel)]="newUser.email" placeholder="correo@ejemplo.com" />
+    </div>
+
+    <div class="field">
+      <label>Contraseña</label>
+      <input pInputText type="password" class="w-full" [(ngModel)]="newUser.password" placeholder="Mínimo 6 caracteres" />
+    </div>
+
+    <div class="field">
+      <label>Rol</label>
+      <p-dropdown
+        [options]="roles"
+        [(ngModel)]="newUser.rol"
+        optionLabel="label"
+        optionValue="value"
+        class="w-full"
+        styleClass="w-full">
+      </p-dropdown>
+    </div>
+
+  </div>
+
+  <ng-template pTemplate="footer">
+    <button pButton label="Cancelar" icon="pi pi-times"
+            class="p-button-text" (click)="newDialogVisible = false"></button>
+    <button pButton label="Crear Usuario" icon="pi pi-user-plus"
+            class="p-button-success" [loading]="newLoading" (click)="saveNew()"></button>
+  </ng-template>
+</p-dialog>
+
+<!-- Confirm dialog -->
+<p-confirmDialog [style]="{width:'400px'}"></p-confirmDialog>

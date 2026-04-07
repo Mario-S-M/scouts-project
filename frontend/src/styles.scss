@@ -1,0 +1,558 @@
+/* ============================================================
+   SCOUT THEME — Variables base y temas por sección
+   ============================================================ */
+:root {
+  /* Azul marino (default / Comunidad) */
+  --scout-navy:        #1B2A4A;
+  --scout-navy-dark:   #111d33;
+  --scout-navy-light:  #243657;
+  --scout-blue:        #2563EB;
+  --scout-blue-light:  #3B82F6;
+
+  /* Nav colors — sobreescritos por cada tema */
+  --nav-bg:            #1B2A4A;
+  --nav-bg-dark:       #111d33;
+  --nav-accent:        #2563EB;
+  --nav-accent-light:  #3B82F6;
+  --nav-avatar-bg:     #2563EB;
+
+  /* Auxiliares */
+  --scout-gold:        #F59E0B;
+  --scout-gold-dark:   #D97706;
+  --scout-green:       #2563EB;
+  --scout-green-light: #3B82F6;
+  --scout-green-dark:  #1B2A4A;
+}
+
+/* ── Grupo: Gris Oxford ─────────────────────────────────── */
+.theme-grupo {
+  --nav-bg:           #2C2E30;
+  --nav-bg-dark:      #1a1c1e;
+  --nav-accent:       #6B7280;
+  --nav-accent-light: #9CA3AF;
+  --nav-avatar-bg:    #6B7280;
+}
+
+/* ── Manada: Amarillo ───────────────────────────────────── */
+.theme-manada {
+  --nav-bg:           #78350F;
+  --nav-bg-dark:      #451a03;
+  --nav-accent:       #F59E0B;
+  --nav-accent-light: #FCD34D;
+  --nav-avatar-bg:    #D97706;
+}
+
+/* ── Tropa: Verde Bandera ───────────────────────────────── */
+.theme-tropa {
+  --nav-bg:           #14532D;
+  --nav-bg-dark:      #052e16;
+  --nav-accent:       #16A34A;
+  --nav-accent-light: #22C55E;
+  --nav-avatar-bg:    #15803D;
+}
+
+/* ── Comunidad: Azul ────────────────────────────────────── */
+.theme-comunidad {
+  --nav-bg:           #001fcc;
+  --nav-bg-dark:      #0015a0;
+  --nav-accent:       #002CFF;
+  --nav-accent-light: #3352ff;
+  --nav-avatar-bg:    #002CFF;
+}
+
+/* ── Clan: Rojo ─────────────────────────────────────────── */
+.theme-clan {
+  --nav-bg:           #7F1D1D;
+  --nav-bg-dark:      #450a0a;
+  --nav-accent:       #DC2626;
+  --nav-accent-light: #EF4444;
+  --nav-avatar-bg:    #B91C1C;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content {
+  flex: 1;
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ============================
+   SCOUT NAVBAR — Dinámico
+   ============================ */
+.scout-menubar {
+  background: var(--nav-bg) !important;
+  border: none !important;
+  border-bottom: 3px solid var(--nav-accent) !important;
+  border-radius: 0 !important;
+  padding: 0 1.25rem !important;
+  min-height: 64px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.25) !important;
+
+  /* Nav items — primer nivel */
+  .p-menubar-root-list {
+    gap: 0.15rem;
+
+    > .p-menuitem {
+      > .p-menuitem-link {
+        padding: 0.6rem 0.85rem !important;
+        border-radius: 6px !important;
+        color: rgba(255,255,255,0.85) !important;
+        transition: background 0.15s, color 0.15s !important;
+
+        .p-menuitem-text {
+          color: inherit !important;
+          font-size: 0.875rem;
+          font-weight: 500;
+        }
+
+        .p-menuitem-icon {
+          color: rgba(255,255,255,0.6) !important;
+          font-size: 0.85rem;
+          margin-right: 0.35rem;
+        }
+
+        .p-submenu-icon {
+          color: rgba(255,255,255,0.5) !important;
+          margin-left: 0.25rem;
+          font-size: 0.75rem;
+        }
+
+        &:hover {
+          background: rgba(255,255,255,0.12) !important;
+          color: #fff !important;
+
+          .p-menuitem-icon { color: rgba(255,255,255,0.9) !important; }
+        }
+      }
+    }
+  }
+
+  /* Submenú desplegable */
+  .p-submenu-list {
+    background: var(--nav-bg-dark) !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3) !important;
+    padding: 0.35rem !important;
+    min-width: 190px;
+
+    .p-menuitem-link {
+      color: rgba(255,255,255,0.8) !important;
+      border-radius: 5px !important;
+      padding: 0.55rem 0.85rem !important;
+      transition: background 0.15s !important;
+
+      .p-menuitem-text { color: inherit !important; font-size: 0.875rem; }
+      .p-menuitem-icon { color: rgba(255,255,255,0.5) !important; font-size: 0.8rem; }
+
+      &:hover {
+        background: rgba(255,255,255,0.12) !important;
+        color: #fff !important;
+        .p-menuitem-icon { color: rgba(255,255,255,0.9) !important; }
+      }
+    }
+  }
+}
+
+/* Logo branding */
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+
+  .nav-logo-icon { font-size: 1.6rem; line-height: 1; }
+
+  .nav-logo-text {
+    line-height: 1.25;
+
+    .nav-title {
+      color: #fff;
+      font-size: 0.92rem;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+
+    .nav-subtitle {
+      color: rgba(255,255,255,0.5);
+      font-size: 0.62rem;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+  }
+}
+
+/* Separador vertical */
+.nav-divider {
+  width: 1px;
+  height: 32px;
+  background: rgba(255,255,255,0.15);
+  margin: 0 0.5rem;
+}
+
+/* Sección del usuario en navbar */
+.nav-user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.1);
+
+  .nav-user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--nav-avatar-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .nav-user-info {
+    .nav-user-name {
+      color: #fff;
+      font-size: 0.82rem;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+    .nav-user-role {
+      color: rgba(255,255,255,0.5);
+      font-size: 0.68rem;
+      line-height: 1.2;
+    }
+  }
+}
+
+/* Botones del navbar */
+.nav-btn {
+  padding: 0.45rem 0.85rem !important;
+  font-size: 0.82rem !important;
+  border-radius: 7px !important;
+  font-weight: 500 !important;
+  transition: all 0.15s !important;
+
+  &.nav-btn-outline {
+    background: transparent !important;
+    border: 1px solid rgba(255,255,255,0.25) !important;
+    color: rgba(255,255,255,0.85) !important;
+
+    &:hover {
+      background: rgba(255,255,255,0.12) !important;
+      border-color: rgba(255,255,255,0.5) !important;
+      color: #fff !important;
+    }
+  }
+
+  &.nav-btn-primary {
+    background: var(--nav-accent) !important;
+    border: 1px solid var(--nav-accent) !important;
+    color: #fff !important;
+
+    &:hover {
+      background: var(--nav-accent-light) !important;
+      border-color: var(--nav-accent-light) !important;
+    }
+  }
+
+  &.nav-btn-danger {
+    background: transparent !important;
+    border: 1px solid rgba(248,113,113,0.4) !important;
+    color: rgba(248,113,113,0.9) !important;
+
+    &:hover {
+      background: rgba(248,113,113,0.15) !important;
+      border-color: rgba(248,113,113,0.7) !important;
+      color: #f87171 !important;
+    }
+  }
+}
+
+/* Page headers */
+.page-header {
+  margin-bottom: 1.5rem;
+
+  h1 {
+    color: var(--scout-green-dark);
+    margin: 0 0 0.5rem 0;
+    font-size: 1.75rem;
+    font-weight: 700;
+  }
+
+  p {
+    color: #666;
+    margin: 0;
+  }
+}
+
+/* Scout badge cards */
+.badge-card {
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  &.earned {
+    border: 2px solid var(--scout-gold) !important;
+  }
+
+  &.locked {
+    opacity: 0.6;
+  }
+}
+
+.badge-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  font-size: 2.5rem;
+}
+
+.badge-Obsidiana { background: linear-gradient(135deg, #37474F, #607D8B); }
+.badge-Jade { background: linear-gradient(135deg, #1B5E20, #4CAF50); }
+.badge-Opalo { background: linear-gradient(135deg, #7B1FA2, #CE93D8); }
+.badge-Diamante { background: linear-gradient(135deg, #0D47A1, #90CAF9); }
+
+/* Sendero cards */
+.sendero-Cenit { border-left: 4px solid #FF7043 !important; }
+.sendero-Cima { border-left: 4px solid #43A047 !important; }
+.sendero-Cumbre { border-left: 4px solid #1E88E5 !important; }
+.sendero-Cuspide { border-left: 4px solid #8E24AA !important; }
+
+/* Progress bars */
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* Status tags */
+.tag-pendiente { background: #FFF3E0 !important; color: #E65100 !important; }
+.tag-aprobada { background: #E8F5E9 !important; color: #2E7D32 !important; }
+.tag-rechazada { background: #FFEBEE !important; color: #C62828 !important; }
+
+/* Stat cards */
+.stat-card {
+  text-align: center;
+  padding: 1.5rem;
+
+  .stat-number {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--scout-green);
+  }
+
+  .stat-label {
+    font-size: 0.9rem;
+    color: #666;
+    margin-top: 0.25rem;
+  }
+
+  .stat-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* Avatar circle */
+.avatar-circle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--scout-green), var(--scout-green-light));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+/* Camino progress item */
+.camino-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #eee;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  .camino-name {
+    flex: 1;
+    font-weight: 500;
+  }
+
+  .etapa-dot {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+
+    &.done {
+      background: var(--scout-green);
+      color: white;
+    }
+
+    &.pending {
+      background: #e0e0e0;
+      color: #999;
+    }
+  }
+}
+
+/* Form styles */
+.scout-form {
+  .p-field {
+    margin-bottom: 1.25rem;
+
+    label {
+      display: block;
+      margin-bottom: 0.4rem;
+      font-weight: 600;
+      color: #555;
+    }
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .main-content {
+    padding: 1rem 0.75rem;
+  }
+
+  .page-header h1 {
+    font-size: 1.4rem;
+  }
+}
+
+/* PrimeNG overrides */
+.p-card .p-card-content {
+  padding-top: 0;
+}
+
+.p-progressbar {
+  height: 0.6rem;
+  border-radius: 4px;
+}
+
+.p-progressbar-value {
+  background: var(--scout-green) !important;
+}
+
+.p-datatable .p-datatable-thead > tr > th {
+  background: var(--scout-green) !important;
+  color: white !important;
+  font-weight: 600;
+}
+
+.p-button.p-button-success {
+  background: var(--scout-green) !important;
+  border-color: var(--scout-green) !important;
+}
+
+.footer-bar {
+  background: var(--nav-bg-dark);
+  color: rgba(255,255,255,0.45);
+  text-align: center;
+  padding: 0.65rem;
+  font-size: 0.78rem;
+  margin-top: auto;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  letter-spacing: 0.3px;
+}
+
+/* ── Banner de grupo en registro ─────────────────────────── */
+.grupo-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, var(--nav-bg) 0%, var(--nav-bg-dark) 100%);
+  border-bottom: 3px solid var(--nav-accent);
+
+  .grupo-banner-icon { font-size: 2rem; line-height: 1; }
+
+  .grupo-banner-info {
+    flex: 1;
+    .grupo-banner-nombre {
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+    .grupo-banner-lugar {
+      color: rgba(255,255,255,0.6);
+      font-size: 0.78rem;
+      margin-top: 0.2rem;
+      i { margin-right: 0.25rem; }
+    }
+  }
+
+  .grupo-banner-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    justify-content: flex-end;
+  }
+
+  .grupo-tag {
+    background: rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.85);
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.2rem 0.6rem;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+}
+
+/* ── Títulos de sección en formularios ───────────────────── */
+.seccion-titulo {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--nav-accent, #2563EB);
+  border-bottom: 2px solid var(--nav-accent, #2563EB);
+  padding-bottom: 0.35rem;
+  margin-bottom: 0.5rem;
+  opacity: 0.85;
+}

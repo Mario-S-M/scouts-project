@@ -1,0 +1,120 @@
+<div class="page-header">
+  <h1><i class="pi pi-upload mr-2"></i>Subir Evidencia</h1>
+  <p>Sube evidencia de progreso para un caminante</p>
+</div>
+
+<div class="grid justify-content-center">
+  <div class="col-12 lg:col-8">
+    <p-card styleClass="shadow-3">
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="scout-form">
+
+        <div class="grid">
+
+          <!-- Caminante -->
+          <div class="col-12 p-field">
+            <label>Caminante <span class="text-red-500">*</span></label>
+            <p-dropdown formControlName="caminanteId"
+                        [options]="caminantes"
+                        optionLabel="nombre"
+                        optionValue="id"
+                        placeholder="Selecciona un caminante"
+                        [filter]="true"
+                        filterBy="nombre,apellidos,grupo"
+                        [loading]="loadingCaminantes"
+                        styleClass="w-full">
+              <ng-template pTemplate="selectedItem" let-c>
+                <span *ngIf="c">{{ c.nombre }} {{ c.apellidos }} — {{ c.grupo }}</span>
+              </ng-template>
+              <ng-template pTemplate="item" let-c>
+                <div>
+                  <div class="font-semibold">{{ c.nombre }} {{ c.apellidos }}</div>
+                  <div class="text-xs text-color-secondary">{{ c.grupo }} · {{ c.comunidad }}</div>
+                </div>
+              </ng-template>
+            </p-dropdown>
+            <small *ngIf="isInvalid('caminanteId')" class="p-error">Selecciona un caminante.</small>
+          </div>
+
+          <!-- Tipo -->
+          <div class="col-12 md:col-6 p-field">
+            <label>Tipo de Evidencia <span class="text-red-500">*</span></label>
+            <p-dropdown formControlName="tipo"
+                        [options]="tiposOptions"
+                        placeholder="Selecciona el tipo"
+                        styleClass="w-full"></p-dropdown>
+            <small *ngIf="isInvalid('tipo')" class="p-error">Selecciona el tipo.</small>
+          </div>
+
+          <!-- Categoria -->
+          <div class="col-12 md:col-6 p-field" *ngIf="categoriaOptions.length > 0">
+            <label>Categoría <span class="text-red-500">*</span></label>
+            <p-dropdown formControlName="categoria"
+                        [options]="categoriaOptions"
+                        placeholder="Selecciona la categoría"
+                        styleClass="w-full"></p-dropdown>
+            <small *ngIf="isInvalid('categoria')" class="p-error">Selecciona la categoría.</small>
+          </div>
+
+          <!-- Subcategoria -->
+          <div class="col-12 md:col-6 p-field" *ngIf="subcategoriaOptions.length > 0">
+            <label>{{ tipoValue === 'especialidad' ? 'Camino' : 'Subcategoría' }}</label>
+            <p-dropdown formControlName="subcategoria"
+                        [options]="subcategoriaOptions"
+                        placeholder="Selecciona..."
+                        styleClass="w-full"></p-dropdown>
+          </div>
+
+          <!-- Etapa -->
+          <div class="col-12 md:col-6 p-field" *ngIf="etapaOptions.length > 0">
+            <label>Etapa <span class="text-red-500">*</span></label>
+            <p-selectButton formControlName="etapa"
+                            [options]="etapaOptions"
+                            optionLabel="label"
+                            optionValue="value"></p-selectButton>
+          </div>
+
+          <!-- Descripcion -->
+          <div class="col-12 p-field">
+            <label>Descripción</label>
+            <textarea pInputTextarea formControlName="descripcion"
+                      class="w-full" rows="4"
+                      placeholder="Describe brevemente la evidencia, actividad realizada, aprendizajes, etc."></textarea>
+          </div>
+
+          <!-- Archivo -->
+          <div class="col-12 p-field">
+            <label>Archivo de Evidencia</label>
+            <p-fileUpload mode="basic"
+                          chooseLabel="Seleccionar archivo"
+                          chooseIcon="pi pi-paperclip"
+                          accept="image/*,application/pdf,.doc,.docx,.ppt,.pptx"
+                          [maxFileSize]="10485760"
+                          (onSelect)="onFileSelect($event)"
+                          (onClear)="onFileRemove()"
+                          styleClass="w-full"
+                          [auto]="false"></p-fileUpload>
+            <small class="text-color-secondary">Máximo 10MB. Formatos: imágenes, PDF, Word, PowerPoint.</small>
+            <div *ngIf="selectedFile" class="mt-2 flex align-items-center gap-2">
+              <i class="pi pi-file text-green-600"></i>
+              <span class="text-sm">{{ selectedFile.name }}</span>
+              <p-tag value="Listo" severity="success"></p-tag>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="flex justify-content-end gap-2 mt-4 pt-3 border-top-1 surface-border">
+          <button pButton type="button" label="Cancelar" icon="pi pi-times"
+                  class="p-button-outlined p-button-secondary"
+                  routerLink="/"></button>
+          <button pButton type="submit" label="Enviar Evidencia" icon="pi pi-send"
+                  class="p-button-success"
+                  [loading]="submitting"
+                  [disabled]="submitting"></button>
+        </div>
+
+      </form>
+    </p-card>
+  </div>
+</div>

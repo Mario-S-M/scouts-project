@@ -1,0 +1,47 @@
+<div class="mt-3">
+  <div *ngIf="especialidades.length === 0"
+       class="text-center p-5 text-color-secondary">
+    <i class="pi pi-bookmark text-4xl mb-3 block"></i>
+    <p>No hay especialidades registradas.<br>Sube evidencias para comenzar.</p>
+  </div>
+
+  <div class="grid">
+    <div *ngFor="let esp of especialidades" class="col-12 md:col-6 lg:col-4">
+      <p-card styleClass="shadow-1 border-round-lg" [class.border-2]="esp.completado"
+              [style]="esp.completado ? {'border-color': '#2E7D32'} : {}">
+        <div class="flex align-items-start justify-content-between mb-2">
+          <div>
+            <div class="font-bold">{{ esp.nombre }}</div>
+            <div class="text-xs text-color-secondary">{{ esp.especialidad }}</div>
+            <p-tag *ngIf="esp.senderoArea" [value]="esp.senderoArea"
+                   severity="info" styleClass="mt-1"></p-tag>
+          </div>
+          <p-tag *ngIf="esp.completado" value="Completada" severity="success"></p-tag>
+        </div>
+        <div class="flex gap-2 mt-2">
+          <div class="flex-1 text-center p-2 border-round"
+               [style]="esp.conozco ? 'background:#E8F5E9' : 'background:#f5f5f5'">
+            <div class="text-xs font-bold" [style]="esp.conozco ? 'color:#2E7D32' : 'color:#999'">
+              <i [class]="esp.conozco ? 'pi pi-check-circle' : 'pi pi-circle'"></i>
+            </div>
+            <div class="text-xs mt-1">Conozco</div>
+          </div>
+          <div class="flex-1 text-center p-2 border-round"
+               [style]="esp.aplico ? 'background:#E8F5E9' : 'background:#f5f5f5'">
+            <div class="text-xs font-bold" [style]="esp.aplico ? 'color:#2E7D32' : 'color:#999'">
+              <i [class]="esp.aplico ? 'pi pi-check-circle' : 'pi pi-circle'"></i>
+            </div>
+            <div class="text-xs mt-1">Aplico</div>
+          </div>
+          <div class="flex-1 text-center p-2 border-round"
+               [style]="esp.comparto ? 'background:#E8F5E9' : 'background:#f5f5f5'">
+            <div class="text-xs font-bold" [style]="esp.comparto ? 'color:#2E7D32' : 'color:#999'">
+              <i [class]="esp.comparto ? 'pi pi-check-circle' : 'pi pi-circle'"></i>
+            </div>
+            <div class="text-xs mt-1">Comparto</div>
+          </div>
+        </div>
+      </p-card>
+    </div>
+  </div>
+</div>

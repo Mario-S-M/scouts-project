@@ -1,0 +1,65 @@
+<div class="page-header">
+  <div class="flex align-items-center justify-content-between flex-wrap gap-2">
+    <div>
+      <h1><i class="pi pi-file-export mr-2"></i>Avisos de Salida</h1>
+      <p>Historial de avisos de salida generados</p>
+    </div>
+    <button pButton icon="pi pi-plus" label="Nuevo Aviso"
+            class="p-button-success" (click)="nuevo()"></button>
+  </div>
+</div>
+
+<p-card styleClass="shadow-2">
+  <p-table [value]="avisos" [loading]="loading" [paginator]="true" [rows]="10"
+           [showCurrentPageReport]="true"
+           currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} avisos"
+           [rowsPerPageOptions]="[10, 25, 50]"
+           styleClass="p-datatable-sm p-datatable-striped"
+           emptyMessage="No hay avisos guardados. Crea el primero con el botón 'Nuevo Aviso'.">
+
+    <ng-template pTemplate="header">
+      <tr>
+        <th pSortableColumn="nombre">Actividad <p-sortIcon field="nombre"></p-sortIcon></th>
+        <th pSortableColumn="tipo" style="width:130px">Tipo <p-sortIcon field="tipo"></p-sortIcon></th>
+        <th pSortableColumn="fechaSalida" style="width:120px">Fecha Salida <p-sortIcon field="fechaSalida"></p-sortIcon></th>
+        <th pSortableColumn="creadoPorNombre" style="width:180px">Creado por <p-sortIcon field="creadoPorNombre"></p-sortIcon></th>
+        <th pSortableColumn="createdAt" style="width:120px">Guardado <p-sortIcon field="createdAt"></p-sortIcon></th>
+        <th style="width:170px" class="text-center">Acciones</th>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="body" let-aviso>
+      <tr>
+        <td>
+          <span class="font-medium">{{ aviso.nombre }}</span>
+        </td>
+        <td>
+          <p-tag [value]="aviso.tipo" severity="info" [rounded]="true"></p-tag>
+        </td>
+        <td>{{ formatDate(aviso.fechaSalida) }}</td>
+        <td class="text-color-secondary text-sm">{{ aviso.creadoPorNombre || '—' }}</td>
+        <td class="text-color-secondary text-sm">{{ formatDate(aviso.createdAt?.slice(0,10)) }}</td>
+        <td class="text-center">
+          <div class="flex gap-2 justify-content-center">
+            <button pButton icon="pi pi-file-pdf"
+                    class="p-button-sm p-button-danger p-button-outlined"
+                    pTooltip="Descargar PDF"
+                    [loading]="descargando === aviso.id"
+                    (click)="descargar(aviso)"></button>
+            <button pButton icon="pi pi-pencil"
+                    class="p-button-sm p-button-info p-button-outlined"
+                    pTooltip="Editar"
+                    (click)="editar(aviso)"></button>
+            <button pButton icon="pi pi-trash"
+                    class="p-button-sm p-button-text p-button-secondary"
+                    pTooltip="Eliminar"
+                    (click)="confirmarEliminar(aviso)"></button>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+
+  </p-table>
+</p-card>
+
+<p-confirmDialog></p-confirmDialog>
