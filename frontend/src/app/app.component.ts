@@ -63,6 +63,8 @@ export class AppComponent {
       },
       { label: 'Insignias', icon: 'pi pi-star', routerLink: ['/insignias'] },
       { label: 'Avisos de Salida', icon: 'pi pi-file-export', routerLink: ['/avisos-salida'] },
+      { label: 'Ciclo de Programa', icon: 'pi pi-calendar', routerLink: ['/ciclos-programa'] },
+      { label: 'Informe Mensual',   icon: 'pi pi-file-pdf', routerLink: ['/informes'] },
     ];
     if (user?.rol === 'jefe_grupo') {
       items.push({ label: 'Usuarios', icon: 'pi pi-lock', routerLink: ['/usuarios'] });
@@ -70,6 +72,17 @@ export class AppComponent {
     this.menuItems = items;
   }
 
-  toggleTheme() { this.themeService.toggle(); }
+  toggleTheme() {
+    this.themeService.toggle();
+  }
+
+  /**
+   * Obtiene el icono actual del tema
+   */
+  getThemeIcon(): string {
+    const theme = this.themeService.getCurrentTheme();
+    return theme.includes('dark') ? 'pi pi-sun' : 'pi pi-moon';
+  }
+
   logout() { this.authService.logout(); }
 }

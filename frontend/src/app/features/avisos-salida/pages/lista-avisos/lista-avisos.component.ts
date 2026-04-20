@@ -11,6 +11,7 @@ export class ListaAvisosComponent implements OnInit {
   avisos: AvisoResumen[] = [];
   loading = false;
   descargando: number | null = null;
+  descargandoPermisos: number | null = null;
 
   constructor(
     private avisoService: AvisoService,
@@ -54,6 +55,25 @@ export class ListaAvisosComponent implements OnInit {
       error: () => {
         this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo generar el PDF.' });
         this.descargando = null;
+      },
+    });
+  }
+
+  descargarPermisos(aviso: AvisoResumen) {
+    this.descargandoPermisos = aviso.id;
+    this.avisoService.downloadPermisos(aviso.id).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `permisos-${aviso.nombre.replace(/\s+/g, '-')}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.descargandoPermisos = null;
+      },
+      error: () => {
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo generar los permisos.' });
+        this.descargandoPermisos = null;
       },
     });
   }

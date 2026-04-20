@@ -29,6 +29,14 @@
           <input pInputText formControlName="nombre" class="w-full"
                  placeholder="Ej: Cuitzeo del Porvenir" />
         </div>
+        <div class="col-12 md:col-3 p-field">
+          <label class="font-semibold block mb-1">Costo por participante</label>
+          <div class="p-inputgroup">
+            <span class="p-inputgroup-addon">$</span>
+            <input type="number" pInputText formControlName="costo" class="w-full"
+                   placeholder="0" min="0" step="1" />
+          </div>
+        </div>
       </div>
     </p-card>
 

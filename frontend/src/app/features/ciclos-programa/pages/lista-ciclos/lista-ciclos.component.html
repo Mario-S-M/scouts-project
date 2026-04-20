@@ -1,0 +1,100 @@
+<app-page-header
+  title="Ciclos de Programa"
+  subtitle="Planificación trimestral o cuatrimestral de actividades"
+  icon="pi pi-calendar">
+</app-page-header>
+
+<div class="page-container">
+
+  <!-- Toolbar -->
+  <div class="flex justify-content-between align-items-center mb-3">
+    <span class="text-500 text-sm">
+      {{ ciclos.length }} ciclo(s) registrado(s)
+    </span>
+    <button pButton icon="pi pi-plus" label="Nuevo Ciclo"
+            class="p-button-sm"
+            (click)="nuevo()">
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="flex justify-content-center py-5">
+    <p-progressSpinner strokeWidth="4" styleClass="w-3rem h-3rem"></p-progressSpinner>
+  </div>
+
+  <!-- Empty -->
+  <div *ngIf="!loading && ciclos.length === 0" class="empty-state">
+    <i class="pi pi-calendar text-4xl text-300 mb-3"></i>
+    <p class="text-600">No hay ciclos de programa registrados.</p>
+    <button pButton label="Crear primer ciclo" icon="pi pi-plus"
+            class="p-button-outlined p-button-sm mt-2"
+            (click)="nuevo()">
+    </button>
+  </div>
+
+  <!-- Tabla -->
+  <p-table *ngIf="!loading && ciclos.length > 0"
+           [value]="ciclos"
+           [paginator]="ciclos.length > 10"
+           [rows]="10"
+           styleClass="p-datatable-sm p-datatable-striped"
+           responsiveLayout="scroll">
+
+    <ng-template pTemplate="header">
+      <tr>
+        <th>Nombre del Ciclo</th>
+        <th>Período</th>
+        <th style="width:120px">Tipo</th>
+        <th style="width:100px; text-align:center">Fines de Semana</th>
+        <th>Creado por</th>
+        <th style="width:130px; text-align:center">Acciones</th>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="body" let-ciclo>
+      <tr>
+        <td>
+          <span class="font-semibold">{{ ciclo.nombre }}</span>
+        </td>
+        <td>
+          <span class="text-600">{{ periodoLabel(ciclo) }}</span>
+        </td>
+        <td>
+          <p-tag
+            [value]="tipoLabel(ciclo.tipo)"
+            [severity]="ciclo.tipo === 'trimestral' ? 'info' : 'warning'">
+          </p-tag>
+        </td>
+        <td class="text-center">
+          <span class="font-bold text-primary">{{ ciclo.actividades?.length ?? 0 }}</span>
+        </td>
+        <td>{{ ciclo.creadoPor?.nombre ?? '—' }}</td>
+        <td class="text-center">
+          <div class="flex gap-1 justify-content-center">
+            <button pButton icon="pi pi-pencil"
+                    class="p-button-text p-button-sm p-button-rounded"
+                    pTooltip="Editar"
+                    (click)="editar(ciclo)">
+            </button>
+            <button pButton
+                    [icon]="descargando === ciclo.id ? 'pi pi-spin pi-spinner' : 'pi pi-file-pdf'"
+                    class="p-button-text p-button-sm p-button-rounded p-button-danger"
+                    pTooltip="Descargar PDF"
+                    [disabled]="descargando === ciclo.id"
+                    (click)="descargar(ciclo)">
+            </button>
+            <button pButton icon="pi pi-trash"
+                    class="p-button-text p-button-sm p-button-rounded p-button-danger"
+                    pTooltip="Eliminar"
+                    (click)="confirmarEliminar(ciclo)">
+            </button>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+
+  </p-table>
+
+</div>
+
+<p-confirmDialog></p-confirmDialog>

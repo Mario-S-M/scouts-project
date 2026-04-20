@@ -1,0 +1,225 @@
+<app-page-header
+  [title]="tituloPagina"
+  [subtitle]="subtitulo"
+  icon="pi pi-calendar">
+</app-page-header>
+
+<div class="page-container">
+
+  <div *ngIf="loading" class="flex justify-content-center py-5">
+    <p-progressSpinner strokeWidth="4" styleClass="w-3rem h-3rem"></p-progressSpinner>
+  </div>
+
+  <ng-container *ngIf="!loading">
+
+    <!-- ── PASO 1: Configuración del ciclo ──────────────────────────────── -->
+    <p-card *ngIf="pasoActual === 1">
+
+      <ng-template pTemplate="header">
+        <div class="ciclo-card-header">
+          <div class="step-badge">1</div>
+          <div>
+            <div class="font-bold text-lg">Configuración del ciclo</div>
+            <div class="text-500 text-sm">Nombre, período y tipo de ciclo</div>
+          </div>
+        </div>
+      </ng-template>
+
+      <form [formGroup]="form" class="formgrid grid">
+
+        <!-- Nombre -->
+        <div class="field col-12 md:col-6">
+          <label for="nombre" class="font-semibold">Nombre del Ciclo <span class="text-red-500">*</span></label>
+          <input id="nombre" pInputText formControlName="nombre"
+                 placeholder="Ej. Ciclo Primavera 2026"
+                 class="w-full" />
+          <small class="p-error" *ngIf="form.get('nombre')?.invalid && form.get('nombre')?.touched">
+            El nombre es requerido (mínimo 3 caracteres).
+          </small>
+        </div>
+
+        <!-- Año -->
+        <div class="field col-12 md:col-3">
+          <label for="anio" class="font-semibold">Año <span class="text-red-500">*</span></label>
+          <p-dropdown id="anio" [options]="anioOpts" formControlName="anio"
+                      optionLabel="label" optionValue="value"
+                      styleClass="w-full">
+          </p-dropdown>
+        </div>
+
+        <!-- Mes de inicio -->
+        <div class="field col-12 md:col-3">
+          <label for="mesInicio" class="font-semibold">Mes de Inicio <span class="text-red-500">*</span></label>
+          <p-dropdown id="mesInicio" [options]="mesesOpts" formControlName="mesInicio"
+                      optionLabel="label" optionValue="value"
+                      styleClass="w-full">
+          </p-dropdown>
+        </div>
+
+        <!-- Tipo -->
+        <div class="field col-12">
+          <label class="font-semibold block mb-2">Tipo de Ciclo <span class="text-red-500">*</span></label>
+          <p-selectButton [options]="tipoOpts" formControlName="tipo"
+                          optionLabel="label" optionValue="value">
+          </p-selectButton>
+          <small class="text-500 mt-1 block">
+            <ng-container *ngIf="form.get('tipo')?.value === 'trimestral'">
+              Trimestral: abarca 3 meses (aprox. 13 fines de semana)
+            </ng-container>
+            <ng-container *ngIf="form.get('tipo')?.value === 'cuatrimestral'">
+              Cuatrimestral: abarca 4 meses (aprox. 17-18 fines de semana)
+            </ng-container>
+          </small>
+        </div>
+
+        <!-- Preview de sabados -->
+        <div class="col-12" *ngIf="actividades.length > 0">
+          <p-divider></p-divider>
+          <div class="text-600 text-sm font-semibold mb-2">
+            <i class="pi pi-calendar mr-1"></i>
+            Se incluirán {{ actividades.length }} fines de semana:
+          </div>
+          <div class="sabados-preview">
+            <p-chip *ngFor="let a of actividades" [label]="a.fechaDisplay"
+                    styleClass="mr-1 mb-1 text-xs">
+            </p-chip>
+          </div>
+        </div>
+
+      </form>
+
+      <ng-template pTemplate="footer">
+        <div class="flex justify-content-between align-items-center">
+          <button pButton label="Cancelar" icon="pi pi-times"
+                  class="p-button-outlined p-button-secondary"
+                  (click)="cancelar()">
+          </button>
+          <div class="flex gap-2">
+            <button pButton label="Guardar sin actividades" icon="pi pi-save"
+                    class="p-button-outlined"
+                    [loading]="guardandoBorrador"
+                    [disabled]="form.invalid || guardando || generando"
+                    pTooltip="Guarda el ciclo ahora y agrega actividades después"
+                    (click)="guardarBorrador()">
+            </button>
+            <button pButton label="Continuar y agregar actividades →" icon="pi pi-arrow-right"
+                    iconPos="right"
+                    [disabled]="form.invalid"
+                    (click)="siguientePaso()">
+            </button>
+          </div>
+        </div>
+      </ng-template>
+
+    </p-card>
+
+    <!-- ── PASO 2: Actividades por fin de semana ─────────────────────────── -->
+    <ng-container *ngIf="pasoActual === 2">
+
+      <p-card>
+        <ng-template pTemplate="header">
+          <div class="ciclo-card-header">
+            <div class="step-badge">2</div>
+            <div style="flex:1">
+              <div class="font-bold text-lg">Actividades por fin de semana</div>
+              <div class="text-500 text-sm">Asigna nombre y eje temático a cada sábado</div>
+            </div>
+            <!-- Acciones: autoguardado + PDF -->
+            <div class="flex align-items-center gap-3">
+              <span *ngIf="editId" class="text-xs text-500 flex align-items-center gap-1">
+                <ng-container *ngIf="autoGuardando">
+                  <i class="pi pi-spin pi-spinner"></i> Guardando...
+                </ng-container>
+                <ng-container *ngIf="!autoGuardando && ultimoGuardado">
+                  <i class="pi pi-check-circle text-green-500"></i> Guardado automáticamente
+                </ng-container>
+              </span>
+              <button pButton label="Descargar PDF" icon="pi pi-file-pdf"
+                      class="p-button-danger"
+                      [loading]="generando"
+                      (click)="guardarYDescargar()">
+              </button>
+            </div>
+          </div>
+        </ng-template>
+
+        <!-- Leyenda de ejes -->
+        <div class="ejes-legend mb-3">
+          <span class="text-500 text-xs font-semibold mr-2">Ejes temáticos:</span>
+          <span *ngFor="let eje of ejesTematicos"
+                class="eje-badge"
+                [attr.data-eje]="eje.value">
+            {{ eje.label }}
+          </span>
+        </div>
+
+        <p-divider></p-divider>
+
+        <!-- Tabla de actividades -->
+        <div class="actividades-tabla">
+          <div class="actividades-header">
+            <span style="width:40px">#</span>
+            <span style="width:160px">Fin de Semana</span>
+            <span style="flex:1">Nombre de la Actividad *</span>
+            <span style="width:220px">Eje Temático *</span>
+            <span style="width:180px">Notas (opcional)</span>
+          </div>
+
+          <div class="actividad-row" *ngFor="let act of actividades; let i = index"
+               [class.actividad-row--completa]="act.nombre && act.ejeTematico">
+            <span class="actividad-num">{{ i + 1 }}</span>
+            <span class="actividad-fecha">{{ act.fechaDisplay }}</span>
+            <span class="actividad-nombre">
+              <input pInputText [(ngModel)]="act.nombre"
+                     (ngModelChange)="onActividadChange()"
+                     placeholder="Nombre de la actividad"
+                     class="w-full" />
+            </span>
+            <span class="actividad-eje">
+              <p-dropdown [options]="ejesTematicos"
+                          [(ngModel)]="act.ejeTematico"
+                          (ngModelChange)="onActividadChange()"
+                          optionLabel="label" optionValue="value"
+                          placeholder="Selecciona eje"
+                          styleClass="w-full"
+                          [showClear]="true">
+                <ng-template pTemplate="selectedItem" let-item>
+                  <span class="eje-selected" [attr.data-eje]="item?.value">{{ item?.label }}</span>
+                </ng-template>
+              </p-dropdown>
+            </span>
+            <span class="actividad-notas">
+              <input pInputText [(ngModel)]="act.descripcion"
+                     (ngModelChange)="onActividadChange()"
+                     placeholder="Notas..."
+                     class="w-full" />
+            </span>
+          </div>
+        </div>
+
+        <p-divider></p-divider>
+
+        <!-- Resumen -->
+        <div class="resumen-bar">
+          <span class="text-500 text-sm">
+            <i class="pi pi-check-circle text-green-500 mr-1"></i>
+            {{ actividades | completasFilter }} de {{ actividades.length }} actividades completas
+          </span>
+        </div>
+
+        <ng-template pTemplate="footer">
+          <div class="flex justify-content-start">
+            <button pButton label="← Volver" icon="pi pi-arrow-left"
+                    class="p-button-outlined p-button-secondary"
+                    (click)="anteriorPaso()">
+            </button>
+          </div>
+        </ng-template>
+
+      </p-card>
+
+    </ng-container>
+
+  </ng-container>
+
+</div>

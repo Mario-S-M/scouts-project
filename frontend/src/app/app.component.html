@@ -36,7 +36,8 @@
                 routerLink="/evidencias/nueva"></button>
 
         <!-- Tema -->
-        <button pButton icon="pi pi-adjust"
+        <button pButton [icon]="getThemeIcon()"
+                label="Tema"
                 class="nav-btn nav-btn-outline"
                 pTooltip="Cambiar tema"
                 (click)="toggleTheme()"></button>

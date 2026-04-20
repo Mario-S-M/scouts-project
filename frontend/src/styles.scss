@@ -24,6 +24,87 @@
   --scout-green-dark:  #1B2A4A;
 }
 
+/* === MODO OSCURO === */
+body.p-theme-aura-dark-blue,
+body.p-theme-aura-dark-blue {
+  background-color: var(--surface-0, #18181b) !important;
+  color: var(--text-color, #e4e4e7) !important;
+}
+
+body.p-theme-aura-dark-blue .p-card {
+  background-color: var(--surface-0, #18181b) !important;
+  border-color: var(--surface-border, #27272a) !important;
+}
+
+body.p-theme-aura-dark-blue .p-card .p-card-body {
+  background-color: transparent !important;
+}
+
+body.p-theme-aura-dark-blue .p-toast {
+  background-color: var(--surface-0, #18181b) !important;
+  border-color: var(--surface-border, #27272a) !important;
+  color: var(--text-color, #e4e4e7) !important;
+}
+
+body.p-theme-aura-dark-blue .p-dialog {
+  background-color: var(--surface-0, #18181b) !important;
+  border-color: var(--surface-border, #27272a) !important;
+}
+
+body.p-theme-aura-dark-blue .p-dialog .p-dialog-header {
+  background-color: var(--surface-0, #18181b) !important;
+  color: var(--text-color, #e4e4e7) !important;
+  border-color: var(--surface-border, #27272a) !important;
+}
+
+body.p-theme-aura-dark-blue .p-dialog .p-dialog-footer {
+  background-color: var(--surface-0, #18181b) !important;
+  border-color: var(--surface-border, #27272a) !important;
+}
+
+body.p-theme-aura-dark-blue .p-message {
+  background-color: var(--surface-0, #18181b) !important;
+  border-color: var(--surface-border, #27272a) !important;
+  color: var(--text-color, #e4e4e7) !important;
+}
+
+body.p-theme-aura-dark-blue .p-dropdown {
+  .p-dropdown-label {
+    color: var(--text-color, #e4e4e7) !important;
+  }
+}
+
+/* p-inputtext — override base (completado abajo más comprehensivamente) */
+body.p-theme-aura-dark-blue .p-inputtext {
+  background-color: var(--surface-50, #27272a) !important;
+  border-color: var(--surface-border, #3f3f46) !important;
+  color: var(--text-color, #e4e4e7) !important;
+}
+
+body.p-theme-aura-dark-blue .p-datatable {
+  background-color: var(--surface-0, #18181b) !important;
+  color: var(--text-color, #e4e4e7) !important;
+}
+
+body.p-theme-aura-dark-blue .p-datatable .p-datatable-header {
+  background-color: var(--surface-0, #18181b) !important;
+  color: var(--text-color, #e4e4e7) !important;
+}
+
+body.p-theme-aura-dark-blue .p-dropdown-panel {
+  background-color: var(--surface-0, #18181b) !important;
+  color: var(--text-color, #e4e4e7) !important;
+}
+
+body.p-theme-aura-dark-blue .p-selectbutton .p-selectbutton-tab:not(.p-highlight) {
+  background-color: #374151 !important;
+  color: var(--text-color-secondary, #a1a1aa) !important;
+}
+
+body.p-theme-aura-dark-blue .p-tabview-nav-content .p-tabview-nav-prev {
+  background-color: var(--surface-0, #18181b) !important;
+}
+
 /* ── Grupo: Gris Oxford ─────────────────────────────────── */
 .theme-grupo {
   --nav-bg:           #2C2E30;
@@ -73,11 +154,23 @@
   box-sizing: border-box;
 }
 
+/* === Tema Claro === */
+body.p-theme-aura-light-blue,
+body.p-theme-aura-light-green {
+  background-color: var(--surface-0, #f5f5f5) !important;
+  color: var(--text-color, #333) !important;
+}
+
+/* === Tema Oscuro === */
+body.p-theme-aura-dark-blue,
+body.p-theme-aura-dark-green {
+  background-color: var(--surface-0, #18181b) !important;
+  color: var(--text-color, #e4e4e7) !important;
+}
+
 body {
   margin: 0;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f5f5f5;
-  color: #333;
 }
 
 .app-container {
@@ -92,6 +185,23 @@ body {
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
+}
+
+/* === Modo oscuro - contenido principal === */
+body.p-theme-aura-dark-blue .main-content {
+  background-color: var(--surface-0, #18181b) !important;
+}
+
+/* === Todos los elementos de contenido dinámico === */
+body.p-theme-aura-dark-blue :not(nav):not(header):not footer p,
+body.p-theme-aura-dark-blue :not(nav):not(header):not footer div {
+  background-color: inherit;
+}
+
+/* === Router outlet y componentes dinámicos === */
+body.p-theme-aura-dark-blue app-root main,
+body.p-theme-aura-dark-blue .main-content {
+  background-color: var(--surface-0, #18181b) !important;
 }
 
 /* ============================
@@ -203,7 +313,7 @@ body {
 .nav-divider {
   width: 1px;
   height: 32px;
-  background: rgba(255,255,255,0.15);
+  background: var(--surface-300, rgba(145,145,145,0.3));
   margin: 0 0.5rem;
 }
 
@@ -244,6 +354,20 @@ body {
       line-height: 1.2;
     }
   }
+}
+
+/* Modo oscuro - nav user */
+body.p-theme-aura-dark-blue .nav-user {
+  background: rgba(255,255,255,0.1) !important;
+  border-color: rgba(255,255,255,0.2) !important;
+}
+
+body.p-theme-aura-dark-blue .nav-user .nav-user-name {
+  color: #F3F4F6 !important;
+}
+
+body.p-theme-aura-dark-blue .nav-user .nav-user-role {
+  color: rgba(255,255,255,0.6) !important;
 }
 
 /* Botones del navbar */
@@ -302,9 +426,53 @@ body {
   }
 
   p {
-    color: #666;
+    color: var(--text-color-secondary, #a1a1aa);
     margin: 0;
   }
+}
+
+/* Modo oscuro - headers */
+body.p-theme-aura-dark-blue .page-header h1 {
+  color: #F3F4F6 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+body.p-theme-aura-dark-blue .page-header p {
+  color: var(--text-color-secondary, #a1a1aa) !important;
+}
+
+/* Modo oscuro - stat cards */
+body.p-theme-aura-dark-blue .stat-card {
+  background-color: var(--surface-0, #18181b) !important;
+}
+
+body.p-theme-aura-dark-blue .stat-card .stat-label {
+  color: var(--text-color-secondary, #a1a1aa) !important;
+}
+
+/* Modo oscuro - form labels */
+body.p-theme-aura-dark-blue .p-field label {
+  color: #D1D5DB !important;
+}
+
+/* Modo oscuro - text en body */
+body.p-theme-aura-dark-blue {
+  color: var(--text-color, #e4e4e7) !important;
+}
+
+body.p-theme-aura-dark-blue .p-text {
+  color: var(--text-color, #e4e4e7) !important;
+}
+
+/* Modo oscuro - inputs */
+body.p-theme-aura-dark-blue .p-field .p-inputtext {
+  background-color: var(--surface-50, #27272a) !important;
+  border-color: var(--surface-border, #3f3f46) !important;
+  color: var(--text-color, #e4e4e7) !important;
+}
+
+body.p-theme-aura-dark-blue .p-field .p-inputtext:focus {
+  border-color: #4B5563 !important;
 }
 
 /* Scout badge cards */
@@ -343,11 +511,42 @@ body {
 .badge-Opalo { background: linear-gradient(135deg, #7B1FA2, #CE93D8); }
 .badge-Diamante { background: linear-gradient(135deg, #0D47A1, #90CAF9); }
 
+/* Modo oscuro - badges más brillantes */
+body.p-theme-aura-dark-blue .badge-card.earned {
+  border-color: #F59E0B !important;
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.3) !important;
+}
+
+body.p-theme-aura-dark-blue .badge-icon {
+  filter: brightness(1.1);
+}
+
 /* Sendero cards */
 .sendero-Cenit { border-left: 4px solid #FF7043 !important; }
 .sendero-Cima { border-left: 4px solid #43A047 !important; }
 .sendero-Cumbre { border-left: 4px solid #1E88E5 !important; }
 .sendero-Cuspide { border-left: 4px solid #8E24AA !important; }
+
+/* Modo oscuro - senderos con bordes más visibles */
+body.p-theme-aura-dark-blue .sendero-Cenit {
+  border-left-color: #FF7043 !important;
+  box-shadow: 0 0 10px rgba(255, 112, 67, 0.3) !important;
+}
+
+body.p-theme-aura-dark-blue .sendero-Cima {
+  border-left-color: #43A047 !important;
+  box-shadow: 0 0 10px rgba(67, 160, 71, 0.3) !important;
+}
+
+body.p-theme-aura-dark-blue .sendero-Cumbre {
+  border-left-color: #1E88E5 !important;
+  box-shadow: 0 0 10px rgba(30, 136, 229, 0.3) !important;
+}
+
+body.p-theme-aura-dark-blue .sendero-Cuspide {
+  border-left-color: #8E24AA !important;
+  box-shadow: 0 0 10px rgba(142, 36, 170, 0.3) !important;
+}
 
 /* Progress bars */
 .progress-label {
@@ -363,6 +562,22 @@ body {
 .tag-aprobada { background: #E8F5E9 !important; color: #2E7D32 !important; }
 .tag-rechazada { background: #FFEBEE !important; color: #C62828 !important; }
 
+/* Modo oscuro - status tags */
+body.p-theme-aura-dark-blue .tag-pendiente {
+  background: #3D3D3D !important;
+  color: #FFB74D !important;
+}
+
+body.p-theme-aura-dark-blue .tag-aprobada {
+  background: #1B4332 !important;
+  color: #81C784 !important;
+}
+
+body.p-theme-aura-dark-blue .tag-rechazada {
+  background: #451616 !important;
+  color: #FFCDD2 !important;
+}
+
 /* Stat cards */
 .stat-card {
   text-align: center;
@@ -376,7 +591,7 @@ body {
 
   .stat-label {
     font-size: 0.9rem;
-    color: #666;
+    color: var(--text-color-secondary, #a1a1aa);
     margin-top: 0.25rem;
   }
 
@@ -433,10 +648,20 @@ body {
     }
 
     &.pending {
-      background: #e0e0e0;
+      background: var(--surface-400, #a1a1aa);
       color: #999;
     }
   }
+}
+
+/* Modo oscuro - camino progress */
+body.p-theme-aura-dark-blue .camino-item {
+  border-bottom-color: rgba(255,255,255,0.1) !important;
+}
+
+body.p-theme-aura-dark-blue .camino-item .etapa-dot.pending {
+  background: var(--surface-50, #27272a) !important;
+  color: #6B7280 !important;
 }
 
 /* Form styles */
@@ -451,6 +676,15 @@ body {
       color: #555;
     }
   }
+}
+
+/* Modo oscuro - form styles */
+body.p-theme-aura-dark-blue .p-field label {
+  color: #D1D5DB !important;
+}
+
+body.p-theme-aura-dark-blue .scout-form .p-field label {
+  color: #D1D5DB !important;
 }
 
 /* Responsive */
@@ -500,6 +734,40 @@ body {
   letter-spacing: 0.3px;
 }
 
+/* Modo oscuro - tabview */
+body.p-theme-aura-dark-blue .p-tabview-nav-link {
+  color: var(--text-color-secondary, #a1a1aa) !important;
+}
+
+body.p-theme-aura-dark-blue .p-tabview-nav-link.p-tabview-nav-link-active {
+  color: #F3F4F6 !important;
+  border-color: var(--surface-border, #27272a) !important;
+}
+
+body.p-theme-aura-dark-blue .p-tabview-panels {
+  background-color: transparent !important;
+}
+
+body.p-theme-aura-dark-blue .p-tabview-nav-header {
+  background-color: var(--surface-0, #18181b) !important;
+  color: var(--text-color-secondary, #a1a1aa) !important;
+}
+
+/* Modo oscuro - datatable rows */
+body.p-theme-aura-dark-blue .p-datatable .p-datatable-row {
+  background-color: var(--surface-0, #18181b) !important;
+  color: var(--text-color, #e4e4e7) !important;
+}
+
+body.p-theme-aura-dark-blue .p-datatable .p-datatable-row:hover {
+  background-color: var(--surface-0, #18181b) !important;
+}
+
+body.p-theme-aura-dark-blue .p-datatable .p-datatable-row.p-highlight {
+  background-color: #374151 !important;
+  color: var(--text-color, #e4e4e7) !important;
+}
+
 /* ── Banner de grupo en registro ─────────────────────────── */
 .grupo-banner {
   display: flex;
@@ -534,7 +802,7 @@ body {
   }
 
   .grupo-tag {
-    background: rgba(255,255,255,0.15);
+    background: var(--surface-300, rgba(145,145,145,0.3));
     color: rgba(255,255,255,0.85);
     font-size: 0.72rem;
     font-weight: 600;
@@ -555,4 +823,203 @@ body {
   padding-bottom: 0.35rem;
   margin-bottom: 0.5rem;
   opacity: 0.85;
+}
+
+/* ============================================================
+   DARK MODE — overrides completos para PrimeNG
+   ============================================================ */
+
+/* p-card: header, content, footer */
+body.p-theme-aura-dark-blue .p-card {
+  background: var(--surface-card, #18181b) !important;
+  border: 1px solid var(--surface-border, #27272a) !important;
+  color: var(--text-color, #e4e4e7) !important;
+}
+body.p-theme-aura-dark-blue .p-card .p-card-header,
+body.p-theme-aura-dark-blue .p-card .p-card-content,
+body.p-theme-aura-dark-blue .p-card .p-card-footer,
+body.p-theme-aura-dark-blue .p-card .p-card-body {
+  background: transparent !important;
+  color: inherit !important;
+}
+
+/* Texto genérico dentro de tarjetas */
+body.p-theme-aura-dark-blue .p-card label,
+body.p-theme-aura-dark-blue .p-card .font-semibold,
+body.p-theme-aura-dark-blue .p-card .font-bold,
+body.p-theme-aura-dark-blue .p-card h1,
+body.p-theme-aura-dark-blue .p-card h2,
+body.p-theme-aura-dark-blue .p-card h3 {
+  color: var(--text-color, #e4e4e7) !important;
+}
+
+/* p-inputtext (todos los inputs de texto) */
+body.p-theme-aura-dark-blue .p-inputtext,
+body.p-theme-aura-dark-blue input.p-inputtext {
+  background-color: var(--surface-50, #27272a) !important;
+  border-color: var(--surface-border, #3f3f46) !important;
+  color: var(--text-color, #e4e4e7) !important;
+}
+body.p-theme-aura-dark-blue .p-inputtext::placeholder {
+  color: var(--text-color-secondary, #71717a) !important;
+}
+
+/* p-dropdown completo */
+body.p-theme-aura-dark-blue .p-dropdown {
+  background-color: var(--surface-50, #27272a) !important;
+  border-color: var(--surface-border, #3f3f46) !important;
+  color: var(--text-color, #e4e4e7) !important;
+}
+body.p-theme-aura-dark-blue .p-dropdown .p-dropdown-trigger {
+  color: var(--text-color-secondary, #a1a1aa) !important;
+}
+body.p-theme-aura-dark-blue .p-dropdown-panel {
+  background-color: var(--surface-50, #27272a) !important;
+  border-color: var(--surface-border, #3f3f46) !important;
+  color: var(--text-color, #e4e4e7) !important;
+}
+body.p-theme-aura-dark-blue .p-dropdown-panel .p-dropdown-items .p-dropdown-item {
+  color: var(--text-color, #e4e4e7) !important;
+}
+body.p-theme-aura-dark-blue .p-dropdown-panel .p-dropdown-items .p-dropdown-item:hover,
+body.p-theme-aura-dark-blue .p-dropdown-panel .p-dropdown-items .p-dropdown-item.p-highlight {
+  background-color: var(--surface-100, #3f3f46) !important;
+}
+
+/* p-chip */
+body.p-theme-aura-dark-blue .p-chip {
+  background-color: var(--surface-50, #27272a) !important;
+  color: var(--text-color, #e4e4e7) !important;
+  border: 1px solid var(--surface-border, #3f3f46) !important;
+}
+
+/* p-divider */
+body.p-theme-aura-dark-blue .p-divider.p-divider-horizontal:before {
+  border-top-color: var(--surface-border, #27272a) !important;
+}
+body.p-theme-aura-dark-blue .p-divider.p-divider-vertical:before {
+  border-left-color: var(--surface-border, #27272a) !important;
+}
+
+/* p-datatable filas */
+body.p-theme-aura-dark-blue .p-datatable .p-datatable-tbody > tr {
+  background: var(--surface-0, #18181b) !important;
+  color: var(--text-color, #e4e4e7) !important;
+}
+body.p-theme-aura-dark-blue .p-datatable .p-datatable-tbody > tr > td {
+  border-color: var(--surface-border, #27272a) !important;
+  color: var(--text-color, #e4e4e7) !important;
+}
+body.p-theme-aura-dark-blue .p-datatable .p-datatable-tbody > tr:hover {
+  background: var(--surface-50, #27272a) !important;
+}
+body.p-theme-aura-dark-blue .p-datatable .p-datatable-thead > tr > th {
+  background: var(--surface-50, #27272a) !important;
+  border-color: var(--surface-border, #3f3f46) !important;
+  color: var(--text-color, #e4e4e7) !important;
+}
+
+/* p-tabview */
+body.p-theme-aura-dark-blue .p-tabview .p-tabview-nav {
+  background: var(--surface-0, #18181b) !important;
+  border-color: var(--surface-border, #27272a) !important;
+}
+body.p-theme-aura-dark-blue .p-tabview .p-tabview-nav li .p-tabview-nav-link {
+  background: var(--surface-0, #18181b) !important;
+  border-color: var(--surface-border, #27272a) !important;
+  color: var(--text-color-secondary, #a1a1aa) !important;
+}
+body.p-theme-aura-dark-blue .p-tabview .p-tabview-nav li.p-highlight .p-tabview-nav-link {
+  color: var(--text-color, #e4e4e7) !important;
+  border-bottom-color: var(--primary-color, #6366f1) !important;
+}
+body.p-theme-aura-dark-blue .p-tabview .p-tabview-panels {
+  background: transparent !important;
+  color: var(--text-color, #e4e4e7) !important;
+}
+
+/* p-dialog */
+body.p-theme-aura-dark-blue .p-dialog .p-dialog-content {
+  background: var(--surface-0, #18181b) !important;
+  color: var(--text-color, #e4e4e7) !important;
+}
+
+/* p-selectbutton */
+body.p-theme-aura-dark-blue .p-selectbutton .p-selectbutton-tab {
+  background: var(--surface-50, #27272a) !important;
+  border-color: var(--surface-border, #3f3f46) !important;
+  color: var(--text-color-secondary, #a1a1aa) !important;
+}
+body.p-theme-aura-dark-blue .p-selectbutton .p-selectbutton-tab.p-highlight {
+  background: var(--primary-color, #6366f1) !important;
+  border-color: var(--primary-color, #6366f1) !important;
+  color: #fff !important;
+}
+
+/* p-message / p-inlinemessage */
+body.p-theme-aura-dark-blue .p-message .p-message-wrapper {
+  background: var(--surface-50, #27272a) !important;
+  color: var(--text-color, #e4e4e7) !important;
+}
+
+/* Texto secundario / muted */
+body.p-theme-aura-dark-blue .text-500,
+body.p-theme-aura-dark-blue .text-600 {
+  color: var(--text-color-secondary, #a1a1aa) !important;
+}
+
+/* page-container fondo */
+body.p-theme-aura-dark-blue .page-container {
+  background: transparent !important;
+}
+
+/* p-multiselect */
+body.p-theme-aura-dark-blue .p-multiselect {
+  background-color: var(--surface-50, #27272a) !important;
+  border-color: var(--surface-border, #3f3f46) !important;
+  color: var(--text-color, #e4e4e7) !important;
+}
+body.p-theme-aura-dark-blue .p-multiselect:not(.p-disabled).p-focus,
+body.p-theme-aura-dark-blue .p-multiselect:not(.p-disabled):hover {
+  border-color: var(--surface-300, #71717a) !important;
+  box-shadow: none !important;
+}
+body.p-theme-aura-dark-blue .p-multiselect .p-multiselect-label {
+  color: var(--text-color, #e4e4e7) !important;
+}
+body.p-theme-aura-dark-blue .p-multiselect .p-multiselect-label.p-placeholder {
+  color: var(--text-color-secondary, #71717a) !important;
+}
+body.p-theme-aura-dark-blue .p-multiselect .p-multiselect-trigger {
+  color: var(--text-color-secondary, #a1a1aa) !important;
+}
+body.p-theme-aura-dark-blue .p-multiselect-panel {
+  background-color: var(--surface-50, #27272a) !important;
+  border-color: var(--surface-border, #3f3f46) !important;
+  color: var(--text-color, #e4e4e7) !important;
+}
+body.p-theme-aura-dark-blue .p-multiselect-panel .p-multiselect-header {
+  background-color: var(--surface-50, #27272a) !important;
+  border-bottom-color: var(--surface-border, #3f3f46) !important;
+  color: var(--text-color, #e4e4e7) !important;
+}
+body.p-theme-aura-dark-blue .p-multiselect-panel .p-multiselect-items .p-multiselect-item {
+  color: var(--text-color, #e4e4e7) !important;
+}
+body.p-theme-aura-dark-blue .p-multiselect-panel .p-multiselect-items .p-multiselect-item:hover,
+body.p-theme-aura-dark-blue .p-multiselect-panel .p-multiselect-items .p-multiselect-item.p-highlight {
+  background-color: var(--surface-100, #3f3f46) !important;
+}
+body.p-theme-aura-dark-blue .p-multiselect-panel .p-multiselect-filter-container .p-inputtext {
+  background-color: var(--surface-100, #3f3f46) !important;
+  border-color: var(--surface-border, #52525b) !important;
+  color: var(--text-color, #e4e4e7) !important;
+}
+
+/* focus en inputs/dropdowns: quitar el borde verde por borde sutil */
+body.p-theme-aura-dark-blue .p-inputtext:focus,
+body.p-theme-aura-dark-blue .p-dropdown:not(.p-disabled).p-focus,
+body.p-theme-aura-dark-blue .p-dropdown:not(.p-disabled):hover {
+  border-color: var(--surface-300, #71717a) !important;
+  box-shadow: none !important;
 }

@@ -87,6 +87,7 @@ export class CrearAvisoComponent implements OnInit {
         cargo: [user ? this.authService.getRolLabel(user.rol) : ''],
         telefono: [''],
       }),
+      costo: [0],
       lugarDescripcion: [''],
       mapUrl: [''],
       participantes: [[] as Caminante[]],
@@ -130,6 +131,7 @@ export class CrearAvisoComponent implements OnInit {
             fecha: this.toDate(d.llegada?.fecha),
             hora: d.llegada?.hora ?? '',
           },
+          costo: d.costo ?? 0,
           transporte: d.transporte,
           contactoLocal: d.contactoLocal,
           contactoActividad: d.contactoActividad,
@@ -337,7 +339,7 @@ export class CrearAvisoComponent implements OnInit {
     const v = this.form.value;
     const toISO = (v: any) => { if (!v) return null; if (v instanceof Date) return v.toISOString(); return v; };
     const dto = {
-      tipo: v.tipo, nombre: v.nombre,
+      tipo: v.tipo, nombre: v.nombre, costo: v.costo ?? 0,
       salida:   { lugar: v.salida.lugar,   fecha: toISO(v.salida.fecha),   hora: toISO(v.salida.hora) },
       llegada:  { lugar: v.llegada.lugar,  fecha: toISO(v.llegada.fecha),  hora: toISO(v.llegada.hora) },
       transporte: v.transporte,
@@ -377,6 +379,7 @@ export class CrearAvisoComponent implements OnInit {
     const dto = {
       tipo:        v.tipo,
       nombre:      v.nombre,
+      costo:       v.costo ?? 0,
       salida:      { lugar: v.salida.lugar, fecha: toISO(v.salida.fecha), hora: toISO(v.salida.hora) },
       llegada:     { lugar: v.llegada.lugar, fecha: toISO(v.llegada.fecha), hora: toISO(v.llegada.hora) },
       transporte:  v.transporte,

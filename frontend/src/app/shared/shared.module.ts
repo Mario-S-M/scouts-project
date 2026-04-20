@@ -30,6 +30,7 @@ import { AvatarModule } from 'primeng/avatar';
 import { TimelineModule } from 'primeng/timeline';
 import { AccordionModule } from 'primeng/accordion';
 import { CheckboxModule } from 'primeng/checkbox';
+import { MultiSelectModule } from 'primeng/multiselect';
 
 // Shared Components
 import { PageHeaderComponent } from './components/page-header/page-header.component';
@@ -67,6 +68,7 @@ const PRIMENG_MODULES = [
   TimelineModule,
   AccordionModule,
   CheckboxModule,
+  MultiSelectModule,
 ];
 
 const SHARED_COMPONENTS = [

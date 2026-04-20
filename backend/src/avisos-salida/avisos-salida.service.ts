@@ -1,10 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as fs from 'fs';
+import * as path from 'path';
 import { AvisoSalidaDto, ParticipanteDto } from './dto/aviso-salida.dto';
 import { AvisoSalida } from './aviso-salida.entity';
 
-const PdfPrinter = require('pdfmake/js/printer').default;
+const PdfPrinter = require('pdfmake/js/Printer').default;
 const vfsFonts = require('pdfmake/build/vfs_fonts');
 
 // ── Colores ────────────────────────────────────────────────────────────────────
@@ -33,6 +35,17 @@ function fmtDate(s: string | null | undefined): string {
     : d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
+function fmtDateLong(s: string | null | undefined): string {
+  if (!s) return '—';
+  const iso = /^\d{4}-\d{2}-\d{2}$/.test(s) ? s + 'T12:00:00' : s;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
+  const dias  = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  return `${dias[d.getDay()]}, ${d.getDate()} de ${meses[d.getMonth()]} del ${d.getFullYear()}`;
+}
+
 function fmtTime(s: string | null | undefined): string {
   if (!s) return '—';
   if (/^\d{2}:\d{2}/.test(s)) {
@@ -48,11 +61,19 @@ function fmtTime(s: string | null | undefined): string {
 @Injectable()
 export class AvisosSalidaService {
   private printer: any;
+  private logoGrupo: string | null = null;
+  private logoCC:    string | null = null;
 
   constructor(
     @InjectRepository(AvisoSalida)
     private readonly repo: Repository<AvisoSalida>,
   ) {
+    const assetsDir = path.join(__dirname, '../../public/assets');
+    const grupoPath = path.join(assetsDir, 'logo_Grupo.png');
+    const ccPath    = path.join(assetsDir, 'logo_CC.png');
+    if (fs.existsSync(grupoPath)) this.logoGrupo = `data:image/png;base64,${fs.readFileSync(grupoPath).toString('base64')}`;
+    if (fs.existsSync(ccPath))    this.logoCC    = `data:image/png;base64,${fs.readFileSync(ccPath).toString('base64')}`;
+
     // pdfmake v0.3: resolveUrls() calls getExtendedUrl(descriptor) which does
     // descriptor.url — a Buffer is an object, so it'd read Buffer.url = undefined.
     // Fix: use string keys + virtualfs so resolveUrls treats them as plain paths.
@@ -238,7 +259,11 @@ export class AvisosSalidaService {
       }),
       defaultStyle: { font: 'Roboto', fontSize: 9, color: C.text },
       styles: this.styles(),
-      images: mapImage ? { mapImg: mapImage } : {},
+      images: {
+        ...(mapImage               ? { mapImg:    mapImage        } : {}),
+        ...(this.logoGrupo         ? { logoGrupo: this.logoGrupo  } : {}),
+        ...(this.logoCC            ? { logoCC:    this.logoCC     } : {}),
+      },
       content: [
         // ─ Página 1: Aviso de Salida ─
         this.header(),
@@ -280,17 +305,27 @@ export class AvisosSalidaService {
 
   // ── Encabezado institucional ─────────────────────────────────────────────────
   private header(): any {
+    const leftCell = this.logoGrupo
+      ? { image: 'logoGrupo', width: 48, alignment: 'center', fillColor: C.white, margin: [4, 4, 4, 4] }
+      : { text: '⚜', fontSize: 22, alignment: 'center', color: C.white, fillColor: C.purple, margin: [4, 10, 4, 10] };
+    const rightCell = this.logoCC
+      ? { image: 'logoCC', width: 48, alignment: 'center', fillColor: C.white, margin: [4, 4, 4, 4] }
+      : { text: '⚜', fontSize: 22, alignment: 'center', color: C.white, fillColor: C.purple, margin: [4, 10, 4, 10] };
     return {
       table: {
-        widths: ['*'],
-        body: [[{
-          stack: [
-            { text: '⚜  ASOCIACIÓN DE SCOUTS DE MÉXICO, A.C.', style: 'headerTitle', alignment: 'center' },
-            { text: 'PROVINCIA MICHOACÁN  ·  GRUPO 7 MORELIA', style: 'headerSub', alignment: 'center', margin: [0, 2, 0, 0] },
-          ],
-          fillColor: C.purple,
-          margin: [0, 8, 0, 8],
-        }]],
+        widths: [60, '*', 60],
+        body: [[
+          leftCell,
+          {
+            stack: [
+              { text: 'ASOCIACIÓN DE SCOUTS DE MÉXICO, A.C.', style: 'headerTitle', alignment: 'center' },
+              { text: 'PROVINCIA MICHOACÁN  ·  GRUPO 7 MORELIA', style: 'headerSub', alignment: 'center', margin: [0, 2, 0, 0] },
+            ],
+            fillColor: C.purple,
+            margin: [0, 8, 0, 8],
+          },
+          rightCell,
+        ]],
       },
       layout: 'noBorders',
       margin: [0, 0, 0, 8],
@@ -632,6 +667,371 @@ export class AvisosSalidaService {
         { width: '*', text: '' },
       ],
       margin: [0, 20, 0, 0],
+    };
+  }
+
+  // ── Permisos de Salida ────────────────────────────────────────────────────────
+
+  async generatePermisos(id: number): Promise<Buffer> {
+    const aviso  = await this.findOne(id);
+    const docDef = this.buildPermisosDocument(aviso.data as AvisoSalidaDto);
+    const doc    = await this.printer.createPdfKitDocument(docDef);
+    return new Promise((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      doc.on('data',  (c: Buffer) => chunks.push(c));
+      doc.on('end',   () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+      doc.end();
+    });
+  }
+
+  private buildPermisosDocument(dto: AvisoSalidaDto): any {
+    const participantes = dto.participantes ?? [];
+    const costo: number = dto.costo ?? 0;
+    const targets: (ParticipanteDto | null)[] = participantes.length > 0 ? participantes : [null];
+
+    const content: any[] = [];
+    targets.forEach((p, i) => {
+      if (i > 0) content.push({ text: '', pageBreak: 'before' });
+      content.push(...this.buildPermisoPage(dto, p, costo));
+    });
+
+    return {
+      pageSize:     'LETTER',
+      pageMargins:  [36, 36, 36, 28],
+      defaultStyle: { font: 'Roboto', fontSize: 9, color: '#111827' },
+      images: {
+        ...(this.logoGrupo ? { logoGrupo: this.logoGrupo } : {}),
+        ...(this.logoCC    ? { logoCC:    this.logoCC    } : {}),
+      },
+      content,
+    };
+  }
+
+  private buildPermisoPage(dto: AvisoSalidaDto, p: ParticipanteDto | null, costo: number): any[] {
+    // ─ Paleta ─────────────────────────────────────────────────────────────────
+    const NAVY    = '#1E3A8A';
+    const NAVY2   = '#1E40AF';
+    const BLUE_LT = '#EFF6FF';
+    const BLUE_MD = '#DBEAFE';
+    const WHITE   = '#FFFFFF';
+    const INPUT   = '#F8FAFC';
+    const BORDER  = '#CBD5E1';
+    const TEXT    = '#1E293B';
+    const GRAY    = '#64748B';
+
+    const nombreJoven     = p ? `${p.nombre || ''} ${p.apellidos || ''}`.trim() : '';
+    const cum             = p?.cum ?? '';
+    const nombreActividad = (dto.nombre || '—').toUpperCase();
+    const fechaLarga      = fmtDateLong(dto.salida?.fecha);
+    const contactos       = [dto.contactoLocal, dto.contactoActividad].filter(c => c?.nombre?.trim());
+
+    // ─ Helpers ────────────────────────────────────────────────────────────────
+    // Campo de entrada con highlight si tiene valor
+    const ibox = (val = '', ph = '') => ({
+      table: {
+        widths: ['*'],
+        body: [[{
+          text: val || ph || ' ',
+          fontSize: 8.5,
+          color:   val ? TEXT : GRAY,
+          fillColor: val ? WHITE : INPUT,
+          margin: [4, 2, 4, 2],
+          italics: !val && !!ph,
+          bold: !!val,
+        }]],
+      },
+      layout: {
+        hLineColor: () => val ? NAVY : BORDER,
+        vLineColor: () => val ? NAVY : BORDER,
+        hLineWidth: () => val ? 1 : 0.5,
+        vLineWidth: () => val ? 1 : 0.5,
+      },
+    });
+    // Casilla de verificación
+    const cbox = () => ({
+      table: { widths: [11], body: [[{ text: ' ', fillColor: INPUT, margin: [0, 2, 0, 2] }]] },
+      layout: { hLineColor: () => BORDER, vLineColor: () => BORDER, hLineWidth: () => 0.5, vLineWidth: () => 0.5 },
+      width: 15,
+    });
+    // Encabezado de sección (barra azul marino)
+    const secHdr = (txt: string) => ({
+      table: { widths: ['*'], body: [[{ text: txt, fontSize: 7.5, bold: true, color: WHITE, fillColor: NAVY, alignment: 'center', margin: [0, 3, 0, 3] }]] },
+      layout: 'noBorders',
+      margin: [0, 0, 0, 0],
+    });
+    // Separador fino azul claro
+    const sep = () => ({
+      canvas: [{ type: 'line', x1: 0, y1: 0, x2: 523, y2: 0, lineWidth: 0.5, lineColor: BLUE_MD }],
+      margin: [0, 3, 0, 3],
+    });
+    // Separador grueso azul marino
+    const navyLine = () => ({
+      canvas: [{ type: 'line', x1: 0, y1: 0, x2: 539, y2: 0, lineWidth: 2, lineColor: NAVY }],
+      margin: [0, 0, 0, 0],
+    });
+    const divider = sep;
+    const thick = navyLine;
+
+    return [
+      // ─ Header bar ─
+      {
+        columns: [
+          { width: '*',    text: fechaLarga,         fontSize: 7.5, color: '#6B7280' },
+          { width: 'auto', text: 'PERMISO DE SALIDA', fontSize: 7.5, bold: true, color: '#6B7280' },
+        ],
+        margin: [0, 0, 0, 4],
+      },
+
+      // ─ Logos + nombre grupo ─
+      {
+        columns: [
+          this.logoGrupo
+            ? { width: 54, image: 'logoGrupo', fit: [50, 50] as [number, number], alignment: 'center' }
+            : { width: 54, text: '' },
+          {
+            width: '*',
+            stack: [
+              { text: 'Comunidad de Caminantes',  fontSize: 13, bold: true,   color: NAVY, alignment: 'center' },
+              { text: '::: Chupí-Tiripeme :::',   fontSize: 8,               color: NAVY, alignment: 'center', margin: [0, 2, 0, 0] },
+              { text: 'GRUPO 7',                   fontSize: 8,  bold: true,               alignment: 'center', margin: [0, 3, 0, 0] },
+              { text: 'Itsï Tarhiata',             fontSize: 8,  italics: true,             alignment: 'center' },
+            ],
+            margin: [0, 2, 0, 2],
+          },
+          {
+            width: 50,
+            stack: [{ text: `$${costo}`, fontSize: 20, bold: true, color: NAVY, alignment: 'center', margin: [0, 8, 0, 0] }],
+          },
+          this.logoCC
+            ? { width: 54, image: 'logoCC', fit: [50, 50] as [number, number], alignment: 'center' }
+            : { width: 54, text: '' },
+        ],
+        margin: [0, 0, 0, 4],
+      },
+
+      divider(),
+
+      // ─ Título actividad ─
+      {
+        stack: [
+          { text: 'ACTIVIDAD', fontSize: 7.5, bold: true, color: GRAY, alignment: 'center' },
+          { text: nombreActividad, fontSize: 12, bold: true, color: NAVY, alignment: 'center', margin: [0, 1, 0, 0] },
+        ],
+        margin: [0, 2, 0, 3],
+      },
+
+      divider(),
+
+      // ─ Llegada / Salida ─
+      {
+        table: {
+          widths: ['50%', '50%'],
+          body: [[
+            {
+              stack: [
+                { text: 'Llegada:', bold: true, fontSize: 9 },
+                { text: [{ text: '• Punto de Reunión: ', bold: true }, dto.salida?.lugar || '—'],        fontSize: 8, margin: [0, 2, 0, 1] },
+                { text: [{ text: '• Horario: ',          bold: true }, fmtTime(dto.salida?.hora)],       fontSize: 8, margin: [0, 1, 0, 1] },
+                { text: [{ text: '• Fecha: ',            bold: true }, fmtDateLong(dto.salida?.fecha)],  fontSize: 8, margin: [0, 1, 0, 1] },
+              ],
+              fillColor: BLUE_LT, margin: [6, 5, 6, 5],
+            },
+            {
+              stack: [
+                { text: 'Salida:', bold: true, fontSize: 9 },
+                { text: [{ text: '• Punto de Reunión: ', bold: true }, dto.llegada?.lugar || dto.salida?.lugar || '—'], fontSize: 8, margin: [0, 2, 0, 1] },
+                { text: [{ text: '• Horario: ',          bold: true }, fmtTime(dto.llegada?.hora)],       fontSize: 8, margin: [0, 1, 0, 1] },
+                { text: [{ text: '• Fecha: ',            bold: true }, fmtDateLong(dto.llegada?.fecha)],  fontSize: 8, margin: [0, 1, 0, 1] },
+              ],
+              fillColor: BLUE_LT, margin: [6, 5, 6, 5],
+            },
+          ]],
+        },
+        layout: { hLineColor: () => NAVY, vLineColor: () => NAVY, hLineWidth: () => 0.8, vLineWidth: () => 0.8 },
+        margin: [0, 0, 0, 6],
+      },
+
+      // ─ AUTORIZO ─
+      {
+        columns: [
+          { width: 'auto', text: [{ text: 'AUTORIZO', bold: true }, ' a mi hijo (a):'], fontSize: 9 },
+          { ...ibox(nombreJoven), width: '*', margin: [4, 0, 0, 0] },
+        ],
+        margin: [0, 0, 0, 3],
+      },
+      {
+        text: 'para que asista a esta actividad. Proporcionando además los siguientes datos para en caso de emergencia:',
+        fontSize: 8.5, margin: [0, 0, 0, 5],
+      },
+
+      // ─ Sangre + Teléfono ─
+      {
+        columns: [
+          { width: 'auto', text: ['Su tipo de ', { text: 'sangre', bold: true }, ' es:'], fontSize: 8.5 },
+          { ...ibox(), width: 50, margin: [4, 0, 10, 0] },
+          { width: 'auto', text: [{ text: 'Teléfono', bold: true }, ' de emergencia:'], fontSize: 8.5 },
+          { ...ibox(), width: '*', margin: [4, 0, 0, 0] },
+        ],
+        columnGap: 0, margin: [0, 2, 0, 2],
+      },
+
+      // ─ Alergias ─
+      {
+        columns: [
+          { width: 'auto', text: [{ text: 'Alergias', bold: true }, ':'], fontSize: 8.5 },
+          { ...cbox(), margin: [4, 0, 6, 0] },
+          { width: 'auto', text: 'Especifique:', fontSize: 8.5 },
+          { ...ibox(), width: '*', margin: [4, 0, 0, 0] },
+        ],
+        columnGap: 0, margin: [0, 2, 0, 2],
+      },
+
+      // ─ Problemas de salud ─
+      {
+        columns: [
+          { width: 'auto', text: [{ text: 'Problemas graves de Salud', bold: true }, ' que le impidan realizar alguna actividad:'], fontSize: 8.5 },
+          { ...ibox(), width: '*', margin: [4, 0, 0, 0] },
+        ],
+        columnGap: 0, margin: [0, 2, 0, 2],
+      },
+
+      // ─ Medicamentos ─
+      {
+        columns: [
+          { width: 'auto', text: [{ text: 'Medicamentos', bold: true }, ' que actualmente está tomando:'], fontSize: 8.5 },
+          { ...ibox(), width: '*', margin: [4, 0, 0, 0] },
+        ],
+        columnGap: 0, margin: [0, 2, 0, 2],
+      },
+
+      // ─ Hospital auth ─
+      {
+        columns: [
+          {
+            width: '*',
+            text: [
+              'En caso de emergencia autorizo a que mi hijo sea llevado al ',
+              { text: 'hospital', bold: true }, ' o ', { text: 'clínica', bold: true },
+              ' que por criterio de los Scouters y/o dirigentes encargados sea el más conveniente:',
+            ],
+            fontSize: 8.5,
+          },
+          { width: 'auto', text: 'SI:', fontSize: 8.5 },
+          { ...cbox(), margin: [3, 0, 6, 0] },
+          { width: 'auto', text: 'NO:', fontSize: 8.5 },
+          { ...cbox(), margin: [3, 0, 0, 0] },
+        ],
+        columnGap: 3, margin: [0, 2, 0, 2],
+      },
+
+      // ─ Hospital / clínica ─
+      {
+        columns: [
+          { width: 'auto', text: ['Solicito acudan al hospital, clínica o ', { text: 'centro de Salud', bold: true }, ':'], fontSize: 8.5 },
+          { ...ibox(), width: '*', margin: [4, 0, 0, 0] },
+        ],
+        columnGap: 0, margin: [0, 2, 0, 2],
+      },
+
+      // ─ IMSS ─
+      {
+        columns: [
+          { width: 'auto', text: ['No. ', { text: 'IMSS', bold: true }, ':'], fontSize: 8.5 },
+          { ...ibox(), width: 130, margin: [4, 0, 0, 0] },
+        ],
+        columnGap: 0, margin: [0, 2, 0, 2],
+      },
+
+      // ─ ISSSTE ─
+      {
+        columns: [
+          { width: 'auto', text: ['No.  ', { text: 'ISSSTE', bold: true }, ':'], fontSize: 8.5 },
+          { ...ibox(), width: 160, margin: [4, 0, 0, 0] },
+        ],
+        columnGap: 0, margin: [0, 2, 0, 2],
+      },
+
+      // ─ Seguro Popular ─
+      {
+        columns: [
+          { width: 'auto', text: ['No. POLIZA SEGURO ', { text: 'POPULAR', bold: true }, ':'], fontSize: 8.5 },
+          { ...ibox(), width: 160, margin: [4, 0, 0, 0] },
+        ],
+        columnGap: 0, margin: [0, 2, 0, 6],
+      },
+
+      divider(),
+
+      // ─ Nombre del Joven ─
+      {
+        columns: [
+          { width: 'auto', text: [{ text: 'Nombre del Joven:', bold: true }], fontSize: 9 },
+          { ...ibox(nombreJoven), width: '*', margin: [4, 0, 0, 0] },
+        ],
+        columnGap: 0, margin: [0, 4, 0, 4],
+      },
+
+      // ─ CUM ─
+      {
+        columns: [
+          { width: 'auto', text: [{ text: 'CUM:', bold: true }], fontSize: 9 },
+          { ...this.buildCumBoxes(cum), margin: [6, 0, 0, 0] },
+        ],
+        columnGap: 0, margin: [0, 2, 0, 4],
+      },
+
+      divider(),
+
+      // ─ Contactos Scouter ─
+      {
+        text: 'DATOS DE CONTACTO DEL SCOUTER',
+        fontSize: 9, bold: true, color: NAVY, alignment: 'center',
+        margin: [0, 4, 0, 6],
+      },
+      ...contactos.map(c => ({
+        columns: [
+          { width: 10, text: '•', fontSize: 9, color: NAVY },
+          {
+            width: '*',
+            text: [
+              `${c.nombre || ''}  `,
+              { text: `[${c.telefono || '—'}]`, bold: true },
+              `  (${c.cargo || '—'})`,
+            ],
+            fontSize: 8.5,
+          },
+        ],
+        margin: [14, 1, 0, 3],
+      })),
+
+      thick(),
+
+      // ─ Firma padre ─
+      {
+        text: 'Nombre del Padre o Tutor',
+        fontSize: 9, bold: true, alignment: 'center',
+        margin: [0, 4, 0, 0],
+      },
+    ];
+  }
+
+  private buildCumBoxes(cum: string): any {
+    const len = 14;
+    return {
+      table: {
+        widths: Array(len).fill(17),
+        body: [Array.from({ length: len }, (_, i) => ({
+          text: cum[i] || ' ',
+          fontSize: 8, fillColor: '#E5E7EB', alignment: 'center', margin: [0, 1, 0, 1],
+        }))],
+      },
+      layout: {
+        hLineColor: () => '#9CA3AF',
+        vLineColor: () => '#9CA3AF',
+        hLineWidth: () => 0.5,
+        vLineWidth: () => 0.5,
+      },
     };
   }
 

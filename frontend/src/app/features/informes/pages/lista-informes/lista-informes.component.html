@@ -1,0 +1,74 @@
+<app-page-header
+  title="Informes Mensuales"
+  subtitle="Registro de actividades, caja chica, inventario y membresía"
+  icon="pi pi-file-pdf">
+</app-page-header>
+
+<div class="page-container">
+
+  <div class="flex justify-content-between align-items-center mb-3">
+    <span class="text-500 text-sm">{{ informes.length }} informe(s) registrado(s)</span>
+    <button pButton icon="pi pi-plus" label="Nuevo Informe" class="p-button-sm" (click)="nuevo()"></button>
+  </div>
+
+  <div *ngIf="loading" class="flex justify-content-center py-5">
+    <p-progressSpinner strokeWidth="4" styleClass="w-3rem h-3rem"></p-progressSpinner>
+  </div>
+
+  <div *ngIf="!loading && informes.length === 0" class="empty-state text-center py-5">
+    <i class="pi pi-file-pdf text-4xl text-300 mb-3 block"></i>
+    <p class="text-600">No hay informes registrados aún.</p>
+    <button pButton label="Crear primer informe" icon="pi pi-plus"
+            class="p-button-outlined p-button-sm mt-2" (click)="nuevo()">
+    </button>
+  </div>
+
+  <p-table *ngIf="!loading && informes.length > 0"
+           [value]="informes" [paginator]="informes.length > 10" [rows]="10"
+           styleClass="p-datatable-sm p-datatable-striped" responsiveLayout="scroll">
+    <ng-template pTemplate="header">
+      <tr>
+        <th>Período</th>
+        <th>Sección</th>
+        <th style="width:80px; text-align:center">Actividades</th>
+        <th style="width:100px; text-align:center">Saldo Actual</th>
+        <th>Creado por</th>
+        <th style="width:120px; text-align:center">Acciones</th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-inf>
+      <tr>
+        <td><span class="font-bold">{{ meses[inf.mes] }} {{ inf.anio }}</span></td>
+        <td>{{ inf.seccion | titlecase }}</td>
+        <td class="text-center">{{ inf.actividades?.length ?? 0 }}</td>
+        <td class="text-center">
+          <span class="font-bold text-green-700">
+            ${{ (inf.saldoInicial ?? 0) | number:'1.2-2' }}
+          </span>
+        </td>
+        <td>{{ inf.creadoPor?.nombre ?? '—' }}</td>
+        <td class="text-center">
+          <div class="flex gap-1 justify-content-center">
+            <button pButton icon="pi pi-pencil"
+                    class="p-button-text p-button-sm p-button-rounded"
+                    pTooltip="Editar" (click)="editar(inf)">
+            </button>
+            <button pButton
+                    [icon]="descargando === inf.id ? 'pi pi-spin pi-spinner' : 'pi pi-file-pdf'"
+                    class="p-button-text p-button-sm p-button-rounded p-button-danger"
+                    pTooltip="Descargar PDF"
+                    [disabled]="descargando === inf.id"
+                    (click)="descargar(inf)">
+            </button>
+            <button pButton icon="pi pi-trash"
+                    class="p-button-text p-button-sm p-button-rounded p-button-danger"
+                    pTooltip="Eliminar" (click)="confirmarEliminar(inf)">
+            </button>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+
+</div>
+<p-confirmDialog></p-confirmDialog>

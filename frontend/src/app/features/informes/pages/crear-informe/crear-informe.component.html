@@ -1,0 +1,579 @@
+<app-page-header [title]="titulo" subtitle="Llena cada sección — los cambios se guardan automáticamente" icon="pi pi-file-pdf">
+</app-page-header>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     PASO INIT — Crear cabecera del informe
+     ══════════════════════════════════════════════════════════════════════════ -->
+<div class="page-container" *ngIf="paso === 'init'">
+
+  <!-- Banner: cargar desde mes anterior -->
+  <div *ngIf="cargandoUltimo" class="banner-carga mb-3">
+    <p-progressSpinner strokeWidth="4" styleClass="w-1rem h-1rem mr-2"></p-progressSpinner>
+    <span class="text-500 text-sm">Buscando informe anterior...</span>
+  </div>
+
+  <p-message *ngIf="!cargandoUltimo && ultimoInforme" severity="info" styleClass="mb-3 w-full">
+    <div class="flex align-items-center justify-content-between w-full">
+      <div>
+        <span class="font-bold">¿Continuar desde el mes anterior?</span>
+        <span class="ml-2 text-sm">
+          Informe de
+          <strong>{{ mesesOpts[ultimoInforme.mes - 1]?.label }} {{ ultimoInforme.anio }}</strong>
+          disponible. Saldo actual:
+          <strong>${{ ultimoInforme.saldoActual | number:'1.2-2' }}</strong>
+          → pasará a ser el saldo inicial de
+          <strong>{{ siguienteMesLabel }}</strong>.
+        </span>
+      </div>
+      <div class="flex gap-2 ml-3 flex-shrink-0">
+        <button pButton label="Sí, cargar datos" icon="pi pi-download"
+                class="p-button-sm"
+                (click)="cargarDesdeMesAnterior()">
+        </button>
+        <button pButton label="No, empezar vacío" icon="pi pi-times"
+                class="p-button-sm p-button-outlined p-button-secondary"
+                (click)="ultimoInforme = null">
+        </button>
+      </div>
+    </div>
+  </p-message>
+
+  <!-- Formulario cabecera -->
+  <p-card header="Datos del informe">
+    <form [formGroup]="configForm" class="formgrid grid">
+      <div class="field col-12 md:col-3">
+        <label class="font-semibold">Mes *</label>
+        <p-dropdown [options]="mesesOpts" formControlName="mes"
+                    optionLabel="label" optionValue="value" styleClass="w-full"></p-dropdown>
+      </div>
+      <div class="field col-12 md:col-2">
+        <label class="font-semibold">Año *</label>
+        <p-dropdown [options]="anioOpts" formControlName="anio"
+                    optionLabel="label" optionValue="value" styleClass="w-full"></p-dropdown>
+      </div>
+      <div class="field col-12 md:col-3">
+        <label class="font-semibold">Saldo Inicial *</label>
+        <input pInputText type="number" formControlName="saldoInicial" class="w-full" placeholder="0.00" />
+      </div>
+      <div class="field col-12 md:col-4">
+        <label class="font-semibold">Observaciones Generales</label>
+        <input pInputText formControlName="observacionesGenerales" class="w-full" />
+      </div>
+    </form>
+  </p-card>
+
+  <div class="flex justify-content-between align-items-center mt-3">
+    <button pButton label="Cancelar" icon="pi pi-times"
+            class="p-button-outlined p-button-secondary"
+            (click)="cancelar()">
+    </button>
+    <button pButton label="Crear informe y llenar secciones" icon="pi pi-arrow-right"
+            iconPos="right"
+            [loading]="creandoCabecera"
+            [disabled]="configForm.invalid"
+            (click)="crearCabecera()">
+    </button>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     PASO TABS — Edición por secciones con auto-save
+     ══════════════════════════════════════════════════════════════════════════ -->
+<div class="page-container" *ngIf="paso === 'tabs'">
+
+  <!-- Cabecera resumida -->
+  <div class="cabecera-resumen mb-3 flex align-items-center gap-3">
+    <i class="pi pi-file-edit text-primary text-xl"></i>
+    <span class="font-bold text-lg">
+      {{ mesesOpts[configForm.value.mes - 1]?.label }} {{ configForm.value.anio }}
+    </span>
+    <p-tag value="Auto-guardado activo" severity="success" icon="pi pi-check-circle"></p-tag>
+    <div class="flex-1"></div>
+    <button pButton label="Generar PDF" icon="pi pi-file-pdf"
+            class="p-button-danger p-button-sm"
+            [loading]="generando"
+            (click)="descargarPdf()">
+    </button>
+    <button pButton label="Volver" icon="pi pi-arrow-left"
+            class="p-button-outlined p-button-secondary p-button-sm"
+            (click)="cancelar()">
+    </button>
+  </div>
+
+  <p-tabView>
+
+    <!-- ── 1. MEMBRESÍA ───────────────────────────────────────────────────── -->
+    <p-tabPanel>
+      <ng-template pTemplate="header">
+        <i class="pi pi-users mr-2"></i>
+        <span>Membresía</span>
+        <ng-container [ngSwitch]="estado.membresia">
+          <i *ngSwitchCase="'guardando'" class="pi pi-spin pi-spinner ml-2 text-400" style="font-size:.85rem"></i>
+          <i *ngSwitchCase="'guardado'"  class="pi pi-check-circle ml-2 text-green-500" style="font-size:.85rem"></i>
+          <i *ngSwitchCase="'error'"     class="pi pi-times-circle ml-2 text-red-500" style="font-size:.85rem"></i>
+        </ng-container>
+      </ng-template>
+
+      <p-card>
+        <!-- Totales de membresía -->
+        <p class="font-bold mb-2 mt-0">Totales del mes</p>
+        <form [formGroup]="_membresiaForm" class="formgrid grid mb-3">
+          <div class="field col-6 md:col-3">
+            <label class="font-semibold text-sm">Registrados</label>
+            <input pInputText type="number" formControlName="totalRegistrados" class="w-full"
+                   (input)="triggerMembresia()" />
+          </div>
+          <div class="field col-6 md:col-3">
+            <label class="font-semibold text-sm">Enlace</label>
+            <input pInputText type="number" formControlName="totalEnlace" class="w-full"
+                   (input)="triggerMembresia()" />
+          </div>
+          <div class="field col-6 md:col-3">
+            <label class="font-semibold text-sm">Captación</label>
+            <input pInputText type="number" formControlName="totalCaptacion" class="w-full"
+                   (input)="triggerMembresia()" />
+          </div>
+          <div class="field col-6 md:col-3">
+            <label class="font-semibold text-sm">No Registrados</label>
+            <input pInputText type="number" formControlName="totalNoRegistrados" class="w-full"
+                   (input)="triggerMembresia()" />
+          </div>
+        </form>
+
+        <p-divider></p-divider>
+        <div class="section-header mb-3">
+          <span class="font-bold">Altas y Bajas del mes</span>
+          <div class="flex gap-2">
+            <button pButton label="+ Alta" icon="pi pi-user-plus" class="p-button-sm p-button-success"
+                    (click)="addAltaBaja('alta')"></button>
+            <button pButton label="+ Baja" icon="pi pi-user-minus" class="p-button-sm p-button-danger"
+                    (click)="addAltaBaja('baja')"></button>
+          </div>
+        </div>
+        <div *ngIf="altasBajas.length === 0" class="text-500 text-sm mb-3">Sin movimientos este mes.</div>
+        <div class="tabla-filas" *ngIf="altasBajas.length > 0">
+          <div class="tabla-head">
+            <span style="width:100px">Tipo</span>
+            <span style="width:110px">CUM</span>
+            <span style="flex:1">Nombre</span>
+            <span style="width:40px"></span>
+          </div>
+          <div class="tabla-fila" *ngFor="let ab of altasBajas; let i = index">
+            <span style="width:100px">
+              <p-tag [value]="ab.tipo === 'alta' ? 'ALTA' : 'BAJA'"
+                     [severity]="ab.tipo === 'alta' ? 'success' : 'danger'"></p-tag>
+            </span>
+            <span style="width:110px">
+              <input pInputText [(ngModel)]="ab.cum" placeholder="CUM" class="w-full"
+                     (input)="triggerMembresia()" />
+            </span>
+            <span style="flex:1">
+              <input pInputText [(ngModel)]="ab.nombre" placeholder="Nombre completo" class="w-full"
+                     (input)="triggerMembresia()" />
+            </span>
+            <span style="width:40px">
+              <button pButton icon="pi pi-trash" class="p-button-text p-button-danger p-button-sm"
+                      (click)="removeAltaBaja(i)"></button>
+            </span>
+          </div>
+        </div>
+      </p-card>
+    </p-tabPanel>
+
+    <!-- ── 2. ACTIVIDADES ─────────────────────────────────────────────────── -->
+    <p-tabPanel>
+      <ng-template pTemplate="header">
+        <i class="pi pi-calendar mr-2"></i>
+        <span>Actividades</span>
+        <ng-container [ngSwitch]="estado.actividades">
+          <i *ngSwitchCase="'guardando'" class="pi pi-spin pi-spinner ml-2 text-400" style="font-size:.85rem"></i>
+          <i *ngSwitchCase="'guardado'"  class="pi pi-check-circle ml-2 text-green-500" style="font-size:.85rem"></i>
+          <i *ngSwitchCase="'error'"     class="pi pi-times-circle ml-2 text-red-500" style="font-size:.85rem"></i>
+        </ng-container>
+      </ng-template>
+
+      <p-card>
+        <div class="section-header mb-3">
+          <span class="font-bold">Actividades realizadas en el mes</span>
+          <button pButton label="+ Actividad" icon="pi pi-plus" class="p-button-sm"
+                  (click)="addActividad()"></button>
+        </div>
+        <div *ngIf="actividades.length === 0" class="text-500 text-sm mb-3">No hay actividades registradas.</div>
+        <div class="tabla-filas" *ngIf="actividades.length > 0">
+          <div class="tabla-head">
+            <span style="width:130px">Fecha</span>
+            <span style="width:160px">Actividad</span>
+            <span style="flex:1">Asistentes</span>
+            <span style="flex:1">Observaciones</span>
+            <span style="width:40px"></span>
+          </div>
+          <div class="tabla-fila" *ngFor="let act of actividades; let i = index">
+            <span style="width:130px">
+              <p-calendar [(ngModel)]="act.fecha" dateFormat="dd/mm/yy" dataType="string"
+                          [style]="{'width':'100%'}" inputStyleClass="w-full p-inputtext-sm"
+                          appendTo="body" placeholder="dd/mm/aaaa"
+                          (ngModelChange)="triggerActividades()"></p-calendar>
+            </span>
+            <span style="width:160px">
+              <input pInputText [(ngModel)]="act.actividad" placeholder="Nombre de la actividad" class="w-full"
+                     (input)="triggerActividades()" />
+            </span>
+            <span style="flex:1">
+              <p-multiSelect [(ngModel)]="act.asistentes"
+                             [options]="caminanteOpts"
+                             optionLabel="label" optionValue="value"
+                             placeholder="Seleccionar asistentes"
+                             [style]="{'width':'100%'}"
+                             appendTo="body"
+                             [filter]="true"
+                             filterPlaceholder="Buscar..."
+                             selectedItemsLabel="{0} asistentes"
+                             (ngModelChange)="act.asistencia = (act.asistentes?.length || 0); triggerActividades()">
+              </p-multiSelect>
+            </span>
+            <span style="flex:1">
+              <input pInputText [(ngModel)]="act.observaciones" placeholder="Observaciones" class="w-full"
+                     (input)="triggerActividades()" />
+            </span>
+            <span style="width:40px">
+              <button pButton icon="pi pi-trash" class="p-button-text p-button-danger p-button-sm"
+                      (click)="removeActividad(i)"></button>
+            </span>
+          </div>
+        </div>
+        <div *ngIf="actividades.length > 0" class="promedio-bar mt-2">
+          <i class="pi pi-chart-bar mr-1"></i>
+          Promedio de asistencia: <strong>{{ promedioAsistencia }}</strong>
+        </div>
+
+        <p-divider></p-divider>
+        <div class="section-header mb-3 mt-2">
+          <span class="font-bold">Actividades por realizar</span>
+          <button pButton label="+ Pendiente" icon="pi pi-plus" class="p-button-sm p-button-outlined"
+                  (click)="addPendiente()"></button>
+        </div>
+        <div *ngIf="actividadesPendientes.length === 0" class="text-500 text-sm mb-3">Sin actividades pendientes.</div>
+        <div class="tabla-filas" *ngIf="actividadesPendientes.length > 0">
+          <div class="tabla-head">
+            <span style="flex:1">Actividad</span>
+            <span style="flex:1">Observaciones</span>
+            <span style="width:40px"></span>
+          </div>
+          <div class="tabla-fila" *ngFor="let p of actividadesPendientes; let i = index">
+            <span style="flex:1">
+              <input pInputText [(ngModel)]="p.actividad" placeholder="Actividad pendiente" class="w-full"
+                     (input)="triggerActividades()" />
+            </span>
+            <span style="flex:1">
+              <input pInputText [(ngModel)]="p.observaciones" placeholder="Observaciones" class="w-full"
+                     (input)="triggerActividades()" />
+            </span>
+            <span style="width:40px">
+              <button pButton icon="pi pi-trash" class="p-button-text p-button-danger p-button-sm"
+                      (click)="removePendiente(i)"></button>
+            </span>
+          </div>
+        </div>
+      </p-card>
+    </p-tabPanel>
+
+    <!-- ── 3. CAJA CHICA ──────────────────────────────────────────────────── -->
+    <p-tabPanel>
+      <ng-template pTemplate="header">
+        <i class="pi pi-dollar mr-2"></i>
+        <span>Caja Chica</span>
+        <ng-container [ngSwitch]="estado.financiero">
+          <i *ngSwitchCase="'guardando'" class="pi pi-spin pi-spinner ml-2 text-400" style="font-size:.85rem"></i>
+          <i *ngSwitchCase="'guardado'"  class="pi pi-check-circle ml-2 text-green-500" style="font-size:.85rem"></i>
+          <i *ngSwitchCase="'error'"     class="pi pi-times-circle ml-2 text-red-500" style="font-size:.85rem"></i>
+        </ng-container>
+      </ng-template>
+
+      <p-card>
+        <!-- Resumen saldo -->
+        <div class="saldo-resumen mb-3">
+          <div class="saldo-item">
+            <span class="text-500 text-sm">Saldo Inicial</span>
+            <span class="font-bold text-lg">${{ configForm.value.saldoInicial | number:'1.2-2' }}</span>
+          </div>
+          <i class="pi pi-plus text-green-500 mx-2"></i>
+          <div class="saldo-item">
+            <span class="text-500 text-sm">Total Ingresos</span>
+            <span class="font-bold text-lg text-green-600">${{ totalIngresos | number:'1.2-2' }}</span>
+          </div>
+          <i class="pi pi-minus text-red-500 mx-2"></i>
+          <div class="saldo-item">
+            <span class="text-500 text-sm">Total Egresos</span>
+            <span class="font-bold text-lg text-red-600">${{ totalEgresos | number:'1.2-2' }}</span>
+          </div>
+          <i class="pi pi-equals mx-2 text-700"></i>
+          <div class="saldo-item saldo-actual">
+            <span class="text-500 text-sm">Saldo Actual</span>
+            <span class="font-bold text-xl"
+                  [class.text-green-700]="saldoActual >= 0"
+                  [class.text-red-700]="saldoActual < 0">
+              ${{ saldoActual | number:'1.2-2' }}
+            </span>
+          </div>
+        </div>
+
+        <div class="grid">
+          <!-- Ingresos -->
+          <div class="col-12 md:col-6">
+            <div class="section-header mb-2">
+              <span class="font-bold text-green-700"><i class="pi pi-arrow-down mr-1"></i>Ingresos</span>
+              <button pButton label="+ Ingreso" icon="pi pi-plus" class="p-button-sm p-button-success"
+                      (click)="addIngreso()"></button>
+            </div>
+            <div *ngIf="ingresos.length === 0" class="text-500 text-sm mb-2">Sin ingresos.</div>
+            <div class="tabla-filas" *ngIf="ingresos.length > 0">
+              <div class="tabla-head">
+                <span style="width:110px">Fecha</span>
+                <span style="flex:1">Concepto</span>
+                <span style="width:80px">Monto</span>
+                <span style="width:32px"></span>
+              </div>
+              <div class="tabla-fila" *ngFor="let m of ingresos; let i = index">
+                <span style="width:110px">
+                  <p-calendar [(ngModel)]="m.fecha" dateFormat="dd/mm/yy" dataType="string"
+                              [style]="{'width':'100%'}" inputStyleClass="w-full p-inputtext-sm"
+                              appendTo="body" placeholder="dd/mm/aaaa"
+                              (ngModelChange)="triggerFinanciero()"></p-calendar>
+                </span>
+                <span style="flex:1">
+                  <input pInputText [(ngModel)]="m.concepto" placeholder="Concepto" class="w-full"
+                         (input)="triggerFinanciero()" />
+                </span>
+                <span style="width:80px">
+                  <input pInputText type="number" [(ngModel)]="m.cantidad" min="0" step="0.01" class="w-full"
+                         (input)="triggerFinanciero()" />
+                </span>
+                <span style="width:32px">
+                  <button pButton icon="pi pi-trash" class="p-button-text p-button-danger p-button-sm"
+                          (click)="removeIngreso(i)"></button>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Egresos -->
+          <div class="col-12 md:col-6">
+            <div class="section-header mb-2">
+              <span class="font-bold text-red-700"><i class="pi pi-arrow-up mr-1"></i>Egresos</span>
+              <button pButton label="+ Egreso" icon="pi pi-plus" class="p-button-sm p-button-danger"
+                      (click)="addEgreso()"></button>
+            </div>
+            <div *ngIf="egresos.length === 0" class="text-500 text-sm mb-2">Sin egresos.</div>
+            <div class="tabla-filas" *ngIf="egresos.length > 0">
+              <div class="tabla-head">
+                <span style="width:110px">Fecha</span>
+                <span style="flex:1">Concepto</span>
+                <span style="width:80px">Monto</span>
+                <span style="width:32px"></span>
+              </div>
+              <div class="tabla-fila" *ngFor="let m of egresos; let i = index">
+                <span style="width:110px">
+                  <p-calendar [(ngModel)]="m.fecha" dateFormat="dd/mm/yy" dataType="string"
+                              [style]="{'width':'100%'}" inputStyleClass="w-full p-inputtext-sm"
+                              appendTo="body" placeholder="dd/mm/aaaa"
+                              (ngModelChange)="triggerFinanciero()"></p-calendar>
+                </span>
+                <span style="flex:1">
+                  <input pInputText [(ngModel)]="m.concepto" placeholder="Concepto" class="w-full"
+                         (input)="triggerFinanciero()" />
+                </span>
+                <span style="width:80px">
+                  <input pInputText type="number" [(ngModel)]="m.cantidad" min="0" step="0.01" class="w-full"
+                         (input)="triggerFinanciero()" />
+                </span>
+                <span style="width:32px">
+                  <button pButton icon="pi pi-trash" class="p-button-text p-button-danger p-button-sm"
+                          (click)="removeEgreso(i)"></button>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </p-card>
+    </p-tabPanel>
+
+    <!-- ── 4. INVENTARIO ──────────────────────────────────────────────────── -->
+    <p-tabPanel>
+      <ng-template pTemplate="header">
+        <i class="pi pi-box mr-2"></i>
+        <span>Inventario</span>
+      </ng-template>
+
+      <p-card>
+        <div class="section-header mb-3">
+          <span class="font-bold">Inventario de la sección</span>
+          <button pButton label="+ Agregar artículo" icon="pi pi-plus" class="p-button-sm"
+                  (click)="abrirNuevoItem()"></button>
+        </div>
+        <div *ngIf="inventario.length === 0" class="text-500 text-sm">Sin artículos registrados.</div>
+        <p-table *ngIf="inventario.length > 0" [value]="inventario"
+                 styleClass="p-datatable-sm p-datatable-striped" responsiveLayout="scroll">
+          <ng-template pTemplate="header">
+            <tr>
+              <th style="width:80px">Año</th>
+              <th style="width:90px">Marca</th>
+              <th>Descripción</th>
+              <th style="width:70px; text-align:center">Cantidad</th>
+              <th>Observaciones</th>
+              <th style="width:80px; text-align:center">Acciones</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-item>
+            <tr>
+              <td>{{ item.anioCompra }}</td>
+              <td>{{ item.marca }}</td>
+              <td>{{ item.descripcion }}</td>
+              <td class="text-center font-bold">{{ item.cantidad }}</td>
+              <td class="text-500">{{ item.observaciones }}</td>
+              <td class="text-center">
+                <button pButton icon="pi pi-pencil"
+                        class="p-button-text p-button-sm p-button-rounded"
+                        (click)="editarItem(item)"></button>
+                <button pButton icon="pi pi-trash"
+                        class="p-button-text p-button-sm p-button-rounded p-button-danger"
+                        (click)="eliminarItem(item)"></button>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+        <p class="text-500 text-sm mt-3">
+          <i class="pi pi-info-circle mr-1"></i>
+          El inventario se guarda inmediatamente al agregar, editar o eliminar artículos.
+        </p>
+      </p-card>
+    </p-tabPanel>
+
+    <!-- ── 5. PROGRESIÓN PERSONAL ──────────────────────────────────────────── -->
+    <p-tabPanel>
+      <ng-template pTemplate="header">
+        <i class="pi pi-star mr-2"></i>
+        <span>Progresión</span>
+        <ng-container [ngSwitch]="estado.progresion">
+          <i *ngSwitchCase="'guardando'" class="pi pi-spin pi-spinner ml-2 text-400" style="font-size:.85rem"></i>
+          <i *ngSwitchCase="'guardado'"  class="pi pi-check-circle ml-2 text-green-500" style="font-size:.85rem"></i>
+          <i *ngSwitchCase="'error'"     class="pi pi-times-circle ml-2 text-red-500" style="font-size:.85rem"></i>
+        </ng-container>
+      </ng-template>
+
+      <p-card>
+        <div class="section-header mb-3">
+          <span class="font-bold">Entrega de Insignias y/o Reconocimientos</span>
+          <button pButton label="+ Agregar" icon="pi pi-plus" class="p-button-sm"
+                  (click)="addProgresion()"></button>
+        </div>
+        <div *ngIf="progresiones.length === 0" class="text-500 text-sm mb-3">Sin reconocimientos este mes.</div>
+        <div class="tabla-filas" *ngIf="progresiones.length > 0">
+          <div class="tabla-head">
+            <span style="flex:1">Insignia / Reconocimiento</span>
+            <span style="flex:1">Nombre del Caminante</span>
+            <span style="flex:1">Actividad</span>
+            <span style="width:130px">Fecha</span>
+            <span style="width:40px"></span>
+          </div>
+          <div class="tabla-fila" *ngFor="let p of progresiones; let i = index">
+            <span style="flex:1">
+              <p-dropdown [(ngModel)]="p.descripcion"
+                          [options]="descripcionGroupedOpts"
+                          optionLabel="label" optionValue="value"
+                          optionGroupLabel="label" optionGroupChildren="items"
+                          [group]="true"
+                          [editable]="true"
+                          placeholder="Seleccionar insignia..."
+                          [style]="{'width':'100%'}"
+                          appendTo="body"
+                          [filter]="true"
+                          filterPlaceholder="Buscar..."
+                          (ngModelChange)="triggerProgresion()">
+              </p-dropdown>
+            </span>
+            <span style="flex:1">
+              <p-dropdown [(ngModel)]="p.nombre"
+                          [options]="caminanteOpts"
+                          optionLabel="label" optionValue="value"
+                          placeholder="Seleccionar caminante"
+                          [style]="{'width':'100%'}"
+                          appendTo="body"
+                          [filter]="true"
+                          filterPlaceholder="Buscar..."
+                          [showClear]="true"
+                          (ngModelChange)="triggerProgresion()">
+              </p-dropdown>
+            </span>
+            <span style="flex:1">
+              <p-dropdown [(ngModel)]="p.actividadNombre"
+                          [options]="actividadOpts"
+                          optionLabel="label" optionValue="value"
+                          placeholder="Seleccionar actividad"
+                          [style]="{'width':'100%'}"
+                          appendTo="body"
+                          [filter]="true"
+                          filterPlaceholder="Buscar..."
+                          [showClear]="true"
+                          (ngModelChange)="onProgresionActividadChange(p, $event)">
+              </p-dropdown>
+            </span>
+            <span style="width:130px">
+              <p-calendar [(ngModel)]="p.fecha" dateFormat="dd/mm/yy" dataType="string"
+                          [style]="{'width':'100%'}" inputStyleClass="w-full p-inputtext-sm"
+                          appendTo="body" placeholder="dd/mm/aaaa"
+                          (ngModelChange)="triggerProgresion()"></p-calendar>
+            </span>
+            <span style="width:40px">
+              <button pButton icon="pi pi-trash" class="p-button-text p-button-danger p-button-sm"
+                      (click)="removeProgresion(i)"></button>
+            </span>
+          </div>
+        </div>
+
+        <p-divider></p-divider>
+        <div class="field mt-2">
+          <label class="font-semibold text-sm">Observaciones Generales</label>
+          <textarea pInputTextarea [formControl]="$any(configForm.get('observacionesGenerales'))"
+                    class="w-full" rows="3" autoResize="true"
+                    (input)="triggerProgresion()"></textarea>
+        </div>
+      </p-card>
+    </p-tabPanel>
+
+  </p-tabView>
+</div>
+
+
+<!-- ── Dialog inventario ──────────────────────────────────────────────────── -->
+<p-dialog [(visible)]="showInvDialog" [header]="editingInvId ? 'Editar Artículo' : 'Nuevo Artículo'"
+          [modal]="true" [style]="{width:'480px'}">
+  <form [formGroup]="invForm" class="formgrid grid pt-2">
+    <div class="field col-6">
+      <label class="font-semibold text-sm">Año de Compra</label>
+      <input pInputText type="number" formControlName="anioCompra" class="w-full" />
+    </div>
+    <div class="field col-6">
+      <label class="font-semibold text-sm">Marca</label>
+      <input pInputText formControlName="marca" class="w-full" placeholder="S/M" />
+    </div>
+    <div class="field col-12">
+      <label class="font-semibold text-sm">Descripción *</label>
+      <input pInputText formControlName="descripcion" class="w-full" />
+    </div>
+    <div class="field col-6">
+      <label class="font-semibold text-sm">Cantidad *</label>
+      <input pInputText type="number" formControlName="cantidad" class="w-full" min="1" />
+    </div>
+    <div class="field col-6">
+      <label class="font-semibold text-sm">Observaciones</label>
+      <input pInputText formControlName="observaciones" class="w-full" />
+    </div>
+  </form>
+  <ng-template pTemplate="footer">
+    <button pButton label="Cancelar" class="p-button-outlined p-button-secondary"
+            (click)="showInvDialog = false"></button>
+    <button pButton label="Guardar" icon="pi pi-check"
+            [disabled]="invForm.invalid" (click)="guardarItem()"></button>
+  </ng-template>
+</p-dialog>

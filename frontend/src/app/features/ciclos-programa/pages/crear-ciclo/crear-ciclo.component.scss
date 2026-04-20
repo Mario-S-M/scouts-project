@@ -1,0 +1,149 @@
+.ciclo-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--surface-border);
+  justify-content: space-between;
+}
+
+.step-badge {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--primary-color, #5B21B6);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.sabados-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+/* ── Eje badges ─────────────────────────────────────────────────────────────── */
+.ejes-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.eje-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: default;
+}
+
+// Color coding para los 4 ejes temáticos
+[data-eje="Habilidades para la Vida"]          { background: #DBEAFE; color: #1E40AF; }
+[data-eje="Salud y Bienestar"]                 { background: #D1FAE5; color: #065F46; }
+[data-eje="Medio Ambiente y Sustentabilidad"]  { background: #DCFCE7; color: #166534; }
+[data-eje="Paz y Acción Comunitaria"]          { background: #FEF3C7; color: #92400E; }
+
+/* ── Tabla de actividades ───────────────────────────────────────────────────── */
+.actividades-tabla {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.actividades-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface-100);
+  border-radius: 6px 6px 0 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-color-secondary);
+  border-bottom: 2px solid var(--surface-border);
+}
+
+.actividad-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--surface-border);
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--surface-50);
+  }
+
+  &--completa {
+    border-left: 3px solid #22c55e;
+  }
+
+  &:not(&--completa) {
+    border-left: 3px solid var(--surface-border);
+  }
+}
+
+.actividad-num {
+  width: 40px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-color-secondary);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.actividad-fecha {
+  width: 160px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-color);
+  flex-shrink: 0;
+}
+
+.actividad-nombre {
+  flex: 1;
+  min-width: 0;
+}
+
+.actividad-eje {
+  width: 220px;
+  flex-shrink: 0;
+}
+
+.actividad-notas {
+  width: 180px;
+  flex-shrink: 0;
+}
+
+.eje-selected {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.resumen-bar {
+  padding: 0.5rem 0;
+}
+
+// Responsive
+@media (max-width: 900px) {
+  .actividades-header { display: none; }
+
+  .actividad-row {
+    flex-wrap: wrap;
+    .actividad-fecha { order: -1; width: 100%; font-size: 0.9rem; }
+    .actividad-nombre { width: 100%; flex: none; }
+    .actividad-eje { width: 100%; }
+    .actividad-notas { width: 100%; }
+    .actividad-num { order: -2; }
+  }
+}

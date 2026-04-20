@@ -50,6 +50,20 @@ export class AvisosSalidaController {
     res.end(buffer);
   }
 
+  /** Descargar PDF de permisos de salida (uno por participante) */
+  @Get(':id/permisos')
+  async getPermisosPdf(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
+    const aviso  = await this.avisosSalidaService.findOne(id);
+    const buffer = await this.avisosSalidaService.generatePermisos(id);
+    const filename = `permisos-${aviso.nombre.replace(/\s+/g, '-')}.pdf`;
+    res.set({
+      'Content-Type':        'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length':      buffer.length,
+    });
+    res.end(buffer);
+  }
+
   /** Obtener un aviso por id */
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {

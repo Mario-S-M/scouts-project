@@ -48,6 +48,16 @@ const routes: Routes = [
     canActivate: [AuthGuard],
     loadChildren: () => import('./features/mi-comunidad/mi-comunidad.module').then(m => m.MiComunidadModule),
   },
+  {
+    path: 'informes',
+    canActivate: [AuthGuard],
+    loadChildren: () => import('./features/informes/informes.module').then(m => m.InformesModule),
+  },
+  {
+    path: 'ciclos-programa',
+    canActivate: [AuthGuard],
+    loadChildren: () => import('./features/ciclos-programa/ciclos-programa.module').then(m => m.CiclosProgramaModule),
+  },
   { path: '**', redirectTo: '' },
 ];
 

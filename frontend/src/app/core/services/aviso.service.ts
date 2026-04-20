@@ -39,6 +39,10 @@ export class AvisoService {
     return this.http.get(`${this.BASE}/${id}/pdf`, { responseType: 'blob' });
   }
 
+  downloadPermisos(id: number): Observable<Blob> {
+    return this.http.get(`${this.BASE}/${id}/permisos`, { responseType: 'blob' });
+  }
+
   generatePdf(dto: any): Observable<Blob> {
     return this.http.post(`${this.BASE}/pdf`, dto, { responseType: 'blob' });
   }

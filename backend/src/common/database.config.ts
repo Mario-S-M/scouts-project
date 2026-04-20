@@ -10,6 +10,15 @@ import { PuntaDeFlecha } from '../progreso/entities/punta-de-flecha.entity';
 import { Insignia } from '../insignias/entities/insignia.entity';
 import { Camisola } from '../insignias/entities/camisola.entity';
 import { AvisoSalida } from '../avisos-salida/aviso-salida.entity';
+import { CicloPrograma } from '../ciclos-programa/entities/ciclo-programa.entity';
+import { ActividadCiclo } from '../ciclos-programa/entities/actividad-ciclo.entity';
+import { InformeMensual } from '../informes/entities/informe-mensual.entity';
+import { AltaBajaInforme } from '../informes/entities/alta-baja-informe.entity';
+import { AsistenciaActividad } from '../informes/entities/asistencia-actividad.entity';
+import { ActividadPendiente } from '../informes/entities/actividad-pendiente.entity';
+import { MovimientoFinanciero } from '../informes/entities/movimiento-financiero.entity';
+import { InventarioItem } from '../informes/entities/inventario-item.entity';
+import { ProgresionInforme } from '../informes/entities/progresion-informe.entity';
 
 export const databaseConfig = (): TypeOrmModuleOptions => ({
   type: 'postgres',
@@ -30,6 +39,10 @@ export const databaseConfig = (): TypeOrmModuleOptions => ({
     Insignia,
     Camisola,
     AvisoSalida,
+    CicloPrograma,
+    ActividadCiclo,
+    InformeMensual, AltaBajaInforme, AsistenciaActividad,
+    ActividadPendiente, MovimientoFinanciero, InventarioItem, ProgresionInforme,
   ],
   synchronize: true,
   logging: process.env.NODE_ENV === 'development',

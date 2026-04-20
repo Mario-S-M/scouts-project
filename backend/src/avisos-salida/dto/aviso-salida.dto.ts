@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsString, IsOptional, IsArray, ValidateNested } from 'class-validator';
+import { IsString, IsOptional, IsArray, ValidateNested, IsNumber } from 'class-validator';
 
 export class ContactoDto {
   @IsString() @IsOptional() nombre: string;
@@ -56,4 +56,6 @@ export class AvisoSalidaDto {
   invitados: ScouterDto[];
 
   @IsString() @IsOptional() mapUrl: string;
+
+  @IsNumber() @IsOptional() costo?: number;
 }

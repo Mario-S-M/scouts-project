@@ -1,0 +1,102 @@
+.cabecera-resumen {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: var(--surface-50);
+  border-radius: 8px;
+  border: 1px solid var(--surface-border);
+  flex-wrap: wrap;
+}
+
+.banner-carga {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--surface-50);
+  border-radius: 8px;
+  border: 1px solid var(--surface-border);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+// ── Tablas inline ────────────────────────────────────────────────────────────
+.tabla-filas {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.tabla-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  background: var(--surface-100);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-color-secondary);
+  border-bottom: 2px solid var(--surface-border);
+}
+
+.tabla-fila {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  border-bottom: 1px solid var(--surface-border);
+  transition: background 0.12s;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: var(--surface-50); }
+}
+
+.promedio-bar {
+  padding: 0.4rem 0.75rem;
+  background: var(--surface-50);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: var(--text-color-secondary);
+}
+
+// ── Saldo resumen ────────────────────────────────────────────────────────────
+.saldo-resumen {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface-50);
+  border-radius: 8px;
+  border: 1px solid var(--surface-border);
+}
+
+.saldo-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 110px;
+}
+
+.saldo-actual {
+  background: var(--surface-card);
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--surface-border);
+}
+
+// Responsive
+@media (max-width: 700px) {
+  .tabla-head { display: none; }
+  .tabla-fila {
+    flex-wrap: wrap;
+    > span { width: 100% !important; flex: none !important; }
+  }
+  .saldo-resumen { flex-direction: column; align-items: flex-start; }
+}

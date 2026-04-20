@@ -24,7 +24,7 @@
         <th pSortableColumn="fechaSalida" style="width:120px">Fecha Salida <p-sortIcon field="fechaSalida"></p-sortIcon></th>
         <th pSortableColumn="creadoPorNombre" style="width:180px">Creado por <p-sortIcon field="creadoPorNombre"></p-sortIcon></th>
         <th pSortableColumn="createdAt" style="width:120px">Guardado <p-sortIcon field="createdAt"></p-sortIcon></th>
-        <th style="width:170px" class="text-center">Acciones</th>
+        <th style="width:215px" class="text-center">Acciones</th>
       </tr>
     </ng-template>
 
@@ -43,9 +43,14 @@
           <div class="flex gap-2 justify-content-center">
             <button pButton icon="pi pi-file-pdf"
                     class="p-button-sm p-button-danger p-button-outlined"
-                    pTooltip="Descargar PDF"
+                    pTooltip="Descargar Aviso PDF"
                     [loading]="descargando === aviso.id"
                     (click)="descargar(aviso)"></button>
+            <button pButton icon="pi pi-id-card"
+                    class="p-button-sm p-button-success p-button-outlined"
+                    pTooltip="Descargar Permisos"
+                    [loading]="descargandoPermisos === aviso.id"
+                    (click)="descargarPermisos(aviso)"></button>
             <button pButton icon="pi pi-pencil"
                     class="p-button-sm p-button-info p-button-outlined"
                     pTooltip="Editar"
