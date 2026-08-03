@@ -35,23 +35,27 @@ jobs:
           echo "--- A) seleccion directa projectV2Field{ id } (esperado: error union) ---"
           gh api graphql \
             -f query='mutation($pid:ID!,$name:String!,$opts:[ProjectV2SingleSelectFieldOptionInput!]!){ createProjectV2Field(input:{projectId:$pid,dataType:SINGLE_SELECT,name:$name,singleSelectOptions:$opts}){ projectV2Field{ id } } }' \
-            -F pid="$TMP_ID" -F name="StatusA" -F opts="$(jq -nc '[{name:"Done", color:"GREEN", description:""}]')" 2>&1 | tail -3 || true
+            -F pid="$TMP_ID" -F name="StatusA" -F opts="$(jq -nc '[{name:"Done", color:"GREEN", description:""}]')" 2>&1 | tail -2 || true
 
-          echo "--- B) fragmento inline ... on ProjectV2SingleSelectField (esperado: ok) ---"
-          gh api graphql \
-            -f query='mutation($pid:ID!,$name:String!,$opts:[ProjectV2SingleSelectFieldOptionInput!]!){ createProjectV2Field(input:{projectId:$pid,dataType:SINGLE_SELECT,name:$name,singleSelectOptions:$opts}){ projectV2Field{ ... on ProjectV2SingleSelectField { id } } } }' \
-            -F pid="$TMP_ID" -F name="StatusB" -F opts="$(jq -nc '[{name:"Done", color:"GREEN", description:""}]')" 2>&1 | tail -3 || true
+          echo "--- B) --input - + fragmento inline (esperado: ok) ---"
+          BODY="$(jq -nc \
+            --arg pid "$TMP_ID" \
+            --argjson opts "$(jq -nc '[{name:"Done", color:"GREEN", description:""}]')" \
+            '{query:"mutation($pid:ID!,$name:String!,$opts:[ProjectV2SingleSelectFieldOptionInput!]!){ createProjectV2Field(input:{projectId:$pid,dataType:SINGLE_SELECT,name:$name,singleSelectOptions:$opts}){ projectV2Field{ ... on ProjectV2SingleSelectField { id } } } }", variables:{pid:$pid, name:"StatusB", opts:$opts}}')"
+          printf '%s' "$BODY" | gh api graphql --input - 2>&1 | tail -2 || true
 
-          echo "--- C) updateProjectV2Field con fragmento inline ---"
-          gh api graphql \
-            -f query='mutation($pid:ID!,$name:String!,$opts:[ProjectV2SingleSelectFieldOptionInput!]!){ createProjectV2Field(input:{projectId:$pid,dataType:SINGLE_SELECT,name:$name,singleSelectOptions:$opts}){ projectV2Field{ ... on ProjectV2SingleSelectField { id } } } }' \
-            -F pid="$TMP_ID" -F name="SprintB" -F opts="$(jq -nc '[{name:"Sprint 1", color:"BLUE", description:""}]')" \
-            -q '.data.createProjectV2Field.projectV2Field.id' > /tmp/sprint_field_id
-          SPRINT_FIELD_ID="$(cat /tmp/sprint_field_id)"
+          echo "--- C) updateProjectV2Field con --input - (esperado: ok) ---"
+          BODY="$(jq -nc \
+            --arg pid "$TMP_ID" \
+            --argjson opts "$(jq -nc '[{name:"Sprint 1", color:"BLUE", description:""}]')" \
+            '{query:"mutation($pid:ID!,$name:String!,$opts:[ProjectV2SingleSelectFieldOptionInput!]!){ createProjectV2Field(input:{projectId:$pid,dataType:SINGLE_SELECT,name:$name,singleSelectOptions:$opts}){ projectV2Field{ ... on ProjectV2SingleSelectField { id } } } }", variables:{pid:$pid, name:"SprintB", opts:$opts}}')"
+          SPRINT_FIELD_ID="$(printf '%s' "$BODY" | gh api graphql --input - -q '.data.createProjectV2Field.projectV2Field.id')"
           echo "SPRINT_FIELD_ID=$SPRINT_FIELD_ID"
-          gh api graphql \
-            -f query='mutation($fid:ID!,$opts:[ProjectV2SingleSelectFieldOptionInput!]!){ updateProjectV2Field(input:{fieldId:$fid, singleSelectOptions:$opts}){ projectV2Field{ ... on ProjectV2SingleSelectField { id } } } }' \
-            -F fid="$SPRINT_FIELD_ID" -F opts='[{name:"Sprint 1", color:"BLUE", description:""},{name:"Sprint 2", color:"BLUE", description:""}]' 2>&1 | tail -2 || true
+          BODY="$(jq -nc \
+            --arg fid "$SPRINT_FIELD_ID" \
+            --argjson opts "$(jq -nc '[{name:"Sprint 1", color:"BLUE", description:""},{name:"Sprint 2", color:"BLUE", description:""}]')" \
+            '{query:"mutation($fid:ID!,$opts:[ProjectV2SingleSelectFieldOptionInput!]!){ updateProjectV2Field(input:{fieldId:$fid, singleSelectOptions:$opts}){ projectV2Field{ ... on ProjectV2SingleSelectField { id } } } }", variables:{fid:$fid, opts:$opts}}')"
+          printf '%s' "$BODY" | gh api graphql --input - 2>&1 | tail -2 || true
 
           echo "--- D) limpiar proyecto temporal ---"
           gh_graphql \
