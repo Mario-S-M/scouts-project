@@ -217,8 +217,8 @@ export class AvisosSalidaService {
           2) *
         n;
 
-      // 3. Rango de tiles (pad grande para cubrir el área 4×)
-      const pad = 7;
+      // 3. Rango de tiles
+      const pad = 3;
       const minTX = Math.floor(tileX) - pad;
       const maxTX = Math.floor(tileX) + pad;
       const minTY = Math.floor(tileY) - pad;
@@ -1131,6 +1131,94 @@ export class AvisosSalidaService {
   async generatePermisos(id: number): Promise<Buffer> {
     const aviso = await this.findOne(id);
     const docDef = this.buildPermisosDocument(aviso.data as AvisoSalidaDto);
+    const doc = await this.printer.createPdfKitDocument(docDef);
+    return new Promise((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      doc.on("data", (c: Buffer) => chunks.push(c));
+      doc.on("end", () => resolve(Buffer.concat(chunks)));
+      doc.on("error", reject);
+      doc.end();
+    });
+  }
+
+  private async generateSinglePermisoPdf(
+    dto: AvisoSalidaDto,
+    p: ParticipanteDto | null,
+  ): Promise<Buffer> {
+    const docDef = {
+      pageSize: "LETTER",
+      pageMargins: [36, 36, 36, 28],
+      defaultStyle: { font: "Roboto", fontSize: 9, color: "#111827" },
+      images: {
+        ...(this.logoGrupo ? { logoGrupo: this.logoGrupo } : {}),
+        ...(this.logoCC ? { logoCC: this.logoCC } : {}),
+      },
+      content: this.buildPermisoPage(dto, p, dto.costo ?? 0),
+    };
+    const doc = await this.printer.createPdfKitDocument(docDef);
+    return new Promise((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      doc.on("data", (c: Buffer) => chunks.push(c));
+      doc.on("end", () => resolve(Buffer.concat(chunks)));
+      doc.on("error", reject);
+      doc.end();
+    });
+  }
+
+  private createZip(
+    entries: { name: string; buffer: Buffer }[],
+  ): Promise<Buffer> {
+    const archiver = require("archiver");
+    return new Promise((resolve, reject) => {
+      const archive = archiver("zip", { zlib: { level: 6 } });
+      const chunks: Buffer[] = [];
+      archive.on("data", (chunk: Buffer) => chunks.push(chunk));
+      archive.on("end", () => resolve(Buffer.concat(chunks)));
+      archive.on("error", reject);
+      for (const { name, buffer } of entries) {
+        archive.append(buffer, { name });
+      }
+      archive.finalize();
+    });
+  }
+
+  async generatePermisosZip(id: number): Promise<{ zip: Buffer; nombre: string }> {
+    const aviso = await this.findOne(id);
+    const dto = aviso.data as AvisoSalidaDto;
+    const participantes = (dto.participantes ?? []).filter((p) =>
+      p.nombre?.trim(),
+    );
+
+    if (!participantes.length) {
+      const pdfBuffer = await this.generateSinglePermisoPdf(dto, null);
+      const zip = await this.createZip([
+        { name: "permiso-en-blanco.pdf", buffer: pdfBuffer },
+      ]);
+      return { zip, nombre: aviso.nombre };
+    }
+
+    const entries = await Promise.all(
+      participantes.map(async (p, i) => {
+        const slug = `${p.nombre || ""} ${p.apellidos || ""}`
+          .trim()
+          .normalize("NFD")
+          .replace(/[̀-ͯ]/g, "")
+          .replace(/[^a-zA-Z0-9 ]/g, "")
+          .replace(/\s+/g, "_");
+        const name = `${String(i + 1).padStart(2, "0")}_${slug || "participante"}.pdf`;
+        const buffer = await this.generateSinglePermisoPdf(dto, p);
+        return { name, buffer };
+      }),
+    );
+
+    const zip = await this.createZip(entries);
+    return { zip, nombre: aviso.nombre };
+  }
+
+  async generatePermisoEnBlanco(id: number): Promise<Buffer> {
+    const aviso = await this.findOne(id);
+    const dto = { ...(aviso.data as AvisoSalidaDto), participantes: [] };
+    const docDef = this.buildPermisosDocument(dto);
     const doc = await this.printer.createPdfKitDocument(docDef);
     return new Promise((resolve, reject) => {
       const chunks: Buffer[] = [];

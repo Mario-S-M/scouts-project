@@ -50,12 +50,25 @@ export class AvisosSalidaController {
     res.end(buffer);
   }
 
-  /** Descargar PDF de permisos de salida (uno por participante) */
+  /** Descargar ZIP con permisos de salida individuales (un PDF por participante) */
   @Get(':id/permisos')
   async getPermisosPdf(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
+    const { zip, nombre } = await this.avisosSalidaService.generatePermisosZip(id);
+    const filename = `permisos-${nombre.replace(/\s+/g, '-')}.zip`;
+    res.set({
+      'Content-Type':        'application/zip',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length':      zip.length,
+    });
+    res.end(zip);
+  }
+
+  /** Descargar permiso en blanco con datos de la actividad pero sin datos del joven */
+  @Get(':id/permiso-en-blanco')
+  async getPermisoEnBlancoPdf(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
     const aviso  = await this.avisosSalidaService.findOne(id);
-    const buffer = await this.avisosSalidaService.generatePermisos(id);
-    const filename = `permisos-${aviso.nombre.replace(/\s+/g, '-')}.pdf`;
+    const buffer = await this.avisosSalidaService.generatePermisoEnBlanco(id);
+    const filename = `permiso-en-blanco-${aviso.nombre.replace(/\s+/g, '-')}.pdf`;
     res.set({
       'Content-Type':        'application/pdf',
       'Content-Disposition': `attachment; filename="${filename}"`,
