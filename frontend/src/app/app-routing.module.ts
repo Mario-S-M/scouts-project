@@ -58,6 +58,11 @@ const routes: Routes = [
     canActivate: [AuthGuard],
     loadChildren: () => import('./features/ciclos-programa/ciclos-programa.module').then(m => m.CiclosProgramaModule),
   },
+  {
+    path: 'calendario',
+    canActivate: [AuthGuard],
+    loadChildren: () => import('./features/calendario/calendario.module').then(m => m.CalendarioModule),
+  },
   { path: '**', redirectTo: '' },
 ];
 

@@ -38,6 +38,7 @@ export class AppComponent {
     if (user?.rol === 'scout') {
       this.menuItems = [
         { label: 'Mi Progreso', icon: 'pi pi-compass', routerLink: ['/mi-comunidad'] },
+        { label: 'Calendario', icon: 'pi pi-calendar-plus', routerLink: ['/calendario'] },
       ];
       return;
     }
@@ -65,6 +66,13 @@ export class AppComponent {
       { label: 'Avisos de Salida', icon: 'pi pi-file-export', routerLink: ['/avisos-salida'] },
       { label: 'Ciclo de Programa', icon: 'pi pi-calendar', routerLink: ['/ciclos-programa'] },
       { label: 'Informe Mensual',   icon: 'pi pi-file-pdf', routerLink: ['/informes'] },
+      {
+        label: 'Calendario', icon: 'pi pi-calendar-plus',
+        items: [
+          { label: 'Ver Calendario',   icon: 'pi pi-calendar-plus', routerLink: ['/calendario'] },
+          { label: 'Recordatorios',    icon: 'pi pi-bell',          routerLink: ['/calendario/recordatorios'] },
+        ],
+      },
     ];
     if (user?.rol === 'jefe_grupo') {
       items.push({ label: 'Usuarios', icon: 'pi pi-lock', routerLink: ['/usuarios'] });
