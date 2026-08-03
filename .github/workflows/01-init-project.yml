@@ -1,0 +1,149 @@
+name: 01 - Inicializar GitHub Project (Scrum)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GH_TOKEN: ${{ secrets.GH_PAT }}
+
+jobs:
+  init:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 1
+
+      - name: Crear proyecto, campos y vistas
+        id: init
+        run: |
+          source .github/scripts/gh-project-lib.sh
+          OWNER="${{ github.repository_owner }}"
+          REPO="${{ github.repository }}"
+
+          YEAR="$(date -u +%G)"
+          WEEK="$(date -u +%V)"
+          CURRENT_SPRINT="Sprint ${YEAR}-W${WEEK}"
+
+          # --- 1. Buscar o crear el proyecto a nivel de usuario ---
+          echo "::group::Proyecto"
+          PROJECT_ID="$(gh_project_id || true)"
+          if [ -z "$PROJECT_ID" ]; then
+            OWNER_NODE_ID="$(gh_owner_id)"
+            PROJECT_ID="$(gh_graphql \
+              -f query='mutation($oid:ID!,$title:String!){ createProjectV2(input:{ownerId:$oid,title:$title}){ projectV2{ id number } } }' \
+              -F oid="$OWNER_NODE_ID" -F title="$PROJECT_TITLE" \
+              -q '.data.createProjectV2.projectV2.id')"
+            echo "Proyecto creado: $PROJECT_TITLE"
+          else
+            echo "El proyecto '$PROJECT_TITLE' ya existía."
+          fi
+          echo "PROJECT_NODE_ID=$PROJECT_ID"
+          echo "PROJECT_NUMBER=$(gh_project_number)"
+          echo "::endgroup::"
+
+          # --- 2. Campo Status (single-select) ---
+          echo "::group::Campo Status"
+          if [ -z "$(gh_single_select_field_id "Status" || true)" ]; then
+            STATUS_OPTS='[
+              {name:"Product Backlog", color:"GRAY",    description:""},
+              {name:"Sprint Backlog",  color:"BLUE",    description:""},
+              {name:"In Progress",     color:"YELLOW",  description:""},
+              {name:"In Review",       color:"ORANGE",  description:""},
+              {name:"Testing",         color:"PURPLE",  description:""},
+              {name:"Done",            color:"GREEN",   description:""}
+            ]'
+            gh_graphql \
+              -f query='mutation($pid:ID!,$name:String!,$opts:[ProjectV2SingleSelectFieldOptionInput!]!){ createProjectV2Field(input:{projectId:$pid,dataType:SINGLE_SELECT,name:$name,singleSelectOptions:$opts}){ projectV2Field{ id } } }' \
+              -F pid="$PROJECT_ID" -F name="Status" -F opts="$STATUS_OPTS" >/dev/null
+            echo "Campo 'Status' creado con 6 columnas."
+          else
+            echo "Campo 'Status' ya existía."
+          fi
+          echo "::endgroup::"
+
+          # --- 3. Campo Priority (single-select) ---
+          echo "::group::Campo Priority"
+          if [ -z "$(gh_single_select_field_id "Priority" || true)" ]; then
+            PRIORITY_OPTS='[
+              {name:"High",   color:"RED",    description:""},
+              {name:"Medium", color:"YELLOW", description:""},
+              {name:"Low",    color:"BLUE",   description:""}
+            ]'
+            gh_graphql \
+              -f query='mutation($pid:ID!,$name:String!,$opts:[ProjectV2SingleSelectFieldOptionInput!]!){ createProjectV2Field(input:{projectId:$pid,dataType:SINGLE_SELECT,name:$name,singleSelectOptions:$opts}){ projectV2Field{ id } } }' \
+              -F pid="$PROJECT_ID" -F name="Priority" -F opts="$PRIORITY_OPTS" >/dev/null
+            echo "Campo 'Priority' creado."
+          else
+            echo "Campo 'Priority' ya existía."
+          fi
+          echo "::endgroup::"
+
+          # --- 4. Campo Sprint (single-select, una opción por sprint) ---
+          echo "::group::Campo Sprint"
+          if [ -z "$(gh_single_select_field_id "Sprint" || true)" ]; then
+            SPRINT_OPTS="$(jq -nc --arg s "$CURRENT_SPRINT" '[
+              {name:$s, color:"BLUE", description:"Sprint semanal"}
+            ]')"
+            gh_graphql \
+              -f query='mutation($pid:ID!,$name:String!,$opts:[ProjectV2SingleSelectFieldOptionInput!]!){ createProjectV2Field(input:{projectId:$pid,dataType:SINGLE_SELECT,name:$name,singleSelectOptions:$opts}){ projectV2Field{ id } } }' \
+              -F pid="$PROJECT_ID" -F name="Sprint" -F opts="$SPRINT_OPTS" >/dev/null
+            echo "Campo 'Sprint' creado (opción inicial: $CURRENT_SPRINT)."
+          else
+            echo "Campo 'Sprint' ya existía."
+          fi
+          echo "::endgroup::"
+
+          # --- 5. Vistas del tablero ---
+          echo "::group::Vistas"
+          STATUS_FIELD_ID="$(gh_single_select_field_id "Status")"
+          SPRINT_FIELD_ID="$(gh_single_select_field_id "Sprint")"
+          PRIORITY_FIELD_ID="$(gh_single_select_field_id "Priority")"
+
+          VIEWS_JSON="$(gh_graphql \
+            -f query='query($id:ID!){ node(id:$id){ ... on ProjectV2 { views(first:50){ nodes { id name } } } } }' \
+            -F id="$PROJECT_ID")"
+
+          create_view() {
+            local name="$1" group_field="$2"
+            local view_id
+            view_id="$(printf '%s' "$VIEWS_JSON" | jq -r --arg n "$name" '.data.node.views.nodes[]? | select(.name==$n) | .id' | head -1)"
+            if [ -z "$view_id" ]; then
+              view_id="$(gh_graphql \
+                -f query='mutation($pid:ID!,$name:String!){ createProjectV2View(input:{projectId:$pid,name:$name,layout:BOARD_LAYOUT}){ projectV2View{ id } } }' \
+                -F pid="$PROJECT_ID" -F name="$name" \
+                -q '.data.createProjectV2View.projectV2View.id')"
+              echo "Vista '$name' creada."
+            else
+              echo "Vista '$name' ya existía."
+            fi
+            if [ -n "$group_field" ]; then
+              gh_graphql \
+                -f query='mutation($pid:ID!,$vid:ID!,$fid:ID!){ updateProjectV2View(input:{projectId:$pid,viewId:$vid,groupBy:[{fieldId:$fid}]}){ projectV2View{ id } } }' \
+                -F pid="$PROJECT_ID" -F vid="$view_id" -F fid="$group_field" >/dev/null
+            fi
+          }
+
+          create_view "Tabla Kanban" "$STATUS_FIELD_ID"
+          create_view "Por Sprint" "$SPRINT_FIELD_ID"
+          create_view "Por Prioridad" "$PRIORITY_FIELD_ID"
+          echo "::endgroup::"
+
+          # --- 6. Salida / resumen ---
+          echo "PROJECT_NODE_ID=$PROJECT_ID" >> "$GITHUB_OUTPUT"
+          echo "PROJECT_NUMBER=$(gh_project_number)" >> "$GITHUB_OUTPUT"
+          {
+            echo "## GitHub Project configurado"
+            echo ""
+            echo "- **Título**: \`$PROJECT_TITLE\`"
+            echo "- **Node ID**: \`$PROJECT_ID\`"
+            echo "- **Número**: \`$(gh_project_number)\`"
+            echo "- **Sprint actual**: \`$CURRENT_SPRINT\`"
+            echo ""
+            echo "Campos: **Status** (6 columnas), **Priority**, **Sprint**."
+            echo "Vistas: **Tabla Kanban**, **Por Sprint**, **Por Prioridad**."
+          } >> "$GITHUB_STEP_SUMMARY"

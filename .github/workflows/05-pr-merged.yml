@@ -1,0 +1,51 @@
+name: 05 - PR mergeado → Done y cerrar issue
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  GH_TOKEN: ${{ secrets.GH_PAT }}
+
+jobs:
+  done:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 1
+
+      - name: Mover issues a Done y cerrarlos
+        run: |
+          source .github/scripts/gh-project-lib.sh
+          OWNER="${{ github.repository_owner }}"
+          REPO="${{ github.repository }}"
+          PR_BODY="$(jq -r '.pull_request.body // ""' "$GITHUB_EVENT_PATH")"
+
+          PROJECT_ID="$(gh_project_id || true)"
+          if [ -z "$PROJECT_ID" ]; then
+            echo "::warning::Proyecto '$PROJECT_TITLE' no encontrado. Ejecuta primero 01-init-project.yml."
+            exit 0
+          fi
+          STATUS_FIELD_ID="$(gh_single_select_field_id "Status")"
+          OPTION_ID="$(gh_status_option_id "Done")"
+
+          ISSUES_LINKED="$(gh_linked_issue_numbers "$PR_BODY")"
+          if [ -z "$ISSUES_LINKED" ]; then
+            echo "::notice::No se detectaron issues linkeados. Usa 'Closes #N' en el cuerpo del PR."
+            exit 0
+          fi
+
+          for N in $ISSUES_LINKED; do
+            gh api -X PATCH "/repos/$REPO/issues/$N" -f state=closed >/dev/null
+            ISSUE_NODE_ID="$(gh api "/repos/$REPO/issues/$N" -q '.node_id')"
+            ITEM_ID="$(gh_ensure_item "$ISSUE_NODE_ID")"
+            gh_set_item_status "$ITEM_ID" "$OPTION_ID"
+            echo "Issue #$N cerrado y movido a 'Done'."
+          done

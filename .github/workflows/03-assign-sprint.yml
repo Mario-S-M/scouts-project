@@ -1,0 +1,62 @@
+name: 03 - Asignar Sprint (milestone actual)
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  GH_TOKEN: ${{ secrets.GH_PAT }}
+
+jobs:
+  assign:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 1
+
+      - name: Asignar milestone y campo Sprint
+        run: |
+          source .github/scripts/gh-project-lib.sh
+          OWNER="${{ github.repository_owner }}"
+          REPO="${{ github.repository }}"
+          ISSUE_NUMBER="$(jq -r '.issue.number' "$GITHUB_EVENT_PATH")"
+          ISSUE_NODE_ID="$(jq -r '.issue.node_id' "$GITHUB_EVENT_PATH")"
+
+          YEAR="$(date -u +%G)"
+          WEEK="$(date -u +%V)"
+          SPRINT_TITLE="Sprint ${YEAR}-W${WEEK}"
+
+          MILESTONE_NUMBER="$(gh api \
+            "/repos/$REPO/milestones?state=open&per_page=100" \
+            -q '.[]? | select(.title=="'"$SPRINT_TITLE"'") | .number' | head -1)"
+
+          if [ -z "$MILESTONE_NUMBER" ]; then
+            echo "::warning::No existe el milestone '$SPRINT_TITLE'. Ejecuta 06-sprint-autocreate.yml."
+            exit 0
+          fi
+
+          gh api -X PATCH "/repos/$REPO/issues/$ISSUE_NUMBER" \
+            -F milestone="$MILESTONE_NUMBER" >/dev/null
+          echo "Issue #$ISSUE_NUMBER asignado al sprint '$SPRINT_TITLE'."
+
+          PROJECT_ID="$(gh_project_id || true)"
+          if [ -z "$PROJECT_ID" ]; then
+            echo "::warning::Proyecto '$PROJECT_TITLE' no encontrado. Solo se asignó el milestone."
+            exit 0
+          fi
+
+          SPRINT_FIELD_ID="$(gh_single_select_field_id "Sprint" || true)"
+          if [ -n "$SPRINT_FIELD_ID" ]; then
+            SPRINT_OPTION_ID="$(gh_ensure_select_option "Sprint" "$SPRINT_TITLE" "BLUE" || true)"
+            if [ -n "$SPRINT_OPTION_ID" ]; then
+              ITEM_ID="$(gh_ensure_item "$ISSUE_NODE_ID")"
+              gh_set_item_select "$ITEM_ID" "$SPRINT_FIELD_ID" "$SPRINT_OPTION_ID"
+              echo "Campo Sprint del item actualizado a '$SPRINT_TITLE'."
+            fi
+          fi

@@ -1,0 +1,58 @@
+name: 06 - Auto-crear sprint semanal
+
+on:
+  schedule:
+    - cron: '0 1 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  GH_TOKEN: ${{ secrets.GH_PAT }}
+
+jobs:
+  create:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 1
+
+      - name: Crear milestone del sprint actual
+        run: |
+          source .github/scripts/gh-project-lib.sh
+          OWNER="${{ github.repository_owner }}"
+          REPO="${{ github.repository }}"
+          YEAR="$(date -u +%G)"
+          WEEK="$(date -u +%V)"
+          START="$(date -u -d 'monday this week' +%Y-%m-%d)"
+          END="$(date -u -d 'monday this week + 6 days' +%Y-%m-%d)"
+          TITLE="Sprint ${YEAR}-W${WEEK}"
+          DUE="${END}T23:59:59Z"
+
+          EXISTING="$(gh api "/repos/$REPO/milestones?state=all&per_page=100" \
+            -q '.[]? | select(.title=="'"$TITLE"'") | .number' | head -1)"
+
+          if [ -n "$EXISTING" ]; then
+            echo "El milestone '$TITLE' ya existe (#$EXISTING)."
+          else
+            gh api -X POST "/repos/$REPO/milestones" \
+              -f title="$TITLE" \
+              -f description="Sprint del $START al $END" \
+              -f due_on="$DUE" >/dev/null
+            echo "Milestone '$TITLE' creado (del $START al $END)."
+          fi
+
+          PROJECT_ID="$(gh_project_id || true)"
+          if [ -z "$PROJECT_ID" ]; then
+            echo "::warning::Proyecto '$PROJECT_TITLE' no encontrado. Ejecuta primero 01-init-project.yml."
+            exit 0
+          fi
+          SPRINT_FIELD_ID="$(gh_single_select_field_id "Sprint" || true)"
+          if [ -n "$SPRINT_FIELD_ID" ]; then
+            gh_ensure_select_option "Sprint" "$TITLE" "BLUE"
+            echo "Opción '$TITLE' registrada en el campo Sprint del proyecto."
+          fi

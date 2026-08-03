@@ -1,0 +1,40 @@
+name: 02 - Issue abierto → Product Backlog
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+
+env:
+  GH_TOKEN: ${{ secrets.GH_PAT }}
+
+jobs:
+  backlog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 1
+
+      - name: Añadir issue al proyecto (Product Backlog)
+        run: |
+          source .github/scripts/gh-project-lib.sh
+          OWNER="${{ github.repository_owner }}"
+          REPO="${{ github.repository }}"
+          ISSUE_NODE_ID="$(jq -r '.issue.node_id' "$GITHUB_EVENT_PATH")"
+          ISSUE_NUMBER="$(jq -r '.issue.number' "$GITHUB_EVENT_PATH")"
+
+          PROJECT_ID="$(gh_project_id || true)"
+          if [ -z "$PROJECT_ID" ]; then
+            echo "::warning::Proyecto '$PROJECT_TITLE' no encontrado. Ejecuta primero 01-init-project.yml."
+            exit 0
+          fi
+          STATUS_FIELD_ID="$(gh_single_select_field_id "Status")"
+          OPTION_ID="$(gh_status_option_id "Product Backlog")"
+
+          ITEM_ID="$(gh_ensure_item "$ISSUE_NODE_ID")"
+          gh_set_item_status "$ITEM_ID" "$OPTION_ID"
+          echo "Issue #$ISSUE_NUMBER añadido al proyecto en 'Product Backlog'."
