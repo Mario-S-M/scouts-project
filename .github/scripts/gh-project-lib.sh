@@ -11,6 +11,15 @@ gh_graphql() {
   gh api graphql "$@"
 }
 
+# Envía una query GraphQL con variables complejas (arrays/objetos) usando body JSON.
+# Importante: `gh api graphql -F var=...` siempre envía el valor como string, incluso si
+# es JSON válido. Con --input - se manda el body completo y las variables llegan tipadas.
+gh_graphql_input() {
+  local query="$1" vars_json="$2"
+  jq -nc --arg q "$query" --argjson v "$vars_json" '{query:$q, variables:$v}' \
+    | gh api graphql --input -
+}
+
 # Node ID del propietario del proyecto (usuario u organización).
 gh_owner_id() {
   gh_graphql \
@@ -77,9 +86,10 @@ gh_ensure_select_option() {
   fi
   new_opts="$(printf '%s' "$info" | jq -c --arg n "$option_name" --arg c "$color" \
     '.options + [{name:$n, color:$c, description:""}]')"
-  gh_graphql \
-    -f query='mutation($fid:ID!,$opts:[ProjectV2SingleSelectFieldOptionInput!]!){ updateProjectV2Field(input:{fieldId:$fid, singleSelectOptions:$opts}){ projectV2Field{ id } } }' \
-    -F fid="$field_id" -F opts="$new_opts" >/dev/null
+  VARS="$(jq -nc --arg fid "$field_id" --argjson opts "$new_opts" '{fid:$fid, opts:$opts}')"
+  gh_graphql_input \
+    'mutation($fid:ID!,$opts:[ProjectV2SingleSelectFieldOptionInput!]!){ updateProjectV2Field(input:{fieldId:$fid, singleSelectOptions:$opts}){ projectV2Field{ ... on ProjectV2SingleSelectField { id } } } }' \
+    "$VARS" >/dev/null
   gh_select_option_id "$field_name" "$option_name"
 }
 

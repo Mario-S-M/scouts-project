@@ -48,18 +48,25 @@ jobs:
 
           # --- 2. Campo Status (single-select) ---
           echo "::group::Campo Status"
+          create_select_field() {
+            local name="$1" opts_json="$2"
+            local vars
+            vars="$(jq -nc --arg pid "$PROJECT_ID" --arg name "$name" --argjson opts "$opts_json" \
+              '{pid:$pid, name:$name, opts:$opts}')"
+            gh_graphql_input \
+              'mutation($pid:ID!,$name:String!,$opts:[ProjectV2SingleSelectFieldOptionInput!]!){ createProjectV2Field(input:{projectId:$pid,dataType:SINGLE_SELECT,name:$name,singleSelectOptions:$opts}){ projectV2Field{ ... on ProjectV2SingleSelectField { id } } } }' \
+              "$vars" >/dev/null
+          }
           if [ -z "$(gh_single_select_field_id "Status" || true)" ]; then
-            STATUS_OPTS='[
+            STATUS_OPTS="$(jq -nc '[
               {name:"Product Backlog", color:"GRAY",    description:""},
               {name:"Sprint Backlog",  color:"BLUE",    description:""},
               {name:"In Progress",     color:"YELLOW",  description:""},
               {name:"In Review",       color:"ORANGE",  description:""},
               {name:"Testing",         color:"PURPLE",  description:""},
               {name:"Done",            color:"GREEN",   description:""}
-            ]'
-            gh_graphql \
-              -f query='mutation($pid:ID!,$name:String!,$opts:[ProjectV2SingleSelectFieldOptionInput!]!){ createProjectV2Field(input:{projectId:$pid,dataType:SINGLE_SELECT,name:$name,singleSelectOptions:$opts}){ projectV2Field{ id } } }' \
-              -F pid="$PROJECT_ID" -F name="Status" -F opts="$STATUS_OPTS" >/dev/null
+            ]')"
+            create_select_field "Status" "$STATUS_OPTS"
             echo "Campo 'Status' creado con 6 columnas."
           else
             echo "Campo 'Status' ya existía."
@@ -69,14 +76,12 @@ jobs:
           # --- 3. Campo Priority (single-select) ---
           echo "::group::Campo Priority"
           if [ -z "$(gh_single_select_field_id "Priority" || true)" ]; then
-            PRIORITY_OPTS='[
+            PRIORITY_OPTS="$(jq -nc '[
               {name:"High",   color:"RED",    description:""},
               {name:"Medium", color:"YELLOW", description:""},
               {name:"Low",    color:"BLUE",   description:""}
-            ]'
-            gh_graphql \
-              -f query='mutation($pid:ID!,$name:String!,$opts:[ProjectV2SingleSelectFieldOptionInput!]!){ createProjectV2Field(input:{projectId:$pid,dataType:SINGLE_SELECT,name:$name,singleSelectOptions:$opts}){ projectV2Field{ id } } }' \
-              -F pid="$PROJECT_ID" -F name="Priority" -F opts="$PRIORITY_OPTS" >/dev/null
+            ]')"
+            create_select_field "Priority" "$PRIORITY_OPTS"
             echo "Campo 'Priority' creado."
           else
             echo "Campo 'Priority' ya existía."
@@ -89,9 +94,7 @@ jobs:
             SPRINT_OPTS="$(jq -nc --arg s "$CURRENT_SPRINT" '[
               {name:$s, color:"BLUE", description:"Sprint semanal"}
             ]')"
-            gh_graphql \
-              -f query='mutation($pid:ID!,$name:String!,$opts:[ProjectV2SingleSelectFieldOptionInput!]!){ createProjectV2Field(input:{projectId:$pid,dataType:SINGLE_SELECT,name:$name,singleSelectOptions:$opts}){ projectV2Field{ id } } }' \
-              -F pid="$PROJECT_ID" -F name="Sprint" -F opts="$SPRINT_OPTS" >/dev/null
+            create_select_field "Sprint" "$SPRINT_OPTS"
             echo "Campo 'Sprint' creado (opción inicial: $CURRENT_SPRINT)."
           else
             echo "Campo 'Sprint' ya existía."
