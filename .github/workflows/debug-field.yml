@@ -35,17 +35,17 @@ jobs:
           echo "--- A) seleccion directa projectV2Field{ id } (esperado: error union) ---"
           gh api graphql \
             -f query='mutation($pid:ID!,$name:String!,$opts:[ProjectV2SingleSelectFieldOptionInput!]!){ createProjectV2Field(input:{projectId:$pid,dataType:SINGLE_SELECT,name:$name,singleSelectOptions:$opts}){ projectV2Field{ id } } }' \
-            -F pid="$TMP_ID" -F name="StatusA" -F opts='[{name:"Done", color:"GREEN", description:""}]' 2>&1 | tail -3 || true
+            -F pid="$TMP_ID" -F name="StatusA" -F opts="$(jq -nc '[{name:"Done", color:"GREEN", description:""}]')" 2>&1 | tail -3 || true
 
           echo "--- B) fragmento inline ... on ProjectV2SingleSelectField (esperado: ok) ---"
           gh api graphql \
             -f query='mutation($pid:ID!,$name:String!,$opts:[ProjectV2SingleSelectFieldOptionInput!]!){ createProjectV2Field(input:{projectId:$pid,dataType:SINGLE_SELECT,name:$name,singleSelectOptions:$opts}){ projectV2Field{ ... on ProjectV2SingleSelectField { id } } } }' \
-            -F pid="$TMP_ID" -F name="StatusB" -F opts='[{name:"Done", color:"GREEN", description:""}]' 2>&1 | tail -3 || true
+            -F pid="$TMP_ID" -F name="StatusB" -F opts="$(jq -nc '[{name:"Done", color:"GREEN", description:""}]')" 2>&1 | tail -3 || true
 
           echo "--- C) updateProjectV2Field con fragmento inline ---"
           gh api graphql \
             -f query='mutation($pid:ID!,$name:String!,$opts:[ProjectV2SingleSelectFieldOptionInput!]!){ createProjectV2Field(input:{projectId:$pid,dataType:SINGLE_SELECT,name:$name,singleSelectOptions:$opts}){ projectV2Field{ ... on ProjectV2SingleSelectField { id } } } }' \
-            -F pid="$TMP_ID" -F name="SprintB" -F opts='[{name:"Sprint 1", color:"BLUE", description:""}]' \
+            -F pid="$TMP_ID" -F name="SprintB" -F opts="$(jq -nc '[{name:"Sprint 1", color:"BLUE", description:""}]')" \
             -q '.data.createProjectV2Field.projectV2Field.id' > /tmp/sprint_field_id
           SPRINT_FIELD_ID="$(cat /tmp/sprint_field_id)"
           echo "SPRINT_FIELD_ID=$SPRINT_FIELD_ID"
