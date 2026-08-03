@@ -1,0 +1,118 @@
+<app-page-header
+  title="Calendario Compartido"
+  subtitle="Actividades de toda la comunidad, organizadas por sección"
+  icon="pi pi-calendar-plus">
+</app-page-header>
+
+<div class="page-container">
+
+  <div class="flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div class="flex gap-2 flex-wrap">
+      <span *ngFor="let s of secciones" class="flex align-items-center gap-1 text-sm">
+        <span class="border-circle inline-block" style="width:10px;height:10px"
+              [ngStyle]="{ background: getColor(s.value) }"></span>
+        {{ s.label }}
+      </span>
+      <span class="flex align-items-center gap-1 text-sm text-500">
+        📘 Actividades de Ciclo de Programa (solo lectura)
+      </span>
+    </div>
+    <button *ngIf="puedeCrear()" pButton icon="pi pi-plus" label="Nueva actividad"
+            class="p-button-sm" (click)="nuevo()"></button>
+  </div>
+
+  <div *ngIf="loading" class="flex justify-content-center py-5">
+    <p-progressSpinner strokeWidth="4" styleClass="w-3rem h-3rem"></p-progressSpinner>
+  </div>
+
+  <div [style.display]="loading ? 'none' : 'block'">
+    <full-calendar [options]="calendarOptions"></full-calendar>
+  </div>
+
+</div>
+
+<p-dialog header="{{ editando ? 'Editar actividad' : 'Nueva actividad' }}"
+          [(visible)]="dialogVisible" [modal]="true" [style]="{ width: '32rem' }">
+  <div class="flex flex-column gap-3">
+    <div class="flex flex-column gap-1">
+      <label class="text-sm font-semibold">Título</label>
+      <input pInputText [(ngModel)]="form.titulo" placeholder="Ej. Excursión al cerro" />
+    </div>
+
+    <div class="flex flex-column gap-1">
+      <label class="text-sm font-semibold">Descripción</label>
+      <textarea pInputTextarea rows="3" [(ngModel)]="form.descripcion"></textarea>
+    </div>
+
+    <div class="flex gap-3">
+      <div class="flex flex-column gap-1 flex-1">
+        <label class="text-sm font-semibold">Fecha</label>
+        <input type="date" pInputText [(ngModel)]="form.fecha" />
+      </div>
+      <div class="flex flex-column gap-1 flex-1">
+        <label class="text-sm font-semibold">Hora (opcional)</label>
+        <input type="time" pInputText [(ngModel)]="form.hora" />
+      </div>
+    </div>
+
+    <div class="flex flex-column gap-1">
+      <label class="text-sm font-semibold">Lugar</label>
+      <input pInputText [(ngModel)]="form.lugar" placeholder="Ej. Sede scout" />
+    </div>
+
+    <div class="flex flex-column gap-1">
+      <label class="text-sm font-semibold">Sección</label>
+      <p-dropdown [options]="secciones" optionLabel="label" optionValue="value"
+                  [(ngModel)]="form.seccion" [disabled]="seccionesPermitidas.length <= 1"
+                  placeholder="Selecciona una sección">
+      </p-dropdown>
+      <small class="text-500" *ngIf="!seccionesPermitidas.includes(form.seccion)">
+        No tienes permiso para gestionar actividades de esta sección.
+      </small>
+    </div>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <button *ngIf="editando" pButton icon="pi pi-trash" label="Eliminar"
+            class="p-button-text p-button-danger" (click)="eliminar()"></button>
+    <button pButton label="Cancelar" class="p-button-text" (click)="dialogVisible = false"></button>
+    <button pButton label="Guardar" icon="pi pi-check"
+            [loading]="guardando"
+            [disabled]="!form.titulo || !form.fecha || !seccionesPermitidas.includes(form.seccion)"
+            (click)="guardar()"></button>
+  </ng-template>
+</p-dialog>
+
+<p-dialog header="Actividades del {{ diaSeleccionado }}"
+          [(visible)]="dayDetailVisible" [modal]="true" [style]="{ width: '30rem' }">
+  <div *ngIf="eventosDelDia.length === 0" class="text-center text-500 py-4">
+    <i class="pi pi-calendar text-3xl mb-2 block"></i>
+    No hay actividades registradas este día.
+  </div>
+
+  <div class="flex flex-column gap-2">
+    <div *ngFor="let item of eventosDelDia"
+         class="flex align-items-start gap-2 p-2 border-round cursor-pointer surface-hover"
+         (click)="abrirItemDia(item)">
+      <span class="border-circle inline-block mt-1 flex-shrink-0" style="width:10px;height:10px"
+            [ngStyle]="{ background: colorSeccion(item.seccion) }"></span>
+      <div class="flex-1">
+        <div class="flex align-items-center gap-2 flex-wrap">
+          <span class="font-bold">{{ item.tipo === 'ciclo-programa' ? '📘 ' : '' }}{{ item.titulo }}</span>
+          <p-tag [value]="seccionLabel(item.seccion)" severity="info" styleClass="text-xs"></p-tag>
+        </div>
+        <div class="text-sm text-600" *ngIf="item.hora">🕒 {{ item.hora.slice(0,5) }}</div>
+        <div class="text-sm text-600" *ngIf="item.lugar">📍 {{ item.lugar }}</div>
+        <div class="text-sm text-600" *ngIf="item.ejeTematico">🎯 {{ item.ejeTematico }}</div>
+        <div class="text-sm text-500" *ngIf="item.descripcion">{{ item.descripcion }}</div>
+      </div>
+    </div>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <button *ngIf="puedeCrear()" pButton icon="pi pi-plus" label="Nueva actividad este día"
+            class="p-button-sm" (click)="nuevo(diaSeleccionado)"></button>
+  </ng-template>
+</p-dialog>
+
+<p-confirmDialog></p-confirmDialog>
