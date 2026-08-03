@@ -404,8 +404,10 @@ export class CrearAvisoComponent implements OnInit {
         const a = document.createElement('a');
         a.href = url;
         a.download = `aviso-salida-${(v.nombre || 'actividad').replace(/\s+/g, '-')}.pdf`;
+        document.body.appendChild(a);
         a.click();
-        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
         this.generandoPdf = false;
       },
       error: () => {

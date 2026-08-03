@@ -14,6 +14,7 @@
            [showCurrentPageReport]="true"
            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} avisos"
            [rowsPerPageOptions]="[10, 25, 50]"
+           responsiveLayout="scroll"
            styleClass="p-datatable-sm p-datatable-striped"
            emptyMessage="No hay avisos guardados. Crea el primero con el botón 'Nuevo Aviso'.">
 
@@ -24,7 +25,7 @@
         <th pSortableColumn="fechaSalida" style="width:120px">Fecha Salida <p-sortIcon field="fechaSalida"></p-sortIcon></th>
         <th pSortableColumn="creadoPorNombre" style="width:180px">Creado por <p-sortIcon field="creadoPorNombre"></p-sortIcon></th>
         <th pSortableColumn="createdAt" style="width:120px">Guardado <p-sortIcon field="createdAt"></p-sortIcon></th>
-        <th style="width:215px" class="text-center">Acciones</th>
+        <th style="width:265px" class="text-center">Acciones</th>
       </tr>
     </ng-template>
 
@@ -51,6 +52,11 @@
                     pTooltip="Descargar Permisos"
                     [loading]="descargandoPermisos === aviso.id"
                     (click)="descargarPermisos(aviso)"></button>
+            <button pButton icon="pi pi-file"
+                    class="p-button-sm p-button-warning p-button-outlined"
+                    pTooltip="Permiso en Blanco"
+                    [loading]="descargandoPermisoEnBlanco === aviso.id"
+                    (click)="descargarPermisoEnBlanco(aviso)"></button>
             <button pButton icon="pi pi-pencil"
                     class="p-button-sm p-button-info p-button-outlined"
                     pTooltip="Editar"

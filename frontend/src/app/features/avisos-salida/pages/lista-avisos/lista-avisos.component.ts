@@ -12,6 +12,7 @@ export class ListaAvisosComponent implements OnInit {
   loading = false;
   descargando: number | null = null;
   descargandoPermisos: number | null = null;
+  descargandoPermisoEnBlanco: number | null = null;
 
   constructor(
     private avisoService: AvisoService,
@@ -40,16 +41,22 @@ export class ListaAvisosComponent implements OnInit {
     this.router.navigate(['/avisos-salida/editar', aviso.id]);
   }
 
+  private triggerDownload(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }
+
   descargar(aviso: AvisoResumen) {
     this.descargando = aviso.id;
     this.avisoService.downloadPdf(aviso.id).subscribe({
       next: (blob) => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `aviso-salida-${aviso.nombre.replace(/\s+/g, '-')}.pdf`;
-        a.click();
-        URL.revokeObjectURL(url);
+        this.triggerDownload(blob, `aviso-salida-${aviso.nombre.replace(/\s+/g, '-')}.pdf`);
         this.descargando = null;
       },
       error: () => {
@@ -63,17 +70,26 @@ export class ListaAvisosComponent implements OnInit {
     this.descargandoPermisos = aviso.id;
     this.avisoService.downloadPermisos(aviso.id).subscribe({
       next: (blob) => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `permisos-${aviso.nombre.replace(/\s+/g, '-')}.pdf`;
-        a.click();
-        URL.revokeObjectURL(url);
+        this.triggerDownload(blob, `permisos-${aviso.nombre.replace(/\s+/g, '-')}.zip`);
         this.descargandoPermisos = null;
       },
       error: () => {
         this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo generar los permisos.' });
         this.descargandoPermisos = null;
+      },
+    });
+  }
+
+  descargarPermisoEnBlanco(aviso: AvisoResumen) {
+    this.descargandoPermisoEnBlanco = aviso.id;
+    this.avisoService.downloadPermisoEnBlanco(aviso.id).subscribe({
+      next: (blob) => {
+        this.triggerDownload(blob, `permiso-en-blanco-${aviso.nombre.replace(/\s+/g, '-')}.pdf`);
+        this.descargandoPermisoEnBlanco = null;
+      },
+      error: () => {
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo generar el permiso en blanco.' });
+        this.descargandoPermisoEnBlanco = null;
       },
     });
   }
