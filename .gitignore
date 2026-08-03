@@ -4,4 +4,4 @@ dist/
 *.log
 uploads/
 .DS_Store
-.angular/cache/
+**/.angular/
