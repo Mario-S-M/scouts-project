@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-PROJECT_TITLE="${PROJECT_TITLE:-Scouts CC - Scrum Board}"
+PROJECT_TITLE="${PROJECT_TITLE:-Desarrollo Scout}"
 
 gh_graphql() {
   gh api graphql "$@"
