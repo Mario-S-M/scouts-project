@@ -102,38 +102,29 @@ jobs:
           echo "::endgroup::"
 
           # --- 5. Vistas del tablero ---
+          # Nota: el API ya no permite agrupar vistas por campo (groupBy fue
+          # eliminado de UpdateProjectV2ViewInput). Solo se crea la vista Kanban;
+          # las vistas agrupadas por Sprint/Priority se hacen a mano en la UI.
           echo "::group::Vistas"
-          STATUS_FIELD_ID="$(gh_single_select_field_id "Status")"
-          SPRINT_FIELD_ID="$(gh_single_select_field_id "Sprint")"
-          PRIORITY_FIELD_ID="$(gh_single_select_field_id "Priority")"
-
           VIEWS_JSON="$(gh_graphql \
             -f query='query($id:ID!){ node(id:$id){ ... on ProjectV2 { views(first:50){ nodes { id name } } } } }' \
             -F id="$PROJECT_ID")"
 
           create_view() {
-            local name="$1" group_field="$2"
+            local name="$1"
             local view_id
             view_id="$(printf '%s' "$VIEWS_JSON" | jq -r --arg n "$name" '.data.node.views.nodes[]? | select(.name==$n) | .id' | head -1)"
             if [ -z "$view_id" ]; then
-              view_id="$(gh_graphql \
+              gh_graphql \
                 -f query='mutation($pid:ID!,$name:String!){ createProjectV2View(input:{projectId:$pid,name:$name,layout:BOARD_LAYOUT}){ projectV2View{ id } } }' \
-                -F pid="$PROJECT_ID" -F name="$name" \
-                -q '.data.createProjectV2View.projectV2View.id')"
+                -F pid="$PROJECT_ID" -F name="$name" >/dev/null
               echo "Vista '$name' creada."
             else
               echo "Vista '$name' ya existía."
             fi
-            if [ -n "$group_field" ]; then
-              gh_graphql \
-                -f query='mutation($pid:ID!,$vid:ID!,$fid:ID!){ updateProjectV2View(input:{projectId:$pid,viewId:$vid,groupBy:[{fieldId:$fid}]}){ projectV2View{ id } } }' \
-                -F pid="$PROJECT_ID" -F vid="$view_id" -F fid="$group_field" >/dev/null
-            fi
           }
 
-          create_view "Tabla Kanban" "$STATUS_FIELD_ID"
-          create_view "Por Sprint" "$SPRINT_FIELD_ID"
-          create_view "Por Prioridad" "$PRIORITY_FIELD_ID"
+          create_view "Tabla Kanban"
           echo "::endgroup::"
 
           # --- 6. Salida / resumen ---
@@ -148,5 +139,5 @@ jobs:
             echo "- **Sprint actual**: \`$CURRENT_SPRINT\`"
             echo ""
             echo "Campos: **Status** (6 columnas), **Priority**, **Sprint**."
-            echo "Vistas: **Tabla Kanban**, **Por Sprint**, **Por Prioridad**."
+            echo "Vista automática: **Tabla Kanban**. Agrupar vistas por Sprint/Priority se hace a mano en la UI (el API ya no soporta groupBy)."
           } >> "$GITHUB_STEP_SUMMARY"
