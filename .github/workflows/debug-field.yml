@@ -1,0 +1,53 @@
+name: DEBUG - Diagnostico campo Priority
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GH_TOKEN: ${{ secrets.GH_PAT }}
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 1
+
+      - name: Depurar
+        run: |
+          set -x
+          trap 'echo "==> TRAP ERR en linea $LINENO" >&2' ERR
+          source .github/scripts/gh-project-lib.sh
+          OWNER="${{ github.repository_owner }}"
+          REPO="${{ github.repository }}"
+          PROJECT_ID="$(gh_project_id || true)"
+          echo "PROJECT_ID=$PROJECT_ID"
+
+          echo "--- query campo inexistente (stdout capturado) ---"
+          OUT="$(gh api graphql \
+            -f query='query($id:ID!,$name:String!){ node(id:$id){ ... on ProjectV2 { field(name:$name){ ... on ProjectV2SingleSelectField { id options { id name color description } } } } } }' \
+            -F id="$PROJECT_ID" -F name="Priority" 2>/tmp/err.txt || true)"
+          echo "exit_shell=$?"
+          echo "stderr:"; cat /tmp/err.txt
+          echo "stdout:[$OUT]"
+
+          echo "--- gh_field_info ---"
+          INFO="$(gh_field_info "Priority" || true)"
+          echo "info=[$INFO]"
+
+          echo "--- gh_single_select_field_id ---"
+          FID="$(gh_single_select_field_id "Priority" || true)"
+          echo "fid=[$FID]"
+
+          echo "--- expresion if ---"
+          if [ -z "$(gh_single_select_field_id "Priority" || true)" ]; then
+            echo "-> crearia el campo (if true)"
+          else
+            echo "-> campo existe (if false)"
+          fi
+          echo "SURVIVED"
