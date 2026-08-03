@@ -1404,13 +1404,6 @@ export class AvisosSalidaService {
             width: "*",
             stack: [
               {
-                text: "Comunidad de Caminantes",
-                fontSize: 13,
-                bold: true,
-                color: NAVY,
-                alignment: "center",
-              },
-              {
                 text: "::: Chupí-Tiripeme :::",
                 fontSize: 8,
                 color: NAVY,

@@ -37,7 +37,7 @@ export class TelegramService implements OnModuleInit {
     const code = match?.[1]?.trim().toUpperCase();
 
     if (!code) {
-      await this.bot?.sendMessage(chatId, 'Hola 👋 Para vincular tu cuenta, genera un código de vinculación desde la app de Comunidad de Caminantes y abre el enlace que te da.');
+      await this.bot?.sendMessage(chatId, 'Hola 👋 Para vincular tu cuenta, genera un código de vinculación desde la app del Grupo Scout 7 · Itsï Tarhiata y abre el enlace que te da.');
       return;
     }
 
