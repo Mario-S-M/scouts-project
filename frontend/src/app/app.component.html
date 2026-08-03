@@ -30,15 +30,9 @@
           <div class="nav-divider"></div>
         </ng-container>
 
-        <!-- Botón Nueva Evidencia -->
-        <button pButton icon="pi pi-plus" label="Evidencia"
-                class="nav-btn nav-btn-primary"
-                routerLink="/evidencias/nueva"></button>
-
         <!-- Tema -->
         <button pButton [icon]="getThemeIcon()"
-                label="Tema"
-                class="nav-btn nav-btn-outline"
+                class="nav-btn nav-btn-outline nav-btn-icon"
                 pTooltip="Cambiar tema"
                 (click)="toggleTheme()"></button>
 

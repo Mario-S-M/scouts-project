@@ -53,19 +53,21 @@ export class AppComponent {
         items: [
           { label: 'Lista de Miembros', icon: 'pi pi-list', routerLink: ['/caminantes'] },
           { label: 'Registrar Miembro', icon: 'pi pi-user-plus', routerLink: ['/caminantes/registro'] },
+          { separator: true },
+          { label: 'Subir Evidencia', icon: 'pi pi-upload', routerLink: ['/evidencias/nueva'] },
+          { label: 'Panel de Validación', icon: 'pi pi-shield', routerLink: ['/validacion'] },
+          { separator: true },
+          { label: 'Insignias', icon: 'pi pi-star', routerLink: ['/insignias'] },
         ],
       },
       {
-        label: 'Evidencias', icon: 'pi pi-file',
+        label: 'Documentos', icon: 'pi pi-folder',
         items: [
-          { label: 'Subir Evidencia', icon: 'pi pi-upload', routerLink: ['/evidencias/nueva'] },
-          { label: 'Panel de Validación', icon: 'pi pi-shield', routerLink: ['/validacion'] },
+          { label: 'Avisos de Salida', icon: 'pi pi-file-export', routerLink: ['/avisos-salida'] },
+          { label: 'Ciclo de Programa', icon: 'pi pi-calendar', routerLink: ['/ciclos-programa'] },
+          { label: 'Informe Mensual', icon: 'pi pi-file-pdf', routerLink: ['/informes'] },
         ],
       },
-      { label: 'Insignias', icon: 'pi pi-star', routerLink: ['/insignias'] },
-      { label: 'Avisos de Salida', icon: 'pi pi-file-export', routerLink: ['/avisos-salida'] },
-      { label: 'Ciclo de Programa', icon: 'pi pi-calendar', routerLink: ['/ciclos-programa'] },
-      { label: 'Informe Mensual',   icon: 'pi pi-file-pdf', routerLink: ['/informes'] },
       {
         label: 'Calendario', icon: 'pi pi-calendar-plus',
         items: [
