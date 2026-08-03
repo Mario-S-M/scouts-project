@@ -93,6 +93,16 @@ export class User {
   @Column({ length: 500, nullable: true })
   foto: string;
 
+  // ── Vinculación con Telegram (recordatorios) ──────────────
+  @Column({ length: 50, nullable: true })
+  telegramChatId: string;
+
+  @Column({ length: 20, nullable: true })
+  telegramLinkCode: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  telegramLinkCodeExpira: Date;
+
   @CreateDateColumn()
   createdAt: Date;
 

@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { UsersService } from './users/users.service';
+import { ConfiguracionRecordatorioService } from './calendario/configuracion-recordatorio.service';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -32,6 +33,10 @@ async function bootstrap() {
   // Seed initial admin user
   const usersService = app.get(UsersService);
   await usersService.seedUsers();
+
+  // Seed default reminder configuration (miércoles 10:00 por ámbito)
+  const configuracionRecordatorioService = app.get(ConfiguracionRecordatorioService);
+  await configuracionRecordatorioService.seedDefaults();
 
   const port = process.env.PORT || 3000;
   await app.listen(port);

@@ -19,6 +19,8 @@ import { ActividadPendiente } from '../informes/entities/actividad-pendiente.ent
 import { MovimientoFinanciero } from '../informes/entities/movimiento-financiero.entity';
 import { InventarioItem } from '../informes/entities/inventario-item.entity';
 import { ProgresionInforme } from '../informes/entities/progresion-informe.entity';
+import { Actividad } from '../calendario/entities/actividad.entity';
+import { ConfiguracionRecordatorio } from '../calendario/entities/configuracion-recordatorio.entity';
 
 export const databaseConfig = (): TypeOrmModuleOptions => ({
   type: 'postgres',
@@ -43,6 +45,7 @@ export const databaseConfig = (): TypeOrmModuleOptions => ({
     ActividadCiclo,
     InformeMensual, AltaBajaInforme, AsistenciaActividad,
     ActividadPendiente, MovimientoFinanciero, InventarioItem, ProgresionInforme,
+    Actividad, ConfiguracionRecordatorio,
   ],
   synchronize: true,
   logging: process.env.NODE_ENV === 'development',

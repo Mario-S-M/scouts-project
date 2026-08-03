@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import * as path from 'path';
@@ -16,10 +17,13 @@ import { AuthModule } from './auth/auth.module';
 import { AvisosSalidaModule } from './avisos-salida/avisos-salida.module';
 import { CiclosProgramaModule } from './ciclos-programa/ciclos-programa.module';
 import { InformesModule } from './informes/informes.module';
+import { CalendarioModule } from './calendario/calendario.module';
+import { TelegramModule } from './telegram/telegram.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: path.join(__dirname, '../../.env') }),
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRootAsync({
       useFactory: databaseConfig,
     }),
@@ -37,6 +41,8 @@ import { InformesModule } from './informes/informes.module';
     AvisosSalidaModule,
     CiclosProgramaModule,
     InformesModule,
+    CalendarioModule,
+    TelegramModule,
   ],
   controllers: [AppController],
   providers: [AppService],
