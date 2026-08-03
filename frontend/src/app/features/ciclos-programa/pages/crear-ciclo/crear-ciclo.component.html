@@ -89,12 +89,12 @@
       </form>
 
       <ng-template pTemplate="footer">
-        <div class="flex justify-content-between align-items-center">
+        <div class="flex justify-content-between align-items-center flex-wrap gap-2">
           <button pButton label="Cancelar" icon="pi pi-times"
                   class="p-button-outlined p-button-secondary"
                   (click)="cancelar()">
           </button>
-          <div class="flex gap-2">
+          <div class="flex gap-2 flex-wrap">
             <button pButton label="Guardar sin actividades" icon="pi pi-save"
                     class="p-button-outlined"
                     [loading]="guardandoBorrador"
@@ -102,7 +102,7 @@
                     pTooltip="Guarda el ciclo ahora y agrega actividades después"
                     (click)="guardarBorrador()">
             </button>
-            <button pButton label="Continuar y agregar actividades →" icon="pi pi-arrow-right"
+            <button pButton label="Continuar →" icon="pi pi-arrow-right"
                     iconPos="right"
                     [disabled]="form.invalid"
                     (click)="siguientePaso()">

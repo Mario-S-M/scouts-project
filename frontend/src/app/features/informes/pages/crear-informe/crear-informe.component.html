@@ -62,12 +62,12 @@
     </form>
   </p-card>
 
-  <div class="flex justify-content-between align-items-center mt-3">
+  <div class="flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
     <button pButton label="Cancelar" icon="pi pi-times"
             class="p-button-outlined p-button-secondary"
             (click)="cancelar()">
     </button>
-    <button pButton label="Crear informe y llenar secciones" icon="pi pi-arrow-right"
+    <button pButton label="Crear y llenar secciones" icon="pi pi-arrow-right"
             iconPos="right"
             [loading]="creandoCabecera"
             [disabled]="configForm.invalid"
@@ -83,22 +83,25 @@
 <div class="page-container" *ngIf="paso === 'tabs'">
 
   <!-- Cabecera resumida -->
-  <div class="cabecera-resumen mb-3 flex align-items-center gap-3">
-    <i class="pi pi-file-edit text-primary text-xl"></i>
-    <span class="font-bold text-lg">
-      {{ mesesOpts[configForm.value.mes - 1]?.label }} {{ configForm.value.anio }}
-    </span>
-    <p-tag value="Auto-guardado activo" severity="success" icon="pi pi-check-circle"></p-tag>
-    <div class="flex-1"></div>
-    <button pButton label="Generar PDF" icon="pi pi-file-pdf"
-            class="p-button-danger p-button-sm"
-            [loading]="generando"
-            (click)="descargarPdf()">
-    </button>
-    <button pButton label="Volver" icon="pi pi-arrow-left"
-            class="p-button-outlined p-button-secondary p-button-sm"
-            (click)="cancelar()">
-    </button>
+  <div class="cabecera-resumen mb-3">
+    <div class="flex align-items-center gap-2 flex-1">
+      <i class="pi pi-file-edit text-primary text-xl"></i>
+      <span class="font-bold">
+        {{ mesesOpts[configForm.value.mes - 1]?.label }} {{ configForm.value.anio }}
+      </span>
+      <p-tag value="Auto-guardado" severity="success" icon="pi pi-check-circle"></p-tag>
+    </div>
+    <div class="flex gap-2 flex-wrap">
+      <button pButton label="Generar PDF" icon="pi pi-file-pdf"
+              class="p-button-danger p-button-sm"
+              [loading]="generando"
+              (click)="descargarPdf()">
+      </button>
+      <button pButton label="Volver" icon="pi pi-arrow-left"
+              class="p-button-outlined p-button-secondary p-button-sm"
+              (click)="cancelar()">
+      </button>
+    </div>
   </div>
 
   <p-tabView>

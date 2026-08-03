@@ -688,13 +688,124 @@ body.p-theme-aura-dark-blue .scout-form .p-field label {
 }
 
 /* Responsive */
+/* ── Responsive navbar ──────────────────────────────────────────────────── */
+
+/* En tablet: ocultar info de usuario, reducir gaps */
+@media (max-width: 960px) {
+  .scout-menubar {
+    padding: 0 0.75rem !important;
+  }
+
+  .nav-user .nav-user-info {
+    display: none;
+  }
+
+  .nav-divider {
+    display: none;
+  }
+
+  /* Ocultar labels de botones nav — solo iconos */
+  .p-menubar-end .p-button-label {
+    display: none !important;
+  }
+
+  .p-menubar-end .nav-btn {
+    padding: 0.45rem 0.55rem !important;
+    min-width: 0;
+  }
+}
+
+/* En móvil: ocultar texto del brand, reducir aún más */
+@media (max-width: 640px) {
+  .nav-logo-text {
+    display: none;
+  }
+
+  .nav-brand {
+    gap: 0;
+    margin-right: 0.5rem !important;
+  }
+
+  .nav-logo-icon {
+    font-size: 1.4rem;
+  }
+
+  .nav-user {
+    padding: 0.3rem 0.5rem;
+    gap: 0.3rem;
+  }
+
+  .nav-user-avatar {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 0.7rem !important;
+  }
+
+  .p-menubar-end > div {
+    gap: 0.35rem !important;
+  }
+}
+
 @media (max-width: 768px) {
   .main-content {
-    padding: 1rem 0.75rem;
+    padding: 0.75rem 0.5rem;
   }
 
   .page-header h1 {
-    font-size: 1.4rem;
+    font-size: 1.25rem;
+  }
+
+  .page-header {
+    margin-bottom: 1rem;
+  }
+
+  .stat-card {
+    padding: 1rem;
+    .stat-number { font-size: 2rem; }
+    .stat-icon { font-size: 1.5rem; }
+  }
+
+  .grupo-banner {
+    flex-wrap: wrap;
+    padding: 0.75rem 1rem;
+    .grupo-banner-tags { justify-content: flex-start; }
+  }
+
+  /* En móvil el PDF iframe no tan alto */
+  iframe[style*="height:420px"] {
+    height: 280px !important;
+  }
+
+  /* Stat cards en dashboard */
+  .p-card.stat-card {
+    margin-bottom: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-content {
+    padding: 0.5rem 0.35rem;
+  }
+
+  .page-header h1 {
+    font-size: 1.1rem;
+  }
+}
+
+/* Dialogs siempre dentro del viewport en móvil */
+.p-dialog {
+  max-width: 95vw;
+}
+
+/* Tablas con scroll horizontal en móvil */
+.p-datatable-wrapper {
+  overflow-x: auto;
+}
+
+/* Botones de acción en tablas: icono solo en móvil */
+@media (max-width: 576px) {
+  .p-button.p-button-sm .p-button-label {
+    display: none;
   }
 }
 

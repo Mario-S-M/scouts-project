@@ -87,6 +87,7 @@
   <p-table [value]="filteredCaminantes" [loading]="loading"
            [paginator]="true" [rows]="15"
            [rowsPerPageOptions]="[10, 15, 25, 50]"
+           responsiveLayout="scroll"
            styleClass="p-datatable-striped p-datatable-sm">
 
     <ng-template pTemplate="header">

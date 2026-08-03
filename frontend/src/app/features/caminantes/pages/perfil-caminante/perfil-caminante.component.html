@@ -30,7 +30,7 @@
               </span>
             </div>
           </div>
-          <div class="flex gap-2">
+          <div class="flex gap-2 flex-wrap">
             <button pButton icon="pi pi-file-export" label="Subir Evidencia"
                     class="p-button-outlined p-button-success p-button-sm"
                     [routerLink]="['/evidencias/nueva']"
@@ -80,22 +80,22 @@
           <p>No hay eventos registrados aún.</p>
         </div>
 
-        <div class="grid mb-3" *ngIf="progreso.eventos.length > 0">
-          <div class="col-4 text-center">
+        <div class="flex flex-wrap gap-3 justify-content-center mb-3" *ngIf="progreso.eventos.length > 0">
+          <div class="text-center px-3">
             <div class="font-bold text-2xl text-blue-700">{{ progreso.eventosProvincia }}</div>
             <div class="text-sm">Provincia</div>
           </div>
-          <div class="col-4 text-center">
+          <div class="text-center px-3">
             <div class="font-bold text-2xl text-orange-600">{{ progreso.eventosNacional }}</div>
             <div class="text-sm">Nacional</div>
           </div>
-          <div class="col-4 text-center">
+          <div class="text-center px-3">
             <div class="font-bold text-2xl text-purple-700">{{ progreso.eventosInternacional }}</div>
             <div class="text-sm">Internacional</div>
           </div>
         </div>
 
-        <p-table [value]="progreso.eventos" styleClass="p-datatable-sm" [paginator]="true" [rows]="10">
+        <p-table [value]="progreso.eventos" styleClass="p-datatable-sm" responsiveLayout="scroll" [paginator]="true" [rows]="10">
           <ng-template pTemplate="header">
             <tr>
               <th>Evento</th>

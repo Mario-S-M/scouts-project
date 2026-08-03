@@ -37,6 +37,7 @@
 <p-card styleClass="shadow-2">
   <p-table [value]="filteredEvidencias" [loading]="loading"
            [paginator]="true" [rows]="20"
+           responsiveLayout="scroll"
            styleClass="p-datatable-sm p-datatable-striped"
            [globalFilterFields]="['categoria','subcategoria','tipo']"
            #dt>
