@@ -42,6 +42,26 @@ export class CrearAvisoComponent implements OnInit {
     { key: 'clan',      label: 'Rovers' },
   ];
 
+  readonly mediosTransporte = [
+    { label: 'Autobús de línea', value: 'autobus' },
+    { label: 'Contratado', value: 'contratado' },
+    { label: 'Particular', value: 'particular' },
+    { label: 'Avión', value: 'aereo' },
+  ];
+  readonly siNo = [{ label: 'Sí', value: true }, { label: 'No', value: false }];
+  readonly docsContratado = [
+    { key: 'contrato', label: 'Contrato' },
+    { key: 'feMecanica', label: 'Fe mecánica' },
+    { key: 'seguroViajero', label: 'Seguro del viajero' },
+    { key: 'licencia', label: 'Licencia del conductor' },
+    { key: 'tarjetaCirculacion', label: 'Tarjeta de circulación' },
+  ];
+  readonly docsParticular = [
+    { key: 'poliza', label: 'Póliza de seguro' },
+    { key: 'licencia', label: 'Licencia del conductor' },
+    { key: 'tarjetaCirculacion', label: 'Tarjeta de circulación' },
+  ];
+
   readonly tiposActividad = [
     'Excursión', 'Campamento', 'Hike', 'Actividad de Sección',
     'Reunión Intergrupal', 'Evento Provincial', 'Jamboree', 'Otro',
@@ -93,6 +113,7 @@ export class CrearAvisoComponent implements OnInit {
       participantes: [[] as Caminante[]],
       scoutersSeleccionados: [[] as StaffContacto[]],
       invitados: this.fb.array([]),
+      protocolo: this.protocoloGroup(),
     });
 
     this.loadCaminantes();
@@ -103,7 +124,56 @@ export class CrearAvisoComponent implements OnInit {
       this.editMode = true;
       this.editId = +idParam;
       this.loadAviso(this.editId);
+    } else {
+      // Aviso nuevo: coordinador, enlace y transporte de siempre
+      this.avisoService.getProtocoloDefaults().subscribe(d => this.form.get('protocolo').patchValue(d));
     }
+  }
+
+  private protocoloGroup(): FormGroup {
+    const g = (campos: string[]) => this.fb.group(Object.fromEntries(campos.map(c => [c, ['']])));
+    const docs = (campos: string[]) => this.fb.group(Object.fromEntries(campos.map(c => [c, [null]])));
+    const vuelo = () => g(['aerolinea', 'aeropuerto', 'vuelo', 'fecha', 'hora']);
+    return this.fb.group({
+      coordinador: g(['nombre', 'cargo', 'telLocal', 'celular']),
+      enlace: g(['nombre', 'cargo', 'celular1', 'celular2']),
+      llegadaDestino: g(['fecha', 'hora']),
+      llegadaOrigen: g(['fecha', 'hora']),
+      transporte: ['autobus'],
+      autobus: g(['lineaSalida', 'lineaRegreso', 'salidaFecha', 'salidaHora', 'regresoFecha', 'regresoHora', 'trasladoTerminal']),
+      contratado: this.fb.group({
+        ...Object.fromEntries(['empresa', 'telefonos', 'marcaModelo', 'placas', 'operador'].map(c => [c, ['']])),
+        documentos: docs(this.docsContratado.map(d => d.key)),
+      }),
+      particular: this.fb.group({
+        ...Object.fromEntries(['marca', 'modelo', 'anio', 'capacidad', 'placas', 'color', 'conductor', 'licencia', 'expedidaPor'].map(c => [c, ['']])),
+        documentos: docs(this.docsParticular.map(d => d.key)),
+      }),
+      aereo: this.fb.group({ salida: vuelo(), regreso: vuelo(), trasladoDestino: [''], trasladoOrigen: [''] }),
+    });
+  }
+
+  /** Protocolo listo para el backend: fechas a ISO y sin campos vacíos */
+  private protocoloDto(): any {
+    const limpiar = (v: any): any => {
+      if (v instanceof Date) return v.toISOString();
+      if (v && typeof v === 'object') {
+        const out = Object.fromEntries(Object.entries(v).map(([k, x]) => [k, limpiar(x)]).filter(([, x]) => x !== '' && x !== null && x !== undefined));
+        return Object.keys(out).length ? out : undefined;
+      }
+      return v;
+    };
+    return limpiar(this.form.get('protocolo').value) ?? {};
+  }
+
+  /** Convierte las fechas guardadas del protocolo a Date para los p-calendar */
+  private protocoloAForm(p: any): any {
+    if (!p) return {};
+    const conv = (v: any, k = ''): any => {
+      if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([kk, x]) => [kk, conv(x, kk)]));
+      return /fecha$/i.test(k) ? this.toDate(v) : v;
+    };
+    return conv(p);
   }
 
   private toDate(v: any): Date | null {
@@ -138,6 +208,12 @@ export class CrearAvisoComponent implements OnInit {
           lugarDescripcion: d.lugarDescripcion,
           mapUrl: d.mapUrl ?? '',
         });
+        if (d.protocolo) {
+          this.form.get('protocolo').patchValue(this.protocoloAForm(d.protocolo));
+        } else {
+          // Aviso de antes del protocolo: se arranca con los datos de siempre
+          this.avisoService.getProtocoloDefaults().subscribe(p => this.form.get('protocolo').patchValue(p));
+        }
 
         // Participantes: se restauran cuando caminantes ya estén cargados
         if (d.participantes?.length) {
@@ -351,6 +427,7 @@ export class CrearAvisoComponent implements OnInit {
       })),
       scouters: this.scoutersSeleccionados.map(s => ({ nombre: s.nombre, cum: (s as any).cum ?? '' })),
       invitados: v.invitados.filter((i: any) => i.nombre?.trim()),
+      protocolo: this.protocoloDto(),
     };
 
     this.guardando = true;
@@ -395,6 +472,7 @@ export class CrearAvisoComponent implements OnInit {
         nombre: s.nombre, cum: (s as any).cum ?? '',
       })),
       invitados: v.invitados.filter((i: any) => i.nombre?.trim()),
+      protocolo: this.protocoloDto(),
     };
 
     this.generandoPdf = true;

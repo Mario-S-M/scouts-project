@@ -51,6 +51,14 @@ export class AvisoService {
     return this.http.post(`${this.BASE}/pdf`, dto, { responseType: 'blob' });
   }
 
+  getProtocoloDefaults(): Observable<any> {
+    return this.http.get<any>(`${this.BASE}/protocolo/defaults`);
+  }
+
+  downloadProtocolo(id: number): Observable<Blob> {
+    return this.http.get(`${this.BASE}/${id}/protocolo`, { responseType: 'blob' });
+  }
+
   getOne(id: number): Observable<any> {
     return this.http.get<any>(`${this.BASE}/${id}`);
   }

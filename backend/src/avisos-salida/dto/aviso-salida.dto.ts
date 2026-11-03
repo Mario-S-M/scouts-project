@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsString, IsOptional, IsArray, ValidateNested, IsNumber } from 'class-validator';
+import { IsString, IsOptional, IsArray, ValidateNested, IsNumber, IsObject } from 'class-validator';
 
 export class ContactoDto {
   @IsString() @IsOptional() nombre: string;
@@ -58,4 +58,11 @@ export class AvisoSalidaDto {
   @IsString() @IsOptional() mapUrl: string;
 
   @IsNumber() @IsOptional() costo?: number;
+
+  /**
+   * Datos del protocolo de seguridad en el traslado (formato CNAR). Se guarda tal
+   * cual dentro del jsonb del aviso; su forma está en protocolo-traslado.types.ts.
+   */
+  @IsObject() @IsOptional()
+  protocolo?: Record<string, any>;
 }

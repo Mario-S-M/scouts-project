@@ -13,6 +13,7 @@ export class ListaAvisosComponent implements OnInit {
   descargando: number | null = null;
   descargandoPermisos: number | null = null;
   descargandoPermisoEnBlanco: number | null = null;
+  descargandoProtocolo: number | null = null;
 
   constructor(
     private avisoService: AvisoService,
@@ -76,6 +77,20 @@ export class ListaAvisosComponent implements OnInit {
       error: () => {
         this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo generar los permisos.' });
         this.descargandoPermisos = null;
+      },
+    });
+  }
+
+  descargarProtocolo(aviso: AvisoResumen) {
+    this.descargandoProtocolo = aviso.id;
+    this.avisoService.downloadProtocolo(aviso.id).subscribe({
+      next: (blob) => {
+        this.triggerDownload(blob, `protocolo-traslado-${aviso.nombre.replace(/\s+/g, '-')}.docx`);
+        this.descargandoProtocolo = null;
+      },
+      error: () => {
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo generar el protocolo de traslado.' });
+        this.descargandoProtocolo = null;
       },
     });
   }

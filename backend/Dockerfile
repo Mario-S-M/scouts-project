@@ -19,6 +19,11 @@ RUN npm install --omit=dev --legacy-peer-deps
 
 COPY --from=builder /app/dist ./dist
 
+# Logos e imágenes institucionales que el PDF de informes incrusta en tiempo de ejecución
+COPY public ./public
+# Plantilla del protocolo de traslado (formato oficial CNAR)
+COPY templates ./templates
+
 RUN mkdir -p /app/uploads/evidencias /app/uploads/fotos
 
 EXPOSE 3000

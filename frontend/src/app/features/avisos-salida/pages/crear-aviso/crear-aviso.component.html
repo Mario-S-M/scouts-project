@@ -183,6 +183,150 @@
 
     </p-card>
 
+    <!-- Protocolo de traslado (formato CNAR) -->
+    <p-card styleClass="shadow-2 mb-3" formGroupName="protocolo">
+      <ng-template pTemplate="header">
+        <div class="px-3 pt-3 flex align-items-center justify-content-between">
+          <span class="font-bold text-lg flex align-items-center gap-2">
+            <i class="pi pi-shield" style="color:#14265C"></i> Protocolo de traslado
+          </span>
+          <span class="text-xs text-color-secondary">Formato oficial CNAR · obligatorio</span>
+        </div>
+      </ng-template>
+
+      <div class="grid">
+        <div class="col-12 md:col-6" formGroupName="coordinador">
+          <div class="font-semibold mb-2">Coordinador de seguridad <span class="text-xs text-color-secondary font-normal">(NO asiste)</span></div>
+          <input pInputText formControlName="nombre" class="w-full mb-2" placeholder="Nombre completo" />
+          <input pInputText formControlName="cargo" class="w-full mb-2" placeholder="Cargo" />
+          <div class="flex gap-2">
+            <input pInputText formControlName="telLocal" class="w-full" placeholder="Tel. local" />
+            <input pInputText formControlName="celular" class="w-full" placeholder="Celular" />
+          </div>
+        </div>
+        <div class="col-12 md:col-6" formGroupName="enlace">
+          <div class="font-semibold mb-2">Enlace de seguridad <span class="text-xs text-color-secondary font-normal">(SÍ viaja)</span></div>
+          <input pInputText formControlName="nombre" class="w-full mb-2" placeholder="Nombre completo" />
+          <input pInputText formControlName="cargo" class="w-full mb-2" placeholder="Cargo" />
+          <div class="flex gap-2">
+            <input pInputText formControlName="celular1" class="w-full" placeholder="Celular 1" />
+            <input pInputText formControlName="celular2" class="w-full" placeholder="Celular 2" />
+          </div>
+        </div>
+
+        <div class="col-12 md:col-6" formGroupName="llegadaDestino">
+          <label class="font-semibold block mb-1">Llegada estimada al lugar del evento</label>
+          <div class="flex gap-2">
+            <p-calendar formControlName="fecha" dateFormat="dd/mm/yy" [showIcon]="true" styleClass="w-full"></p-calendar>
+            <input type="time" pInputText formControlName="hora" class="w-full" />
+          </div>
+        </div>
+        <div class="col-12 md:col-6" formGroupName="llegadaOrigen">
+          <label class="font-semibold block mb-1">Llegada estimada de vuelta a Morelia</label>
+          <div class="flex gap-2">
+            <p-calendar formControlName="fecha" dateFormat="dd/mm/yy" [showIcon]="true" styleClass="w-full"></p-calendar>
+            <input type="time" pInputText formControlName="hora" class="w-full" />
+          </div>
+        </div>
+
+        <div class="col-12">
+          <label class="font-semibold block mb-1">Medio de transporte</label>
+          <p-selectButton [options]="mediosTransporte" formControlName="transporte" optionLabel="label" optionValue="value"></p-selectButton>
+        </div>
+      </div>
+
+      <!-- Autobús de línea -->
+      <div class="grid mt-2" formGroupName="autobus" *ngIf="form.get('protocolo.transporte').value === 'autobus'">
+        <div class="col-12 md:col-6">
+          <label class="font-semibold block mb-1">Ida</label>
+          <input pInputText formControlName="lineaSalida" class="w-full mb-2" placeholder="Línea de autobuses (Ej: Flecha Amarilla)" />
+          <div class="flex gap-2">
+            <p-calendar formControlName="salidaFecha" dateFormat="dd/mm/yy" [showIcon]="true" styleClass="w-full"></p-calendar>
+            <input type="time" pInputText formControlName="salidaHora" class="w-full" />
+          </div>
+        </div>
+        <div class="col-12 md:col-6">
+          <label class="font-semibold block mb-1">Regreso</label>
+          <input pInputText formControlName="lineaRegreso" class="w-full mb-2" placeholder="Línea de autobuses" />
+          <div class="flex gap-2">
+            <p-calendar formControlName="regresoFecha" dateFormat="dd/mm/yy" [showIcon]="true" styleClass="w-full"></p-calendar>
+            <input type="time" pInputText formControlName="regresoHora" class="w-full" />
+          </div>
+        </div>
+        <div class="col-12">
+          <label class="font-semibold block mb-1">¿Cómo van de la terminal de destino al lugar del evento?</label>
+          <textarea pInputTextarea formControlName="trasladoTerminal" [rows]="2" class="w-full"
+                    placeholder="Ej: Caminando 15 min de la terminal al embarcadero"></textarea>
+        </div>
+      </div>
+
+      <!-- Transporte contratado -->
+      <div class="grid mt-2" formGroupName="contratado" *ngIf="form.get('protocolo.transporte').value === 'contratado'">
+        <div class="col-12 md:col-6"><input pInputText formControlName="empresa" class="w-full" placeholder="Razón social de la empresa" /></div>
+        <div class="col-12 md:col-6"><input pInputText formControlName="telefonos" class="w-full" placeholder="Teléfonos de la empresa" /></div>
+        <div class="col-12 md:col-4"><input pInputText formControlName="marcaModelo" class="w-full" placeholder="Marca y modelo de la unidad" /></div>
+        <div class="col-12 md:col-4"><input pInputText formControlName="placas" class="w-full" placeholder="Placas" /></div>
+        <div class="col-12 md:col-4"><input pInputText formControlName="operador" class="w-full" placeholder="Nombre del operador" /></div>
+        <div class="col-12" formGroupName="documentos">
+          <div class="font-semibold mb-2">Documentos que tienes</div>
+          <div class="flex flex-wrap gap-3">
+            <div *ngFor="let d of docsContratado" class="flex align-items-center gap-2">
+              <span class="text-sm">{{ d.label }}</span>
+              <p-selectButton [options]="siNo" [formControlName]="d.key" optionLabel="label" optionValue="value" styleClass="p-button-sm"></p-selectButton>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vehículo particular -->
+      <div class="grid mt-2" formGroupName="particular" *ngIf="form.get('protocolo.transporte').value === 'particular'">
+        <div class="col-6 md:col-2"><input pInputText formControlName="marca" class="w-full" placeholder="Marca" /></div>
+        <div class="col-6 md:col-2"><input pInputText formControlName="modelo" class="w-full" placeholder="Modelo" /></div>
+        <div class="col-4 md:col-2"><input pInputText formControlName="anio" class="w-full" placeholder="Año" /></div>
+        <div class="col-4 md:col-2"><input pInputText formControlName="capacidad" class="w-full" placeholder="Capacidad" /></div>
+        <div class="col-4 md:col-2"><input pInputText formControlName="placas" class="w-full" placeholder="Placas" /></div>
+        <div class="col-6 md:col-2"><input pInputText formControlName="color" class="w-full" placeholder="Color" /></div>
+        <div class="col-12 md:col-6"><input pInputText formControlName="conductor" class="w-full" placeholder="Nombre del conductor" /></div>
+        <div class="col-6 md:col-3"><input pInputText formControlName="licencia" class="w-full" placeholder="No. de licencia" /></div>
+        <div class="col-6 md:col-3"><input pInputText formControlName="expedidaPor" class="w-full" placeholder="Expedida por" /></div>
+        <div class="col-12" formGroupName="documentos">
+          <div class="font-semibold mb-2">Documentos que tienes</div>
+          <div class="flex flex-wrap gap-3">
+            <div *ngFor="let d of docsParticular" class="flex align-items-center gap-2">
+              <span class="text-sm">{{ d.label }}</span>
+              <p-selectButton [options]="siNo" [formControlName]="d.key" optionLabel="label" optionValue="value" styleClass="p-button-sm"></p-selectButton>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Avión -->
+      <div class="grid mt-2" formGroupName="aereo" *ngIf="form.get('protocolo.transporte').value === 'aereo'">
+        <div class="col-12 md:col-6" formGroupName="salida">
+          <label class="font-semibold block mb-1">Vuelo de ida</label>
+          <input pInputText formControlName="aerolinea" class="w-full mb-2" placeholder="Aerolínea" />
+          <input pInputText formControlName="aeropuerto" class="w-full mb-2" placeholder="Aeropuerto de destino" />
+          <input pInputText formControlName="vuelo" class="w-full mb-2" placeholder="Número de vuelo" />
+          <div class="flex gap-2">
+            <p-calendar formControlName="fecha" dateFormat="dd/mm/yy" [showIcon]="true" styleClass="w-full"></p-calendar>
+            <input type="time" pInputText formControlName="hora" class="w-full" />
+          </div>
+        </div>
+        <div class="col-12 md:col-6" formGroupName="regreso">
+          <label class="font-semibold block mb-1">Vuelo de regreso</label>
+          <input pInputText formControlName="aerolinea" class="w-full mb-2" placeholder="Aerolínea" />
+          <input pInputText formControlName="aeropuerto" class="w-full mb-2" placeholder="Aeropuerto de salida" />
+          <input pInputText formControlName="vuelo" class="w-full mb-2" placeholder="Número de vuelo" />
+          <div class="flex gap-2">
+            <p-calendar formControlName="fecha" dateFormat="dd/mm/yy" [showIcon]="true" styleClass="w-full"></p-calendar>
+            <input type="time" pInputText formControlName="hora" class="w-full" />
+          </div>
+        </div>
+        <div class="col-12 md:col-6"><textarea pInputTextarea formControlName="trasladoDestino" [rows]="2" class="w-full" placeholder="Del aeropuerto de destino al evento…"></textarea></div>
+        <div class="col-12 md:col-6"><textarea pInputTextarea formControlName="trasladoOrigen" [rows]="2" class="w-full" placeholder="Del aeropuerto a Morelia…"></textarea></div>
+      </div>
+    </p-card>
+
     <!-- Scouters -->
     <p-card styleClass="shadow-2 mb-3">
       <ng-template pTemplate="header">
@@ -204,7 +348,7 @@
            [style]="isScouterSelected(s) ? {'border':'2px solid #5B21B6'} : {'border':'2px solid transparent'}"
            (click)="toggleScouter(s)">
         <p-checkbox [binary]="true" [ngModel]="isScouterSelected(s)" [ngModelOptions]="{standalone:true}"
-                    style="pointer-events:none"></p-checkbox>
+                    [style]="{'pointer-events': 'none'}"></p-checkbox>
         <div class="flex-1">
           <div class="font-medium text-sm">{{ s.nombre }}</div>
           <div class="text-xs text-color-secondary">{{ authService.getRolLabel(s.rol) }}</div>
@@ -279,7 +423,7 @@
                  [style]="isSelected(c) ? {'border': '2px solid ' + seccionColors[sec.key].bg} : {'border': '2px solid transparent'}"
                  (click)="toggleParticipante(c)">
               <p-checkbox [binary]="true" [ngModel]="isSelected(c)" [ngModelOptions]="{standalone:true}"
-                          style="pointer-events:none"></p-checkbox>
+                          [style]="{'pointer-events': 'none'}"></p-checkbox>
               <div class="flex-1 min-w-0">
                 <div class="font-medium text-sm truncate">{{ c.nombre }} {{ c.apellidos }}</div>
                 <div class="text-xs text-color-secondary">{{ c.cum }}</div>

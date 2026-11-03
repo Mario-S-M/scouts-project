@@ -4,6 +4,7 @@ import { AvisosSalidaService } from './avisos-salida.service';
 import { AvisoSalidaDto } from './dto/aviso-salida.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UsersService } from '../users/users.service';
+import { ProtocoloTrasladoService } from './protocolo-traslado.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('avisos-salida')
@@ -11,6 +12,7 @@ export class AvisosSalidaController {
   constructor(
     private readonly avisosSalidaService: AvisosSalidaService,
     private readonly usersService: UsersService,
+    private readonly protocoloService: ProtocoloTrasladoService,
   ) {}
 
   /** Personal para dropdowns de contacto */
@@ -20,6 +22,12 @@ export class AvisosSalidaController {
     return all
       .filter(u => u.rol !== 'scout')
       .map(u => ({ id: u.id, nombre: u.nombre, rol: u.rol }));
+  }
+
+  /** Valores por defecto del protocolo de traslado (coordinador, enlace, transporte) */
+  @Get('protocolo/defaults')
+  getProtocoloDefaults() {
+    return this.protocoloService.defaults();
   }
 
   /** Listar todos los avisos guardados */
@@ -75,6 +83,27 @@ export class AvisosSalidaController {
       'Content-Length':      buffer.length,
     });
     res.end(buffer);
+  }
+
+  /** Protocolo de seguridad en el traslado (formato oficial CNAR, .docx) */
+  @Get(':id/protocolo')
+  async getProtocolo(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
+    const aviso  = await this.avisosSalidaService.findOne(id);
+    const buffer = this.protocoloService.generarDocx(aviso.data);
+    const filename = `protocolo-traslado-${aviso.nombre.replace(/\s+/g, '-')}.docx`;
+    res.set({
+      'Content-Type':        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'Content-Disposition': `attachment; filename="${encodeURIComponent(filename)}"`,
+      'Content-Length':      buffer.length,
+    });
+    res.end(buffer);
+  }
+
+  /** Campos obligatorios del protocolo que faltan por llenar */
+  @Get(':id/protocolo/faltantes')
+  async getProtocoloFaltantes(@Param('id', ParseIntPipe) id: number) {
+    const aviso = await this.avisosSalidaService.findOne(id);
+    return { faltantes: this.protocoloService.faltantes(aviso.data) };
   }
 
   /** Obtener un aviso por id */

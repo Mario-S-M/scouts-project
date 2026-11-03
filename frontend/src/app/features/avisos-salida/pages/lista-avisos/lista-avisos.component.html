@@ -57,6 +57,11 @@
                     pTooltip="Permiso en Blanco"
                     [loading]="descargandoPermisoEnBlanco === aviso.id"
                     (click)="descargarPermisoEnBlanco(aviso)"></button>
+            <button pButton icon="pi pi-shield"
+                    class="p-button-sm p-button-secondary p-button-outlined"
+                    pTooltip="Protocolo de traslado (Word CNAR)"
+                    [loading]="descargandoProtocolo === aviso.id"
+                    (click)="descargarProtocolo(aviso)"></button>
             <button pButton icon="pi pi-pencil"
                     class="p-button-sm p-button-info p-button-outlined"
                     pTooltip="Editar"
