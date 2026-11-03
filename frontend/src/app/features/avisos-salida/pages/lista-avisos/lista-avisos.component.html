@@ -36,6 +36,8 @@
         </td>
         <td>
           <p-tag [value]="aviso.tipo" severity="info" [rounded]="true"></p-tag>
+          <p-tag *ngIf="aviso.seccion === 'grupo'" value="Todo el grupo" severity="warning" [rounded]="true"
+                 icon="pi pi-users" styleClass="ml-1"></p-tag>
         </td>
         <td>{{ formatDate(aviso.fechaSalida) }}</td>
         <td class="text-color-secondary text-sm">{{ aviso.creadoPorNombre || '—' }}</td>

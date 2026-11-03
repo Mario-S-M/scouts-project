@@ -5,7 +5,7 @@ import { AvisoSalidaDto } from './dto/aviso-salida.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UsersService } from '../users/users.service';
 import { ProtocoloTrasladoService } from './protocolo-traslado.service';
-import { assertPuedeEditar, assertPuedeVer, seccionDeRol, seccionParaCrear, seccionParaVer } from '../common/rol-seccion.util';
+import { assertPuedeEditar, assertPuedeVer, seccionDeRol, seccionParaCrearAviso, seccionParaVer } from '../common/rol-seccion.util';
 
 @UseGuards(JwtAuthGuard)
 @Controller('avisos-salida')
@@ -55,7 +55,7 @@ export class AvisosSalidaController {
   async saveAviso(@Body() dto: AvisoSalidaDto, @Req() req: any) {
     const userId   = req.user?.sub ?? req.user?.id ?? 0;
     const userName = req.user?.nombre ?? '';
-    const seccion  = seccionParaCrear(req.user, dto.seccion);
+    const seccion  = seccionParaCrearAviso(req.user, dto.seccion);
     return this.avisosSalidaService.save(dto, userId, userName, seccion);
   }
 
@@ -146,7 +146,7 @@ export class AvisosSalidaController {
   @Post('pdf')
   async generatePdf(@Body() dto: AvisoSalidaDto, @Req() req: any, @Res() res: Response) {
     // Vista previa: con la identidad de la sección de quien la genera (o la indicada por el admin)
-    const buffer = await this.avisosSalidaService.generatePdf(dto, dto.seccion ?? seccionDeRol(req.user?.rol));
+    const buffer = await this.avisosSalidaService.generatePdf(dto, dto.seccion ?? seccionDeRol(req.user?.rol) ?? 'grupo');
     const filename = `aviso-salida-${(dto.nombre || 'actividad').replace(/\s+/g, '-')}.pdf`;
     res.set({
       'Content-Type':        'application/pdf',

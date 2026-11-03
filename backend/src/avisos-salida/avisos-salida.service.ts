@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { In, Repository } from "typeorm";
 import * as fs from "fs";
 import * as path from "path";
 import { AvisoSalidaDto, ParticipanteDto } from "./dto/aviso-salida.dto";
@@ -399,7 +399,8 @@ export class AvisosSalidaService {
 
   /** `seccion` null = todas (administrador y roles de grupo) */
   findAll(seccion: string | null): Promise<AvisoSalida[]> {
-    return this.repo.find({ where: seccion ? { seccion } : {}, order: { createdAt: "DESC" } });
+    // Cada sección ve los suyos y los de todo el grupo
+    return this.repo.find({ where: seccion ? { seccion: In([seccion, "grupo"]) } : {}, order: { createdAt: "DESC" } });
   }
 
   async findOne(id: number): Promise<AvisoSalida> {

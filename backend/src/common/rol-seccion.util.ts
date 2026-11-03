@@ -18,6 +18,14 @@ export const GRUPO_ROLES = [
 ];
 
 export const SECCIONES = ['manada', 'tropa', 'comunidad', 'clan'] as const;
+
+/**
+ * Registros de todo el grupo (p. ej. un aviso de salida con todas las
+ * secciones): los ve cualquier scouter; los editan el administrador y la
+ * jefatura de grupo.
+ */
+export const SECCION_GRUPO = 'grupo';
+export const JEFATURA_GRUPO = ['jefe_grupo', 'sub_jefe_grupo'];
 export type Seccion = (typeof SECCIONES)[number];
 
 export interface UsuarioToken {
@@ -57,13 +65,14 @@ export function seccionParaVer(user: UsuarioToken): Seccion | null {
 /** Lanza 403 si el registro es de otra sección (o sin sección) y el usuario no puede verlo */
 export function assertPuedeVer(user: UsuarioToken, seccionRecurso: string | null | undefined): void {
   const s = seccionParaVer(user);
-  if (s && s !== seccionRecurso) {
+  if (s && s !== seccionRecurso && seccionRecurso !== SECCION_GRUPO) {
     throw new ForbiddenException('Esta información pertenece a otra sección');
   }
 }
 
 export function puedeEditar(user: UsuarioToken, seccionRecurso: string | null | undefined): boolean {
   if (esAdmin(user?.rol)) return true;
+  if (seccionRecurso === SECCION_GRUPO) return JEFATURA_GRUPO.includes(user?.rol ?? '');
   const s = seccionDeRol(user?.rol);
   return !!s && s === seccionRecurso;
 }
@@ -100,4 +109,19 @@ export function seccionParaCrear(user: UsuarioToken, seccionPedida?: string | nu
     throw new ForbiddenException('Solo puedes crear registros de tu sección');
   }
   return propia;
+}
+
+/**
+ * Sección de un aviso nuevo: como `seccionParaCrear`, pero admite "grupo"
+ * (salida de todo el grupo). La jefatura de grupo crea avisos de grupo.
+ */
+export function seccionParaCrearAviso(user: UsuarioToken, seccionPedida?: string | null): string {
+  if (esAdmin(user?.rol) && seccionPedida === SECCION_GRUPO) return SECCION_GRUPO;
+  if (JEFATURA_GRUPO.includes(user?.rol ?? '')) {
+    if (seccionPedida && seccionPedida !== SECCION_GRUPO) {
+      throw new ForbiddenException('La jefatura de grupo crea avisos de todo el grupo; los de una sección los crea su scouter');
+    }
+    return SECCION_GRUPO;
+  }
+  return seccionParaCrear(user, seccionPedida);
 }

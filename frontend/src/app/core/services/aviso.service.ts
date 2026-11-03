@@ -13,6 +13,8 @@ export interface AvisoResumen {
   tipo: string;
   nombre: string;
   fechaSalida: string;
+  /** manada, tropa, comunidad, clan o 'grupo' (salida de todo el grupo) */
+  seccion?: string | null;
   creadoPorNombre: string;
   createdAt: string;
 }

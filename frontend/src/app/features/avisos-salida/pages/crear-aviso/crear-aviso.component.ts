@@ -84,7 +84,11 @@ export class CrearAvisoComponent implements OnInit {
   get esAdmin(): boolean {
     return this.authService.getUser()?.rol === 'administrador';
   }
-  readonly opcionesSeccion = SECCIONES;
+  /** La jefatura de grupo crea avisos de todo el grupo */
+  get esJefaturaGrupo(): boolean {
+    return ['jefe_grupo', 'sub_jefe_grupo'].includes(this.authService.getUser()?.rol ?? '');
+  }
+  readonly opcionesSeccion = [{ value: 'grupo', label: 'Todo el grupo' }, ...SECCIONES];
 
   ngOnInit() {
     const user = this.authService.getUser();
@@ -125,6 +129,10 @@ export class CrearAvisoComponent implements OnInit {
       invitados: this.fb.array([]),
       protocolo: this.protocoloGroup(),
     });
+    if (this.esJefaturaGrupo) {
+      this.form.patchValue({ seccion: 'grupo' });
+      this.form.get('seccion')!.disable();
+    }
 
     this.loadCaminantes();
     this.loadStaff();
@@ -426,7 +434,7 @@ export class CrearAvisoComponent implements OnInit {
     const v = this.form.value;
     const toISO = (v: any) => { if (!v) return null; if (v instanceof Date) return v.toISOString(); return v; };
     const dto = {
-      seccion: v.seccion || undefined,
+      seccion: this.form.getRawValue().seccion || undefined,
       tipo: v.tipo, nombre: v.nombre, costo: v.costo ?? 0,
       salida:   { lugar: v.salida.lugar,   fecha: toISO(v.salida.fecha),   hora: toISO(v.salida.hora) },
       llegada:  { lugar: v.llegada.lugar,  fecha: toISO(v.llegada.fecha),  hora: toISO(v.llegada.hora) },
@@ -466,7 +474,7 @@ export class CrearAvisoComponent implements OnInit {
     const v = this.form.value;
     const toISO = (v: any) => { if (!v) return null; if (v instanceof Date) return v.toISOString(); return v; };
     const dto = {
-      seccion:     v.seccion || undefined,
+      seccion:     this.form.getRawValue().seccion || undefined,
       tipo:        v.tipo,
       nombre:      v.nombre,
       costo:       v.costo ?? 0,

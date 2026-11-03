@@ -172,7 +172,8 @@ function mezclar(a: any, b: any): any {
 }
 
 const avisoSchema = {
-  seccion: seccion.optional().describe('Solo para la cuenta de administrador: sección dueña del aviso (obligatoria al crear). Un scouter usa siempre la suya'),
+  seccion: z.enum(['manada', 'tropa', 'comunidad', 'clan', 'grupo']).optional()
+    .describe('Sección dueña del aviso. "grupo" = salida de TODO el grupo (la ven todas las secciones; la crean el administrador o la jefatura de grupo). Un scouter de sección usa siempre la suya; el administrador debe indicarla al crear'),
   tipo: z.enum(['Excursión', 'Campamento', 'Hike', 'Actividad de Sección', 'Reunión Intergrupal', 'Evento Provincial', 'Jamboree', 'Otro']),
   nombre: z.string().describe('Nombre de la actividad'),
   salida: movimiento,
@@ -201,7 +202,9 @@ async function armarAviso(a: AvisoArgs, previo?: any) {
     participantes = previo.participantes;
   } else if (!a.participantesIds) {
     // Por defecto: todos los jóvenes activos de la sección del aviso
-    const seccion = seccionDeRol((await usuarioActual()).rol) ?? a.seccion ?? previo?.seccion ?? null;
+    const delAviso = seccionDeRol((await usuarioActual()).rol) ?? a.seccion ?? previo?.seccion ?? null;
+    // Aviso de todo el grupo: van los jóvenes de todas las secciones
+    const seccion = delAviso === 'grupo' ? null : delAviso;
     participantes = todos
       .filter(c => c.activo !== false && (!seccion || c.seccion === seccion))
       .sort((x, y) => `${x.apellidos} ${x.nombre}`.localeCompare(`${y.apellidos} ${y.nombre}`, 'es'))

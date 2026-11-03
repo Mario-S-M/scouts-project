@@ -19,7 +19,7 @@
     <!-- Actividad -->
     <p-card header="Actividad" styleClass="shadow-2 mb-3">
       <div class="grid">
-        <div class="col-12 p-field" *ngIf="esAdmin">
+        <div class="col-12 p-field" *ngIf="esAdmin || esJefaturaGrupo">
           <label class="font-semibold block mb-1">Sección <span class="text-red-500">*</span></label>
           <p-dropdown formControlName="seccion" [options]="opcionesSeccion" optionLabel="label" optionValue="value"
                       placeholder="¿De qué sección es la salida?" styleClass="w-full"></p-dropdown>
