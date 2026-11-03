@@ -28,7 +28,7 @@
     </nav>
 
     <ng-container *ngIf="authService.user$ | async as user">
-      <button type="button" class="nav-avatar" (click)="panelUsuario.toggle($event)" aria-label="Mi cuenta"
+      <button type="button" class="nav-avatar" (click)="revisarTelegram(); panelUsuario.toggle($event)" aria-label="Mi cuenta"
               [pTooltip]="user.nombre" tooltipPosition="left">
         {{ user.nombre[0] }}
       </button>
@@ -41,6 +41,15 @@
             <div class="panel-usuario-rol">{{ authService.getRolLabel(user.rol) }}</div>
           </div>
         </div>
+        <ng-container *ngIf="user.rol !== 'scout'">
+          <button type="button" class="panel-usuario-opcion" *ngIf="telegramVinculado === false"
+                  (click)="vincularTelegram()" [disabled]="vinculandoTelegram">
+            <i class="pi pi-send"></i> {{ vinculandoTelegram ? 'Abriendo Telegram…' : 'Vincular Telegram' }}
+          </button>
+          <div class="panel-usuario-opcion estado" *ngIf="telegramVinculado === true">
+            <i class="pi pi-check-circle"></i> Telegram vinculado
+          </div>
+        </ng-container>
         <button type="button" class="panel-usuario-opcion" (click)="toggleTheme()">
           <i [class]="getThemeIcon()"></i> {{ getThemeIcon().includes('sun') ? 'Tema claro' : 'Tema oscuro' }}
         </button>

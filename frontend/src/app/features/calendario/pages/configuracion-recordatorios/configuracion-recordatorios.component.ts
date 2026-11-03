@@ -83,7 +83,9 @@ export class ConfiguracionRecordatoriosComponent implements OnInit {
   puedeEditar(config: ConfiguracionRecordatorio): boolean {
     const user = this.auth.getUser();
     if (!user) return false;
-    if (this.esJefeGrupo) return true;
+    // Igual que el backend: admin todos; jefatura de grupo el general; cada scouter el suyo
+    if (user.rol === 'administrador') return true;
+    if (this.esJefeGrupo) return config.seccion === 'general';
     const seccion = this.auth.getSeccion(user.rol);
     return seccion === config.seccion;
   }

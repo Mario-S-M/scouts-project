@@ -5,6 +5,7 @@ import { TieredMenu } from 'primeng/tieredmenu';
 import { ThemeService } from './core/theme.service';
 import { AuthService } from './core/services/auth.service';
 import { SeccionService } from './core/services/seccion.service';
+import { TelegramService } from './core/services/telegram.service';
 import { ROLES_JEFE_SECCION } from './core/models/solicitud-insignias.model';
 import { filter } from 'rxjs/operators';
 
@@ -57,6 +58,7 @@ export class AppComponent {
     private themeService: ThemeService,
     public authService: AuthService,
     private seccionService: SeccionService,
+    private telegramService: TelegramService,
     private router: Router,
   ) {
     this.router.events.pipe(filter(e => e instanceof NavigationEnd)).subscribe((e: any) => {
@@ -164,6 +166,28 @@ export class AppComponent {
     const contiene = (it: MenuItem): boolean =>
       coincide(it.routerLink) && !!it.routerLink || (it.items ?? []).some(contiene);
     return items.map(it => ({ ...it, styleClass: contiene(it) ? 'nav-activo' : undefined }));
+  }
+
+  // ── Telegram (avisos de actividades) ─────────────────────────────────────
+  telegramVinculado: boolean | null = null;
+  vinculandoTelegram = false;
+
+  /** Al abrir el panel de la cuenta se consulta si ya está vinculado */
+  revisarTelegram() {
+    if (this.authService.getUser()?.rol === 'scout') return;
+    this.telegramService.estado().subscribe({ next: (e) => (this.telegramVinculado = e.vinculado), error: () => undefined });
+  }
+
+  /** Abre el bot con un código de un solo uso; al tocar "Iniciar" queda vinculado */
+  vincularTelegram() {
+    this.vinculandoTelegram = true;
+    this.telegramService.vincular().subscribe({
+      next: ({ link }) => {
+        this.vinculandoTelegram = false;
+        window.open(link, '_blank');
+      },
+      error: () => (this.vinculandoTelegram = false),
+    });
   }
 
   toggleTheme() {

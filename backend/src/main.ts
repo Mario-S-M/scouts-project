@@ -7,6 +7,7 @@ import { ConfiguracionRecordatorioService } from './calendario/configuracion-rec
 import { CatalogoInsigniasService } from './insignias/catalogo-insignias.service';
 import { AvisosSalidaService } from './avisos-salida/avisos-salida.service';
 import { SeccionesService } from './secciones/secciones.service';
+import { ActividadService } from './calendario/actividad.service';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -51,6 +52,9 @@ async function bootstrap() {
 
   // Identidad de las secciones (nombres, colores, logo), idempotente
   await app.get(SeccionesService).seed();
+
+  // Actividades de antes de tipos/visibilidad/varias secciones
+  await app.get(ActividadService).completarCamposNuevos();
 
   // Avisos de antes del candado por sección: heredan la sección de su autor
   const avisosAsignados = await app.get(AvisosSalidaService).asignarSeccionFaltante();

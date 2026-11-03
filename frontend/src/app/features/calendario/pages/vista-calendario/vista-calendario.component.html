@@ -8,13 +8,17 @@
 
   <div class="flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <div class="flex gap-2 flex-wrap">
-      <span *ngFor="let s of secciones" class="flex align-items-center gap-1 text-sm">
+      <span *ngFor="let s of opcionesLeyenda" class="flex align-items-center gap-1 text-sm">
         <span class="border-circle inline-block" style="width:10px;height:10px"
               [ngStyle]="{ background: getColor(s.value) }"></span>
         {{ s.label }}
       </span>
       <span class="flex align-items-center gap-1 text-sm text-500">
         📘 Actividades de Ciclo de Programa (solo lectura)
+      </span>
+      <span class="flex align-items-center gap-2 text-sm text-500">
+        <span *ngFor="let t of tipos">{{ t.emoji }} {{ t.label.split(' /')[0] }}</span>
+        <span>🔒 Solo scouters</span>
       </span>
     </div>
     <button *ngIf="puedeCrear()" pButton icon="pi pi-plus" label="Nueva actividad"
@@ -61,14 +65,33 @@
     </div>
 
     <div class="flex flex-column gap-1">
-      <label class="text-sm font-semibold">Sección</label>
-      <p-dropdown [options]="secciones" optionLabel="label" optionValue="value"
-                  [(ngModel)]="form.seccion" [disabled]="seccionesPermitidas.length <= 1"
-                  placeholder="Selecciona una sección">
+      <label class="text-sm font-semibold">Tipo</label>
+      <p-dropdown [options]="tipos" optionLabel="label" optionValue="value" [(ngModel)]="form.tipo"
+                  (onChange)="onTipoChange()" appendTo="body">
+        <ng-template let-t pTemplate="item">{{ t.emoji }} {{ t.label }}</ng-template>
+        <ng-template let-t pTemplate="selectedItem">{{ t?.emoji }} {{ t?.label }}</ng-template>
       </p-dropdown>
-      <small class="text-500" *ngIf="!seccionesPermitidas.includes(form.seccion)">
-        No tienes permiso para gestionar actividades de esta sección.
+    </div>
+
+    <div class="flex flex-column gap-1">
+      <label class="text-sm font-semibold">Secciones</label>
+      <p-multiSelect [options]="opcionesSecciones" optionLabel="label" optionValue="value"
+                     [(ngModel)]="form.secciones" display="chip" [showHeader]="false"
+                     [disabled]="opcionesSecciones.length <= 1" placeholder="¿Para quién es?"
+                     appendTo="body" styleClass="w-full"></p-multiSelect>
+      <small class="text-500" *ngIf="opcionesSecciones.length > 1">
+        Puedes marcar varias, o "Todo el grupo".
       </small>
+    </div>
+
+    <div class="flex flex-column gap-1">
+      <label class="text-sm font-semibold">¿Quién la ve?</label>
+      <p-selectButton [options]="visibilidades" optionLabel="label" optionValue="value"
+                      [(ngModel)]="form.visibilidad">
+        <ng-template let-v pTemplate="item"><i [class]="v.icon" class="mr-2"></i>{{ v.label }}</ng-template>
+      </p-selectButton>
+      <small class="text-500" *ngIf="form.visibilidad === 'scouters'">Los jóvenes no verán esta actividad.</small>
+      <small class="text-500" *ngIf="form.visibilidad === 'seccion'">Solo la ven los jóvenes de las secciones marcadas.</small>
     </div>
   </div>
 
@@ -78,7 +101,7 @@
     <button pButton label="Cancelar" class="p-button-text" (click)="dialogVisible = false"></button>
     <button pButton label="Guardar" icon="pi pi-check"
             [loading]="guardando"
-            [disabled]="!form.titulo || !form.fecha || !seccionesPermitidas.includes(form.seccion)"
+            [disabled]="!form.titulo || !form.fecha || !form.secciones?.length"
             (click)="guardar()"></button>
   </ng-template>
 </p-dialog>
@@ -98,8 +121,9 @@
             [ngStyle]="{ background: colorSeccion(item.seccion) }"></span>
       <div class="flex-1">
         <div class="flex align-items-center gap-2 flex-wrap">
-          <span class="font-bold">{{ item.tipo === 'ciclo-programa' ? '📘 ' : '' }}{{ item.titulo }}</span>
-          <p-tag [value]="seccionLabel(item.seccion)" severity="info" styleClass="text-xs"></p-tag>
+          <span class="font-bold">{{ item.tipo === 'ciclo-programa' ? '📘 ' : (item.emoji + ' ') }}{{ item.titulo }}</span>
+          <p-tag [value]="item.seccionesLabel || seccionLabel(item.seccion)" severity="info" styleClass="text-xs"></p-tag>
+          <p-tag *ngIf="item.soloScouters" value="Solo scouters" icon="pi pi-lock" severity="warning" styleClass="text-xs"></p-tag>
         </div>
         <div class="text-sm text-600" *ngIf="item.hora">🕒 {{ item.hora.slice(0,5) }}</div>
         <div class="text-sm text-600" *ngIf="item.lugar">📍 {{ item.lugar }}</div>

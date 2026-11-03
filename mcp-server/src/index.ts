@@ -104,10 +104,91 @@ server.registerTool('listar_staff', {
 
 server.registerTool('calendario_mes', {
   title: 'Calendario del mes',
-  description: 'Actividades del calendario del grupo en un mes.',
+  description: 'Actividades del calendario del grupo en un mes, con tipo, secciones y quién las ve. Úsalo también para no duplicar actividades al registrar las de una reunión.',
   inputSchema: { anio: z.number().int(), mes: z.number().int().min(1).max(12) },
   annotations: LECTURA,
-}, tool(({ anio, mes }: { anio: number; mes: number }) => api('GET', `/calendario/mes/${anio}/${mes}`)));
+}, tool(async ({ anio, mes }: { anio: number; mes: number }) => {
+  const acts: any[] = await api('GET', `/calendario/mes/${anio}/${mes}`);
+  return acts.map(a => ({ id: a.id, fecha: a.fecha, hora: a.hora?.slice(0, 5), titulo: a.titulo, tipo: a.tipo, secciones: a.secciones, visibilidad: a.visibilidad, lugar: a.lugar, descripcion: a.descripcion }));
+}));
+
+// ── Calendario: actividades de reuniones (Wispr Flow → calendario → Telegram) ──
+const actividadSchema = z.object({
+  titulo: z.string().max(200),
+  fecha: fecha,
+  hora: z.string().regex(/^\d{2}:\d{2}$/).optional().describe('HH:mm (24 h)'),
+  lugar: z.string().optional(),
+  descripcion: z.string().max(1000).optional().describe('Detalles dichos en la reunión (responsables, qué llevar…)'),
+  tipo: z.enum(['consejo', 'salida', 'pase', 'grupal', 'reunion'])
+    .describe('consejo = consejo/junta de scouters · salida = salida/campamento/aventura · pase = pase/ceremonia · grupal = actividad que organiza todo el grupo · reunion = reunión/servicio/otra'),
+  secciones: z.array(z.enum(['manada', 'tropa', 'comunidad', 'clan', 'grupo'])).min(1)
+    .describe('Para quién es. Varias si aplica (ej. ["manada","tropa"]); ["grupo"] = todo el grupo'),
+  visibilidad: z.enum(['publica', 'seccion', 'scouters'])
+    .describe('publica = la ve todo el grupo, jóvenes incluidos · seccion = solo jóvenes y scouters de sus secciones · scouters = solo scouters (p. ej. "en esta aventura será el pase de fulano", consejo)'),
+});
+
+server.registerTool('registrar_actividades', {
+  title: 'Registrar actividades en el calendario',
+  description: 'Guarda varias actividades a la vez. Úsala SOLO después de mostrar al usuario la tabla completa y que la confirme. Las de varias secciones o de todo el grupo requieren la cuenta de administrador o la jefatura de grupo. Devuelve los ids para notificar_actividades.',
+  inputSchema: { actividades: z.array(actividadSchema).min(1).max(100) },
+  annotations: ESCRITURA,
+}, tool(async ({ actividades }: { actividades: any[] }) => {
+  const creadas: any[] = await api('POST', '/calendario/lote', { actividades });
+  return creadas.map(a => ({ id: a.id, fecha: a.fecha, titulo: a.titulo, secciones: a.secciones, visibilidad: a.visibilidad, tipo: a.tipo }));
+}));
+
+server.registerTool('actualizar_actividad', {
+  title: 'Actualizar actividad del calendario',
+  description: 'Cambia una actividad (manda la actividad completa: título, fecha, tipo, secciones, visibilidad…).',
+  inputSchema: { id: z.number().int(), actividad: actividadSchema },
+  annotations: ESCRITURA,
+}, tool(({ id, actividad }: any) => api('PUT', `/calendario/${id}`, actividad)));
+
+server.registerTool('borrar_actividad', {
+  title: 'Borrar actividad del calendario',
+  description: 'Elimina una actividad del calendario. Confirma con el usuario antes.',
+  inputSchema: { id: z.number().int() },
+  annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
+}, tool(async ({ id }: { id: number }) => { await api('DELETE', `/calendario/${id}`); return `Actividad ${id} eliminada.`; }));
+
+server.registerTool('notificar_actividades', {
+  title: 'Avisar a los scouters por Telegram',
+  description: 'Manda a cada scouter, por mensaje privado de Telegram, las actividades indicadas que le tocan (las de su sección, las de todo el grupo y las "solo scouters"). Devuelve a quién le llegó y quién no tiene Telegram vinculado.',
+  inputSchema: { ids: z.array(z.number().int()).min(1) },
+  annotations: PUBLICAR,
+}, tool(({ ids }: { ids: number[] }) => api('POST', '/calendario/notificar', { ids })));
+
+server.registerTool('telegram_pendientes', {
+  title: 'Scouters sin Telegram',
+  description: 'Scouters que todavía no vinculan Telegram (no recibirán avisos). Se vinculan desde la app: avatar → "Vincular Telegram".',
+  inputSchema: {},
+  annotations: LECTURA,
+}, tool(() => api('GET', '/calendario/telegram/pendientes')));
+
+server.registerPrompt('actividades_de_reunion', {
+  title: 'Actividades de una reunión',
+  description: 'Saca las actividades de una reunión grabada con Wispr Flow, te las muestra para confirmar, las registra en el calendario y avisa a cada scouter por Telegram.',
+  argsSchema: { reunion: z.string().optional().describe('Cuál reunión (p. ej. "consejo de hoy"); vacío = la más reciente') },
+}, ({ reunion }) => ({
+  messages: [{
+    role: 'user',
+    content: {
+      type: 'text',
+      text: `Saca las actividades de la reunión${reunion ? ` "${reunion}"` : ' más reciente'} grabada en Wispr Flow y regístralas en el calendario de Scouts. Sigue estos pasos:
+
+1. Busca la reunión con las herramientas de Wispr Flow (search_meetings / get_meeting) y lee la transcripción completa.
+2. Extrae TODAS las actividades con fecha: consejos o juntas, salidas, campamentos, aventuras, pases, actividades grupales, reuniones, servicios. Convierte fechas relativas ("el próximo sábado") a fechas exactas y dime cuáles calculaste.
+3. Revisa calendario_mes para no duplicar lo que ya está.
+4. Muéstrame UNA tabla: fecha · hora · actividad · tipo · secciones · quién la ve · lugar.
+   Por defecto: consejo/junta = "solo scouters"; lo demás = "todo el grupo" (pública).
+   Lo que sea para planear entre scouters (p. ej. "en esta aventura será el pase de fulano") = "solo scouters".
+5. Pregúntame solo lo que no quedó claro (¿para qué sección?, ¿lo deben ver los chicos?, fecha u hora faltante), todo junto en un mensaje.
+6. Cuando confirme, guarda todo con registrar_actividades (cuenta de administrador si hay actividades de varias secciones o de todo el grupo).
+7. Si hay salidas o campamentos, ofréceme crear el borrador de su aviso de salida (crear_aviso) para completar después.
+8. Avisa a los scouters con notificar_actividades y dime a quién le llegó y quién no tiene Telegram vinculado.`,
+    },
+  }],
+}));
 
 server.registerTool('dashboard', {
   title: 'Estadísticas',

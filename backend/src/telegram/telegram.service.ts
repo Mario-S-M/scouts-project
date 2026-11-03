@@ -86,6 +86,30 @@ export class TelegramService implements OnModuleInit {
     }
   }
 
+  /**
+   * Envía un mensaje y dice si llegó. Si el Markdown no es válido (p. ej. un
+   * título con "_"), reintenta como texto plano.
+   */
+  async enviar(chatId: string, texto: string): Promise<boolean> {
+    if (!this.bot) return false;
+    try {
+      await this.bot.sendMessage(chatId, texto, { parse_mode: 'Markdown' });
+      return true;
+    } catch {
+      try {
+        await this.bot.sendMessage(chatId, texto.replace(/[*_`]/g, ''));
+        return true;
+      } catch (err) {
+        this.logger.error(`Error enviando mensaje al chat ${chatId}: ${err}`);
+        return false;
+      }
+    }
+  }
+
+  get activo(): boolean {
+    return !!this.bot;
+  }
+
   async sendToUser(chatId: string, texto: string): Promise<void> {
     if (!this.bot) return;
     try {

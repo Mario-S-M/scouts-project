@@ -440,6 +440,8 @@ body.p-theme-aura-dark-blue .main-content {
 
   i { color: rgba(255, 255, 255, 0.55); width: 1rem; }
   &:hover { background: rgba(255, 255, 255, 0.1); color: #fff; i { color: var(--nav-accent); } }
+  &.estado { cursor: default; color: #86EFAC; i { color: #86EFAC; } &:hover { background: transparent; } }
+  &:disabled { opacity: 0.6; cursor: wait; }
   &.salir:hover { background: rgba(239, 68, 68, 0.15); i, & { color: #FCA5A5; } }
 }
 

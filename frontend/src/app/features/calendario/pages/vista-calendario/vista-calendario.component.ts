@@ -3,14 +3,15 @@ import { CalendarOptions, EventClickArg, EventInput } from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import esLocale from '@fullcalendar/core/locales/es';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { CalendarioService } from '../../../../core/services/calendario.service';
 import { CicloProgramaService } from '../../../../core/services/ciclo-programa.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import {
-  Actividad, CrearActividadDto, SeccionActividad,
-  SECCIONES_ACTIVIDAD, SECCION_COLOR,
+  Actividad, CrearActividadDto,
+  SECCIONES_ACTIVIDAD, SECCION_COLOR, SECCIONES_MULTI, TIPOS_ACTIVIDAD, VISIBILIDADES,
 } from '../../../../core/models/actividad.model';
 import { ActividadCiclo } from '../../../../core/models/ciclo-programa.model';
 
@@ -28,6 +29,9 @@ interface ItemDia {
   descripcion?: string;
   ejeTematico?: string;
   cicloNombre?: string;
+  emoji?: string;
+  seccionesLabel?: string;
+  soloScouters?: boolean;
   ref?: Actividad;
 }
 
@@ -43,14 +47,20 @@ export class VistaCalendarioComponent implements OnInit {
 
   dialogVisible = false;
   editando: Actividad | null = null;
-  form: CrearActividadDto = { titulo: '', fecha: '', seccion: 'general' };
+  form: CrearActividadDto = this.formVacio();
 
   dayDetailVisible = false;
   diaSeleccionado = '';
   eventosDelDia: ItemDia[] = [];
 
   readonly secciones = SECCIONES_ACTIVIDAD;
-  seccionesPermitidas: SeccionActividad[] = [];
+  readonly tipos = TIPOS_ACTIVIDAD;
+  readonly visibilidades = VISIBILIDADES;
+  /** Opciones de secciones que este usuario puede asignar en el formulario */
+  opcionesSecciones = SECCIONES_MULTI;
+  readonly opcionesLeyenda = SECCIONES_MULTI;
+  private rol = '';
+  private seccionPropia: string | null = null;
 
   calendarOptions: CalendarOptions = {
     plugins: [dayGridPlugin, interactionPlugin],
@@ -76,34 +86,69 @@ export class VistaCalendarioComponent implements OnInit {
     this.cargar();
   }
 
+  /**
+   * Mismas reglas que el backend (actividad.service → puedeGestionar):
+   * administrador todas; jefatura de grupo las de todo el grupo; cada scouter
+   * las que son solo de su sección.
+   */
   calcularSeccionesPermitidas(): void {
     const user = this.auth.getUser();
-    if (!user) { this.seccionesPermitidas = []; return; }
-    if (user.rol === 'jefe_grupo' || user.rol === 'sub_jefe_grupo') {
-      this.seccionesPermitidas = this.secciones.map((s) => s.value);
-      return;
-    }
-    const seccion = this.auth.getSeccion(user.rol) as SeccionActividad;
-    this.seccionesPermitidas = this.secciones.some((s) => s.value === seccion) ? [seccion] : [];
+    this.rol = user?.rol ?? '';
+    const s = user ? this.auth.getSeccion(user.rol) : '';
+    this.seccionPropia = ['manada', 'tropa', 'comunidad', 'clan'].includes(s) ? s : null;
+    if (this.rol === 'administrador') this.opcionesSecciones = SECCIONES_MULTI;
+    else if (this.esJefaturaGrupo) this.opcionesSecciones = SECCIONES_MULTI.filter((o) => o.value === 'grupo');
+    else this.opcionesSecciones = SECCIONES_MULTI.filter((o) => o.value === this.seccionPropia);
+  }
+
+  private get esJefaturaGrupo(): boolean {
+    return ['jefe_grupo', 'sub_jefe_grupo'].includes(this.rol);
   }
 
   puedeCrear(): boolean {
-    return this.seccionesPermitidas.length > 0;
+    return this.rol === 'administrador' || this.esJefaturaGrupo || !!this.seccionPropia;
   }
 
   puedeGestionar(a: Actividad): boolean {
-    return this.seccionesPermitidas.includes(a.seccion);
+    const secs = a.secciones ?? [];
+    if (this.rol === 'administrador') return true;
+    if (this.esJefaturaGrupo) return secs.includes('grupo');
+    return !!this.seccionPropia && secs.length > 0 && secs.every((x) => x === this.seccionPropia);
   }
 
-  getColor(seccion: SeccionActividad): string {
-    return SECCION_COLOR[seccion];
+  getColor(seccion: string): string {
+    return SECCION_COLOR[seccion] ?? '#9CA3AF';
+  }
+
+  /** Color del evento: el de su sección, o morado si es de varias / todo el grupo */
+  colorActividad(a: Actividad): string {
+    const secs = a.secciones ?? [];
+    return secs.length === 1 ? this.getColor(secs[0]) : SECCION_COLOR['grupo'];
+  }
+
+  emojiTipo(tipo?: string): string {
+    return this.tipos.find((t) => t.value === tipo)?.emoji ?? '📌';
+  }
+
+  etiquetaSecciones(secs: string[] = []): string {
+    return secs.map((x) => SECCIONES_MULTI.find((o) => o.value === x)?.label ?? x).join(' · ');
+  }
+
+  private formVacio(fecha = ''): CrearActividadDto {
+    return { titulo: '', fecha, secciones: [], tipo: 'reunion', visibilidad: 'publica' };
+  }
+
+  /** El consejo es de scouters por defecto */
+  onTipoChange(): void {
+    if (this.form.tipo === 'consejo') this.form.visibilidad = 'scouters';
   }
 
   cargar(): void {
     this.loading = true;
     forkJoin({
       actividades: this.svc.getAll(),
-      ciclos: this.ciclosSvc.getAll(),
+      // Los jóvenes no listan ciclos de programa: sin eso el calendario se quedaba vacío
+      ciclos: this.ciclosSvc.getAll().pipe(catchError(() => of([]))),
     }).subscribe({
       next: ({ actividades, ciclos }) => {
         this.actividades = actividades;
@@ -113,11 +158,11 @@ export class VistaCalendarioComponent implements OnInit {
 
         const eventosActividades: EventInput[] = actividades.map((a) => ({
           id: `actividad-${a.id}`,
-          title: a.titulo,
+          title: `${this.emojiTipo(a.tipo)} ${a.visibilidad === 'scouters' ? '🔒 ' : ''}${a.titulo}`,
           start: a.hora ? `${a.fecha}T${a.hora}` : a.fecha,
           allDay: !a.hora,
-          backgroundColor: SECCION_COLOR[a.seccion],
-          borderColor: SECCION_COLOR[a.seccion],
+          backgroundColor: this.colorActividad(a),
+          borderColor: this.colorActividad(a),
           extendedProps: { tipo: 'actividad' },
         }));
         const eventosCiclos = this.mapearEventosCiclos();
@@ -132,7 +177,7 @@ export class VistaCalendarioComponent implements OnInit {
   }
 
   colorSeccion(seccion: string): string {
-    return SECCION_COLOR[seccion as SeccionActividad] ?? '#9CA3AF';
+    return SECCION_COLOR[seccion] ?? '#9CA3AF';
   }
 
   private mapearEventosCiclos(): EventInput[] {
@@ -163,8 +208,10 @@ export class VistaCalendarioComponent implements OnInit {
     const deActividades: ItemDia[] = this.actividades
       .filter((a) => a.fecha === fecha)
       .map((a) => ({
-        tipo: 'actividad', titulo: a.titulo, seccion: a.seccion,
+        tipo: 'actividad', titulo: a.titulo, seccion: (a.secciones ?? [])[0] ?? a.seccion,
         hora: a.hora, lugar: a.lugar, descripcion: a.descripcion, ref: a,
+        emoji: this.emojiTipo(a.tipo), seccionesLabel: this.etiquetaSecciones(a.secciones),
+        soloScouters: a.visibilidad === 'scouters',
       }));
 
     const deCiclos: ItemDia[] = this.ciclosActividades
@@ -193,7 +240,7 @@ export class VistaCalendarioComponent implements OnInit {
     }
     if (item.ref) {
       this.dayDetailVisible = false;
-      this.editar(item.ref);
+      this.abrirActividad(item.ref);
     }
   }
 
@@ -211,17 +258,25 @@ export class VistaCalendarioComponent implements OnInit {
 
     const id = Number(info.event.id.replace('actividad-', ''));
     const actividad = this.actividades.find((a) => a.id === id);
-    if (actividad) this.editar(actividad);
+    if (actividad) this.abrirActividad(actividad);
+  }
+
+  /** Edita si puede; si no, solo muestra el detalle */
+  private abrirActividad(a: Actividad): void {
+    if (this.puedeGestionar(a)) { this.editar(a); return; }
+    this.msg.add({
+      severity: 'info',
+      summary: `${this.emojiTipo(a.tipo)} ${a.titulo}`,
+      detail: [this.etiquetaSecciones(a.secciones), a.hora?.slice(0, 5), a.lugar, a.descripcion].filter(Boolean).join(' · '),
+    });
   }
 
   nuevo(fecha?: string): void {
     this.dayDetailVisible = false;
     this.editando = null;
-    this.form = {
-      titulo: '',
-      fecha: fecha ?? '',
-      seccion: this.seccionesPermitidas.length === 1 ? this.seccionesPermitidas[0] : ('general' as SeccionActividad),
-    };
+    this.form = this.formVacio(fecha ?? '');
+    // Si solo puede una opción (su sección o todo el grupo), queda puesta
+    if (this.opcionesSecciones.length === 1) this.form.secciones = [this.opcionesSecciones[0].value];
     this.dialogVisible = true;
   }
 
@@ -233,13 +288,17 @@ export class VistaCalendarioComponent implements OnInit {
       fecha: a.fecha,
       hora: a.hora ? a.hora.slice(0, 5) : undefined,
       lugar: a.lugar,
-      seccion: a.seccion,
+      secciones: [...(a.secciones ?? [])],
+      tipo: a.tipo ?? 'reunion',
+      visibilidad: a.visibilidad ?? 'publica',
     };
     this.dialogVisible = true;
   }
 
   guardar(): void {
-    if (!this.form.titulo || !this.form.fecha || !this.form.seccion) return;
+    if (!this.form.titulo || !this.form.fecha || !this.form.secciones?.length) return;
+    // "Todo el grupo" sustituye a cualquier otra sección marcada
+    if (this.form.secciones.includes('grupo')) this.form.secciones = ['grupo'];
     this.guardando = true;
     const obs = this.editando
       ? this.svc.update(this.editando.id, this.form)
