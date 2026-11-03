@@ -42,6 +42,18 @@ export class EvidenciasService {
     return query.getMany();
   }
 
+  /** Sección del joven dueño de una evidencia (para el candado de sección) */
+  async seccionDeCaminante(caminanteId: number): Promise<string | null> {
+    const row = await this.evidenciaRepo.manager
+      .createQueryBuilder()
+      .select('u.seccion', 'seccion')
+      .from('users', 'u')
+      .where('u.id = :id', { id: caminanteId })
+      .getRawOne();
+    if (!row) throw new NotFoundException(`Caminante #${caminanteId} no encontrado`);
+    return row.seccion;
+  }
+
   async findPendientes(seccion?: string): Promise<Evidencia[]> {
     const query = this.evidenciaRepo
       .createQueryBuilder('e')

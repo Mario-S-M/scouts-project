@@ -11,6 +11,10 @@ export class AvisoSalida {
   @Column({ length: 120 })
   nombre: string;
 
+  /** Sección dueña del aviso (manada, tropa, comunidad, clan); candado de permisos */
+  @Column({ length: 20, nullable: true })
+  seccion: string;
+
   @Column({ type: 'date', nullable: true })
   fechaSalida: string;
 

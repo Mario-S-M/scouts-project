@@ -1,50 +1,58 @@
-<div class="app-container" [ngClass]="themeClass">
+<!-- El tema de la sección vive en <body> (clase + colores de la API), no aquí -->
+<div class="app-container">
 
-  <!-- Navigation Bar -->
-  <p-menubar *ngIf="!isLoginPage" [model]="menuItems" styleClass="scout-menubar">
+  <!-- Navbar: marca · pestañas con ícono · avatar. En celular las pestañas bajan a una barra fija -->
+  <header *ngIf="!isLoginPage" class="scout-nav">
+    <a routerLink="/" class="nav-brand">
+      <img [src]="logoNav" alt="Logo" class="nav-logo-img" />
+      <span class="nav-logo-text">
+        <span class="nav-title">Grupo 7 · Itsï Tarhiata</span>
+        <span class="nav-subtitle">{{ subtituloNav }}</span>
+      </span>
+    </a>
 
-    <!-- Logo -->
-    <ng-template pTemplate="start">
-      <div class="nav-brand mr-3">
-        <span class="nav-logo-icon">⚜️</span>
-        <div class="nav-logo-text">
-          <div class="nav-title">Grupo Scout 7 · Itsï Tarhiata</div>
-          <div class="nav-subtitle">Scouts México</div>
-        </div>
-      </div>
-    </ng-template>
+    <nav class="nav-tabs" aria-label="Navegación principal">
+      <ng-container *ngFor="let it of menuItems">
+        <a *ngIf="!it.items" class="nav-tab" [class.activo]="it.styleClass === 'nav-activo'"
+           [routerLink]="it.routerLink" [attr.aria-label]="it.label">
+          <i [class]="it.icon"></i>
+          <span class="nav-tab-label">{{ etiquetaCorta(it) }}</span>
+        </a>
+        <button *ngIf="it.items" type="button" class="nav-tab" [class.activo]="it.styleClass === 'nav-activo'"
+                [class.abierto]="submenuAbierto === it.label" [attr.aria-label]="it.label" aria-haspopup="menu"
+                (click)="abrirSubmenu($event, it, submenu)">
+          <i [class]="it.icon"></i>
+          <span class="nav-tab-label">{{ etiquetaCorta(it) }}</span>
+        </button>
+      </ng-container>
+    </nav>
 
-    <!-- Acciones + usuario -->
-    <ng-template pTemplate="end">
-      <div class="flex align-items-center gap-2">
+    <ng-container *ngIf="authService.user$ | async as user">
+      <button type="button" class="nav-avatar" (click)="panelUsuario.toggle($event)" aria-label="Mi cuenta"
+              [pTooltip]="user.nombre" tooltipPosition="left">
+        {{ user.nombre[0] }}
+      </button>
 
-        <!-- Info usuario -->
-        <ng-container *ngIf="authService.user$ | async as user">
-          <div class="nav-user">
-            <div class="nav-user-avatar">{{ user.nombre[0] }}</div>
-            <div class="nav-user-info">
-              <div class="nav-user-name">{{ user.nombre.split(' ')[0] }} {{ user.nombre.split(' ')[2] ?? '' }}</div>
-              <div class="nav-user-role">{{ authService.getRolLabel(user.rol) }}</div>
-            </div>
+      <p-overlayPanel #panelUsuario styleClass="scout-popup panel-usuario" appendTo="body">
+        <div class="panel-usuario-cabecera">
+          <div class="nav-avatar grande">{{ user.nombre[0] }}</div>
+          <div>
+            <div class="panel-usuario-nombre">{{ user.nombre }}</div>
+            <div class="panel-usuario-rol">{{ authService.getRolLabel(user.rol) }}</div>
           </div>
-          <div class="nav-divider"></div>
-        </ng-container>
+        </div>
+        <button type="button" class="panel-usuario-opcion" (click)="toggleTheme()">
+          <i [class]="getThemeIcon()"></i> {{ getThemeIcon().includes('sun') ? 'Tema claro' : 'Tema oscuro' }}
+        </button>
+        <button type="button" class="panel-usuario-opcion salir" (click)="panelUsuario.hide(); logout()">
+          <i class="pi pi-sign-out"></i> Cerrar sesión
+        </button>
+      </p-overlayPanel>
+    </ng-container>
+  </header>
 
-        <!-- Tema -->
-        <button pButton [icon]="getThemeIcon()"
-                class="nav-btn nav-btn-outline nav-btn-icon"
-                pTooltip="Cambiar tema"
-                (click)="toggleTheme()"></button>
-
-        <!-- Cerrar sesión -->
-        <button pButton icon="pi pi-sign-out"
-                class="nav-btn nav-btn-danger"
-                pTooltip="Cerrar sesión"
-                (click)="logout()"></button>
-
-      </div>
-    </ng-template>
-  </p-menubar>
+  <p-tieredMenu #submenu [model]="submenuItems" [popup]="true" appendTo="body" styleClass="scout-popup"
+                (onHide)="submenuAbierto = null"></p-tieredMenu>
 
   <!-- Main Content -->
   <div [class]="isLoginPage ? '' : 'main-content'">

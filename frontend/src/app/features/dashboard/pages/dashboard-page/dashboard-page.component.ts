@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { DashboardService } from '../../../../core/services/dashboard.service';
 import { DashboardStats } from '../../../../core/models/dashboard.model';
+import { SeccionService } from '../../../../core/services/seccion.service';
 
 @Component({
   selector: 'app-dashboard-page',
@@ -10,7 +11,13 @@ export class DashboardPageComponent implements OnInit {
   stats: DashboardStats = null;
   loading = true;
 
-  constructor(private dashboardService: DashboardService) {}
+  constructor(private dashboardService: DashboardService, private seccionService: SeccionService) {}
+
+  /** Evidencias, insignias y senderos solo para secciones con progresión (Comunidad) y el grupo */
+  get conProgresion(): boolean {
+    const clave = this.seccionService.claveActual();
+    return clave === 'grupo' || this.seccionService.progresion(clave);
+  }
 
   ngOnInit() {
     this.loadStats();

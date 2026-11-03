@@ -27,6 +27,8 @@ export class AuthService {
         nombre: user.nombre,
         email: user.email,
         rol: user.rol,
+        // Jóvenes: su sección (para colores y vocabulario); scouters: la de su rol
+        seccion: user.seccion ?? null,
       },
     };
   }

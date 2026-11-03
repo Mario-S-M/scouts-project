@@ -79,6 +79,7 @@ export const COMPONENTES_KIT_DEFAULT: ComponenteKit[] = [
 
 /** Los nueve roles que pueden administrar catálogo y solicitudes */
 export const ROLES_JEFE_SECCION: string[] = [
+  'administrador',
   'jefe_grupo',
   'jefe_manada',
   'sub_jefe_manada',

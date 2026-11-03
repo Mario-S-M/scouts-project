@@ -72,6 +72,21 @@ export async function apiBinary(method: string, path: string, body?: unknown): P
   return Buffer.from(await res.arrayBuffer());
 }
 
+/** Sube un archivo como multipart/form-data (logos de sección) */
+export async function apiUpload<T = any>(path: string, campo: string, nombre: string, contenido: Buffer): Promise<T> {
+  if (!token) await login();
+  const enviar = async () => {
+    const fd = new FormData();
+    fd.append(campo, new Blob([new Uint8Array(contenido)]), nombre);
+    return fetch(`${API_URL}${path}`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd });
+  };
+  let res = await enviar();
+  if (res.status === 401) { token = null; await login(); res = await enviar(); }
+  const text = await res.text();
+  if (!res.ok) throw new Error(`POST ${path} → ${res.status}: ${text}`);
+  return JSON.parse(text) as T;
+}
+
 export async function usuarioActual() {
   if (!usuario) await login();
   return usuario!;

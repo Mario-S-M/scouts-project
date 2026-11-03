@@ -15,6 +15,7 @@
           <div class="flex-1">
             <h2 class="mt-0 mb-1 text-green-900">{{ caminante.nombre }} {{ caminante.apellidos }}</h2>
             <div class="flex flex-wrap gap-2 mb-2">
+              <p-chip [label]="'seccion' | termino: caminante.seccion" icon="pi pi-flag"></p-chip>
               <p-chip [label]="caminante.grupo" icon="pi pi-shield"></p-chip>
               <p-chip [label]="caminante.comunidad" icon="pi pi-home"></p-chip>
               <p-chip [label]="caminante.provincia" icon="pi pi-map-marker"></p-chip>
@@ -30,7 +31,7 @@
               </span>
             </div>
           </div>
-          <div class="flex gap-2 flex-wrap">
+          <div class="flex gap-2 flex-wrap" *ngIf="conProgresion">
             <button pButton icon="pi pi-file-export" label="Subir Evidencia"
                     class="p-button-outlined p-button-success p-button-sm"
                     [routerLink]="['/evidencias/nueva']"
@@ -45,8 +46,50 @@
     </div>
   </div>
 
-  <!-- Tabs for detailed progress -->
-  <p-tabView>
+  <!-- Papás / tutores -->
+  <p-card styleClass="shadow-2 mb-4">
+    <ng-template pTemplate="header">
+      <div class="px-3 pt-3 flex align-items-center justify-content-between">
+        <span class="font-bold text-lg"><i class="pi pi-users mr-2"></i>Papás / tutores</span>
+        <button pButton *ngIf="puedeEditar" icon="pi pi-pencil" label="Editar"
+                class="p-button-sm p-button-text" (click)="abrirTutores()"></button>
+      </div>
+    </ng-template>
+    <div *ngIf="tutores.length === 0" class="text-color-secondary text-sm">Sin papás o tutores registrados.</div>
+    <div class="grid">
+      <div class="col-12 md:col-6" *ngFor="let t of tutores">
+        <div class="font-semibold">{{ t.nombre }}
+          <span *ngIf="t.parentesco" class="text-color-secondary font-normal">· {{ t.parentesco }}</span>
+        </div>
+        <div class="text-sm text-color-secondary flex flex-wrap gap-3 mt-1">
+          <span *ngIf="t.telefono"><i class="pi pi-phone mr-1"></i>{{ t.telefono }}</span>
+          <span *ngIf="t.email"><i class="pi pi-envelope mr-1"></i>{{ t.email }}</span>
+        </div>
+      </div>
+    </div>
+  </p-card>
+
+  <p-dialog header="Papás / tutores" [(visible)]="editandoTutores" [modal]="true" [style]="{ width: '560px' }"
+            [breakpoints]="{ '640px': '95vw' }">
+    <div *ngFor="let t of borradorTutores; let i = index" class="grid mb-2">
+      <div class="col-12 md:col-7"><input pInputText [(ngModel)]="t.nombre" class="w-full" placeholder="Nombre completo" /></div>
+      <div class="col-10 md:col-4"><input pInputText [(ngModel)]="t.parentesco" class="w-full" placeholder="Parentesco" /></div>
+      <div class="col-2 md:col-1 flex align-items-center">
+        <button pButton icon="pi pi-trash" class="p-button-text p-button-danger" (click)="borradorTutores.splice(i, 1)"></button>
+      </div>
+      <div class="col-6"><input pInputText [(ngModel)]="t.telefono" class="w-full" placeholder="Teléfono" /></div>
+      <div class="col-6"><input pInputText [(ngModel)]="t.email" class="w-full" placeholder="Correo" /></div>
+    </div>
+    <button pButton *ngIf="borradorTutores.length < 2" icon="pi pi-plus" label="Agregar tutor"
+            class="p-button-sm p-button-text" (click)="agregarTutor()"></button>
+    <ng-template pTemplate="footer">
+      <button pButton label="Cancelar" class="p-button-text" (click)="editandoTutores = false"></button>
+      <button pButton label="Guardar" icon="pi pi-check" [loading]="guardandoTutores" (click)="guardarTutores()"></button>
+    </ng-template>
+  </p-dialog>
+
+  <!-- Progresión (solo secciones que la usan) -->
+  <p-tabView *ngIf="conProgresion">
 
     <!-- SENDEROS Tab -->
     <p-tabPanel header="Senderos" leftIcon="pi pi-compass">

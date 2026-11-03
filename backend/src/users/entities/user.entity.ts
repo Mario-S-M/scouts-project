@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   OneToMany,
 } from 'typeorm';
+import { Exclude } from 'class-transformer';
 import { Evidencia } from '../../evidencias/entities/evidencia.entity';
 import { SenderoProgreso } from '../../progreso/entities/sendero-progreso.entity';
 import { EspecialidadProgreso } from '../../progreso/entities/especialidad-progreso.entity';
@@ -16,6 +17,8 @@ import { Insignia } from '../../insignias/entities/insignia.entity';
 import { Camisola } from '../../insignias/entities/camisola.entity';
 
 export enum UserRole {
+  // Soporte del sistema: ve y edita todas las secciones
+  ADMINISTRADOR       = 'administrador',
   // Grupo
   JEFE_GRUPO          = 'jefe_grupo',
   SUB_JEFE_GRUPO      = 'sub_jefe_grupo',
@@ -50,6 +53,8 @@ export class User {
   @Column({ length: 200, unique: true })
   email: string;
 
+  // Nunca sale en las respuestas de la API (ClassSerializerInterceptor global)
+  @Exclude({ toPlainOnly: true })
   @Column()
   password: string;
 
@@ -94,12 +99,15 @@ export class User {
   foto: string;
 
   // ── Vinculación con Telegram (recordatorios) ──────────────
+  @Exclude({ toPlainOnly: true })
   @Column({ length: 50, nullable: true })
   telegramChatId: string;
 
+  @Exclude({ toPlainOnly: true })
   @Column({ length: 20, nullable: true })
   telegramLinkCode: string;
 
+  @Exclude({ toPlainOnly: true })
   @Column({ type: 'timestamp', nullable: true })
   telegramLinkCodeExpira: Date;
 

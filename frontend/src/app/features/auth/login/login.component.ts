@@ -31,7 +31,8 @@ export class LoginComponent {
         this.loading = false;
         const user = this.authService.getUser();
         if (user?.rol === 'scout') {
-          this.router.navigate(['/mi-comunidad']);
+          // "Mi progreso" es la progresión de Caminantes; las demás secciones entran al calendario
+          this.router.navigate([(user.seccion ?? 'comunidad') === 'comunidad' ? '/mi-comunidad' : '/calendario']);
         } else {
           this.router.navigate(['/']);
         }

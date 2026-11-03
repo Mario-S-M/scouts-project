@@ -27,6 +27,9 @@ export class ScouterDto {
 }
 
 export class AvisoSalidaDto {
+  /** Solo la usa el administrador; para un scouter se toma su propia sección */
+  @IsString() @IsOptional() seccion?: string;
+
   @IsString() @IsOptional() tipo: string;
   @IsString() @IsOptional() nombre: string;
 

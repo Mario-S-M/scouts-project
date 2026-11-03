@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, UserRole } from './entities/user.entity';
 import * as bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class UsersService {
@@ -57,32 +58,34 @@ export class UsersService {
   async seedUsers(): Promise<void> {
     const seeds = [
       // ── Administración ───────────────────────────────────────
-      { nombre: 'Administrador',                    email: 'a@b.com',                        password: 'admin123',   rol: UserRole.JEFE_GRUPO },
+      { nombre: 'Administrador',                    email: 'a@b.com',                        rol: UserRole.ADMINISTRADOR },
 
       // ── Grupo ────────────────────────────────────────────────
-      { nombre: 'Maria Elena Padilla Hernández',    email: 'mariapadilla@scouts.mx',          password: 'scouts123',  rol: UserRole.JEFE_GRUPO },
-      { nombre: 'Ethel Joyarit Vargas Silva',       email: 'ethelvargas@scouts.mx',           password: 'scouts123',  rol: UserRole.COLABORADOR_GRUPO },
+      { nombre: 'Maria Elena Padilla Hernández',    email: 'mariapadilla@scouts.mx',          rol: UserRole.JEFE_GRUPO },
+      { nombre: 'Ethel Joyarit Vargas Silva',       email: 'ethelvargas@scouts.mx',           rol: UserRole.COLABORADOR_GRUPO },
 
       // ── Manada ───────────────────────────────────────────────
-      { nombre: 'Janin',                            email: 'janin@scouts.mx',                 password: 'scouts123',  rol: UserRole.JEFE_MANADA },
-      { nombre: 'Kevin',                            email: 'kevin@scouts.mx',                 password: 'scouts123',  rol: UserRole.SUB_JEFE_MANADA },
+      { nombre: 'Janin',                            email: 'janin@scouts.mx',                 rol: UserRole.JEFE_MANADA },
+      { nombre: 'Kevin',                            email: 'kevin@scouts.mx',                 rol: UserRole.SUB_JEFE_MANADA },
 
       // ── Tropa ────────────────────────────────────────────────
-      { nombre: 'Jahir',                            email: 'jahir@scouts.mx',                 password: 'scouts123',  rol: UserRole.JEFE_TROPA },
+      { nombre: 'Jahir',                            email: 'jahir@scouts.mx',                 rol: UserRole.JEFE_TROPA },
 
       // ── Comunidad ────────────────────────────────────────────
-      { nombre: 'Mario Eduardo Sánchez Mejía',      email: 'mario@scouts.mx',        password: 'scouts123',   rol: UserRole.JEFE_COMUNIDAD },
-      { nombre: 'Felipe de Jesús Sánchez Mejía',   email: 'felipesanchez@scouts.mx',          password: 'scouts123',  rol: UserRole.SUB_JEFE_COMUNIDAD },
+      { nombre: 'Mario Eduardo Sánchez Mejía',      email: 'mario@scouts.mx',        rol: UserRole.JEFE_COMUNIDAD },
+      { nombre: 'Felipe de Jesús Sánchez Mejía',   email: 'felipesanchez@scouts.mx',          rol: UserRole.SUB_JEFE_COMUNIDAD },
 
       // ── Clan ─────────────────────────────────────────────────
-      { nombre: 'Gabriela',                         email: 'gabriela@scouts.mx',              password: 'scouts123',  rol: UserRole.JEFE_CLAN },
+      { nombre: 'Gabriela',                         email: 'gabriela@scouts.mx',              rol: UserRole.JEFE_CLAN },
     ];
 
     for (const s of seeds) {
       const existing = await this.findByEmail(s.email);
       if (!existing) {
-        await this.create(s.nombre, s.email, s.password, s.rol);
-        console.log(`✅ Usuario creado: ${s.email}`);
+        // Sin contraseñas en el código (el repo es público): se crea con una
+        // aleatoria y el administrador la cambia/comparte de forma privada
+        await this.create(s.nombre, s.email, randomBytes(18).toString('base64url'), s.rol);
+        console.log(`✅ Usuario creado (contraseña aleatoria; cámbiala desde la cuenta admin): ${s.email}`);
       } else if (existing.rol !== s.rol) {
         await this.usersRepository.update(existing.id, { rol: s.rol });
         console.log(`✅ Rol actualizado (${s.rol}): ${s.email}`);

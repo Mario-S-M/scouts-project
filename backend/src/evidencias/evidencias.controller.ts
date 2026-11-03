@@ -11,6 +11,7 @@ import {
   UploadedFile,
   UseGuards,
   Request,
+  ForbiddenException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -19,7 +20,9 @@ import * as fs from 'fs';
 import { EvidenciasService } from './evidencias.service';
 import { CreateEvidenciaDto, ValidarEvidenciaDto } from './dto/create-evidencia.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { getSeccionFromRol } from '../common/rol-seccion.util';
+import { assertPuedeEditar, assertPuedeVer, seccionParaVer } from '../common/rol-seccion.util';
+
+const esScout = (req: any) => req.user?.rol === 'scout';
 
 @UseGuards(JwtAuthGuard)
 @Controller('evidencias')
@@ -28,22 +31,28 @@ export class EvidenciasController {
 
   @Get()
   findAll(@Query('caminanteId') caminanteId?: string, @Request() req?) {
-    const seccion = getSeccionFromRol(req.user.rol);
+    // Un joven solo ve sus propias evidencias
+    if (esScout(req)) return this.evidenciasService.findAll(req.user.id);
     return this.evidenciasService.findAll(
       caminanteId ? parseInt(caminanteId) : undefined,
-      seccion,
+      seccionParaVer(req.user) ?? undefined,
     );
   }
 
   @Get('pendientes')
   findPendientes(@Request() req) {
-    const seccion = getSeccionFromRol(req.user.rol);
-    return this.evidenciasService.findPendientes(seccion);
+    return this.evidenciasService.findPendientes(seccionParaVer(req.user) ?? undefined);
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.evidenciasService.findOne(id);
+  async findOne(@Param('id', ParseIntPipe) id: number, @Request() req) {
+    const ev = await this.evidenciasService.findOne(id);
+    if (esScout(req)) {
+      if (ev.caminanteId !== req.user.id) throw new ForbiddenException('Esta evidencia no es tuya');
+    } else {
+      assertPuedeVer(req.user, await this.evidenciasService.seccionDeCaminante(ev.caminanteId));
+    }
+    return ev;
   }
 
   @Post()
@@ -69,17 +78,34 @@ export class EvidenciasController {
   )
   async create(
     @Body() dto: CreateEvidenciaDto,
+    @Request() req,
     @UploadedFile() file?: Express.Multer.File,
   ) {
+    // El joven sube solo para sí mismo; el scouter, para jóvenes de su sección
+    const caminanteId = Number(dto.caminanteId);
+    try {
+      if (esScout(req)) {
+        if (caminanteId !== req.user.id) throw new ForbiddenException('Solo puedes subir evidencias propias');
+      } else {
+        assertPuedeEditar(req.user, await this.evidenciasService.seccionDeCaminante(caminanteId));
+      }
+    } catch (e) {
+      // Multer ya guardó el archivo; si no hay permiso, no se queda en disco
+      if (file?.path) fs.promises.unlink(file.path).catch(() => undefined);
+      throw e;
+    }
     const archivoUrl = file ? `/uploads/evidencias/${file.filename}` : undefined;
     return this.evidenciasService.create(dto, archivoUrl);
   }
 
   @Put(':id/validar')
-  validar(
+  async validar(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: ValidarEvidenciaDto,
+    @Request() req,
   ) {
+    const ev = await this.evidenciasService.findOne(id);
+    assertPuedeEditar(req.user, await this.evidenciasService.seccionDeCaminante(ev.caminanteId));
     return this.evidenciasService.validar(id, dto);
   }
 }

@@ -6,6 +6,8 @@ import * as path from 'path';
 import { CicloPrograma } from './entities/ciclo-programa.entity';
 import { ActividadCiclo } from './entities/actividad-ciclo.entity';
 import { CrearCicloDto } from './dto/ciclo-programa.dto';
+import { SeccionesService } from '../secciones/secciones.service';
+import { IdentidadPdf, tono } from '../secciones/identidad-pdf';
 
 const PdfPrinter = require('pdfmake/js/Printer').default;
 const vfsFonts    = require('pdfmake/build/vfs_fonts');
@@ -25,6 +27,19 @@ const C = {
   text:        '#1E1E2E',
   textLight:   '#374151',
 };
+
+/**
+ * Los morados y el dorado toman los colores de la sección del ciclo; se fijan al
+ * inicio de cada documento (la construcción es síncrona tras la última espera).
+ */
+function aplicarPaleta(id: IdentidadPdf) {
+  C.purple = id.principal;
+  C.purpleMid = id.principalMedio;
+  C.purpleLight = id.principalClaro;
+  C.border = tono(id.principal, 0.8);
+  C.gold = id.acentoOscuro;
+  C.goldLight = id.acentoClaro;
+}
 
 // Color por eje temático
 const EJE_COLORS: Record<string, { bg: string; text: string }> = {
@@ -53,19 +68,17 @@ function fmtSabado(isoDate: string): string {
 export class CiclosProgramaService {
   private printer:   any;
   private logoGrupo: string | null = null;
-  private logoCC:    string | null = null;
 
   constructor(
     @InjectRepository(CicloPrograma)
     private cicloRepo: Repository<CicloPrograma>,
     @InjectRepository(ActividadCiclo)
     private actividadRepo: Repository<ActividadCiclo>,
+    private readonly secciones: SeccionesService,
   ) {
     const assetsDir = path.join(__dirname, '../../public/assets');
     const grupoPath = path.join(assetsDir, 'logo_Grupo.png');
-    const ccPath    = path.join(assetsDir, 'logo_CC.png');
     if (fs.existsSync(grupoPath)) this.logoGrupo = `data:image/png;base64,${fs.readFileSync(grupoPath).toString('base64')}`;
-    if (fs.existsSync(ccPath))    this.logoCC    = `data:image/png;base64,${fs.readFileSync(ccPath).toString('base64')}`;
 
     const fontBuffers: Record<string, Buffer> = {
       'Roboto-Regular.ttf':      Buffer.from(vfsFonts['Roboto-Regular.ttf'],      'base64'),
@@ -119,8 +132,10 @@ export class CiclosProgramaService {
     return this.findOne(saved.id);
   }
 
-  findAll(): Promise<CicloPrograma[]> {
+  /** `seccion` null = todas (administrador y roles de grupo) */
+  findAll(seccion: string | null): Promise<CicloPrograma[]> {
     return this.cicloRepo.find({
+      where: seccion ? { seccion } : {},
       relations: ['creadoPor'],
       order: { createdAt: 'DESC' },
     });
@@ -143,7 +158,7 @@ export class CiclosProgramaService {
       mesInicio: dto.mesInicio,
       anio:      dto.anio,
       tipo:      dto.tipo,
-      seccion:   dto.seccion,
+      // la sección del ciclo no cambia al editarlo
     });
     await this.cicloRepo.save(ciclo);
 
@@ -189,10 +204,13 @@ export class CiclosProgramaService {
 
   // ── PDF ────────────────────────────────────────────────────────────────────
   async generatePdf(ciclo: CicloPrograma, autorNombre?: string): Promise<Buffer> {
+    const identidad = await this.secciones.identidadPdf(ciclo.seccion);
+    aplicarPaleta(identidad);
+    const logoDerecha = identidad.logoDerecha;
     const periodLabel = this.periodoLabel(ciclo);
 
     const tipoLabel = ciclo.tipo === 'trimestral' ? 'Trimestral (3 meses)' : 'Cuatrimestral (4 meses)';
-    const seccionLabel = this.seccionLabel(ciclo.seccion);
+    const seccionLabel = identidad.config ? identidad.nombre : this.seccionLabel(ciclo.seccion);
     const autor = autorNombre || 'Sin especificar';
 
     const tablaActividades = this.buildTablaActividades(ciclo);
@@ -204,7 +222,7 @@ export class CiclosProgramaService {
       defaultStyle: { font: 'Roboto', fontSize: 10, color: C.text },
       images: {
         ...(this.logoGrupo ? { logoGrupo: this.logoGrupo } : {}),
-        ...(this.logoCC    ? { logoCC:    this.logoCC    } : {}),
+        ...(logoDerecha ? { logoDerecha } : {}),
       },
       content: [
         // ── Encabezado ──────────────────────────────────────────────────────
@@ -236,8 +254,10 @@ export class CiclosProgramaService {
               margin: [10, 0, 10, 0],
             },
             // Logo CC (derecha)
-            this.logoCC
-              ? { image: 'logoCC', width: 55, alignment: 'center', margin: [10, 0, 0, 0] }
+            logoDerecha
+              ? identidad.logoDerechaHorizontal
+                ? { image: 'logoDerecha', width: 110, alignment: 'center', margin: [10, 0, 0, 0] }
+                : { image: 'logoDerecha', width: 50, height: 50, alignment: 'center', margin: [10, 0, 0, 0] }
               : { width: 55, text: '' },
           ],
           margin: [0, 0, 0, 8],
@@ -411,6 +431,9 @@ export class CiclosProgramaService {
   }
 
   async generatePdfAnual(ciclos: CicloPrograma[], anio: number, seccion: string, autorNombre?: string): Promise<Buffer> {
+    const identidad = await this.secciones.identidadPdf(seccion);
+    aplicarPaleta(identidad);
+    const logoDerecha = identidad.logoDerecha;
     const totalFines = ciclos.reduce((n, c) => n + c.actividades.length, 0);
     const autor = autorNombre || 'Sin especificar';
 
@@ -423,7 +446,7 @@ export class CiclosProgramaService {
           width: '*',
           stack: [
             { text: `CICLO DE PROGRAMA ANUAL ${anio}`, fontSize: 20, bold: true, color: C.purple },
-            { text: this.seccionLabel(seccion), fontSize: 14, bold: true, color: C.text, margin: [0, 2, 0, 0] },
+            { text: identidad.config ? identidad.nombre : this.seccionLabel(seccion), fontSize: 14, bold: true, color: C.text, margin: [0, 2, 0, 0] },
           ],
         },
         {
@@ -436,8 +459,10 @@ export class CiclosProgramaService {
           alignment: 'right',
           margin: [10, 0, 10, 0],
         },
-        this.logoCC
-          ? { image: 'logoCC', width: 55, alignment: 'center', margin: [10, 0, 0, 0] }
+        logoDerecha
+          ? identidad.logoDerechaHorizontal
+            ? { image: 'logoDerecha', width: 110, alignment: 'center', margin: [10, 0, 0, 0] }
+            : { image: 'logoDerecha', width: 50, height: 50, alignment: 'center', margin: [10, 0, 0, 0] }
           : { width: 55, text: '' },
       ],
       margin: [0, 0, 0, 8],
@@ -472,7 +497,7 @@ export class CiclosProgramaService {
       defaultStyle: { font: 'Roboto', fontSize: 10, color: C.text },
       images: {
         ...(this.logoGrupo ? { logoGrupo: this.logoGrupo } : {}),
-        ...(this.logoCC    ? { logoCC:    this.logoCC    } : {}),
+        ...(logoDerecha ? { logoDerecha } : {}),
       },
       content: [encabezado, linea, ...secciones, ...this.buildLeyendaPie()],
       styles: {

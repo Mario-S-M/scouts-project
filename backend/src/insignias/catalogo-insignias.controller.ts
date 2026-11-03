@@ -26,6 +26,7 @@ import { UserRole } from '../users/entities/user.entity';
  */
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(
+  UserRole.ADMINISTRADOR,
   UserRole.JEFE_GRUPO,
   UserRole.JEFE_MANADA,
   UserRole.SUB_JEFE_MANADA,
@@ -53,14 +54,19 @@ export class CatalogoInsigniasController {
     return this.catalogoService.findAll(!incluir);
   }
 
+  // El catálogo es de la progresión de Caminantes: lo editan el administrador
+  // y la jefatura de Comunidad (el @Roles del método reemplaza al de la clase)
+
   /** Alta de un ítem */
   @Post()
+  @Roles(UserRole.ADMINISTRADOR, UserRole.JEFE_COMUNIDAD, UserRole.SUB_JEFE_COMUNIDAD)
   create(@Body() dto: CrearCatalogoInsigniaDto) {
     return this.catalogoService.create(dto);
   }
 
   /** Edición de un ítem */
   @Put(':id')
+  @Roles(UserRole.ADMINISTRADOR, UserRole.JEFE_COMUNIDAD, UserRole.SUB_JEFE_COMUNIDAD)
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: ActualizarCatalogoInsigniaDto,
@@ -70,6 +76,7 @@ export class CatalogoInsigniasController {
 
   /** Borrado lógico: deja la fila con activo = false */
   @Delete(':id')
+  @Roles(UserRole.ADMINISTRADOR, UserRole.JEFE_COMUNIDAD, UserRole.SUB_JEFE_COMUNIDAD)
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.catalogoService.remove(id);
   }

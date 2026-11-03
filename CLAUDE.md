@@ -88,7 +88,7 @@ cd ../frontend && npm install && npm start
 docker-compose up -d
 # Frontend: http://localhost:4200
 # Backend API: http://localhost:3000/api
-# PGAdmin: http://localhost:5050 (login: a@b.com / scouts123)
+# PGAdmin: http://localhost:5050 (credenciales en docker-compose.yml, solo local)
 ```
 
 ### Backend
@@ -136,11 +136,14 @@ docker-compose exec postgres psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABA
 ## Authentication & Authorization
 
 ### Seed Accounts (created automatically on backend start)
-- `mayitolalito@hotmail.com` / `mario123` → `sub_jefe_seccion`
-- `a@b.com` / `admin123` → `jefe_grupo` (full access + user management)
+- El backend crea las cuentas base que falten (`users.service.ts → seedUsers`) con una
+  contraseña **aleatoria**; nunca escribir contraseñas en el repo (es público).
+- `a@b.com` → `administrador` (soporte: ve y edita todas las secciones, gestiona cuentas).
+- Las contraseñas reales se administran desde la cuenta admin (página Usuarios o MCP).
 
 ### User Roles
-- `jefe_grupo`: Full access, can manage users
+- `administrador`: Full access to all sections, manages users and section identity
+- `jefe_grupo`: Sees all sections (read-only for section data)
 - `jefe_manada`, `jefe_tropa`, `jefe_comunidad`, `jefe_clan`: Section/Clan leaders
 - `sub_jefe_*`: Deputy roles
 - `contador_grupo`: Finance-related roles

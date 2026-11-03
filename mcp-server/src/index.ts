@@ -8,7 +8,9 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { api, apiBinary, usuarioActual, API_URL } from './api.js';
+import { api, apiBinary, apiUpload, usuarioActual, API_URL } from './api.js';
+import * as fsp from 'node:fs/promises';
+import * as pathMod from 'node:path';
 import { guardarEnDrive, carpetas } from './drive.js';
 import { docxAPdf } from './convertir.js';
 import { enlaceWhatsApp, mensajeAviso, mensajeCiclo, mensajeGenerico } from './whatsapp.js';
@@ -71,8 +73,8 @@ server.registerTool('quien_soy', {
 }, tool(async () => ({ servidor: API_URL, usuario: await usuarioActual() })));
 
 server.registerTool('listar_caminantes', {
-  title: 'Listar caminantes',
-  description: 'Lista los jóvenes (caminantes/scouts) registrados con su sección, CUM y fecha de nacimiento. Úsalo para armar participantes de avisos o solicitudes de insignias.',
+  title: 'Listar jóvenes',
+  description: 'Lista los jóvenes de la sección (lobatos y lobeznas, scouts, caminantes o rovers) con su sección, CUM y fecha de nacimiento. Un scouter solo ve los de su sección. Úsalo para armar participantes de avisos o solicitudes.',
   inputSchema: { seccion: seccion.optional() },
   annotations: LECTURA,
 }, tool(async ({ seccion }: { seccion?: string }) => {
@@ -82,14 +84,16 @@ server.registerTool('listar_caminantes', {
 }));
 
 server.registerTool('ver_caminante', {
-  title: 'Ver caminante',
-  description: 'Detalle de un caminante con su progreso (senderos, especialidades, etc.).',
+  title: 'Ver joven',
+  description: 'Detalle de un joven con sus papás/tutores y, si su sección usa progresión (Comunidad), su progreso.',
   inputSchema: { id: z.number().int() },
   annotations: LECTURA,
-}, tool(async ({ id }: { id: number }) => ({
-  caminante: await api('GET', `/caminantes/${id}`),
-  progreso: await api('GET', `/caminantes/${id}/progreso`),
-})));
+}, tool(async ({ id }: { id: number }) => {
+  const caminante: any = await api('GET', `/caminantes/${id}`);
+  const tutores = await api('GET', `/caminantes/${id}/tutores`);
+  const progreso = caminante.seccion === 'comunidad' ? await api('GET', `/caminantes/${id}/progreso`) : undefined;
+  return { caminante, tutores, progreso };
+}));
 
 server.registerTool('listar_staff', {
   title: 'Listar staff',
@@ -168,6 +172,7 @@ function mezclar(a: any, b: any): any {
 }
 
 const avisoSchema = {
+  seccion: seccion.optional().describe('Solo para la cuenta de administrador: sección dueña del aviso (obligatoria al crear). Un scouter usa siempre la suya'),
   tipo: z.enum(['Excursión', 'Campamento', 'Hike', 'Actividad de Sección', 'Reunión Intergrupal', 'Evento Provincial', 'Jamboree', 'Otro']),
   nombre: z.string().describe('Nombre de la actividad'),
   salida: movimiento,
@@ -195,8 +200,8 @@ async function armarAviso(a: AvisoArgs, previo?: any) {
   if (!a.participantesIds && previo?.participantes) {
     participantes = previo.participantes;
   } else if (!a.participantesIds) {
-    // Por defecto: todos los caminantes activos de la sección del usuario
-    const seccion = seccionDeRol((await usuarioActual()).rol);
+    // Por defecto: todos los jóvenes activos de la sección del aviso
+    const seccion = seccionDeRol((await usuarioActual()).rol) ?? a.seccion ?? previo?.seccion ?? null;
     participantes = todos
       .filter(c => c.activo !== false && (!seccion || c.seccion === seccion))
       .sort((x, y) => `${x.apellidos} ${x.nombre}`.localeCompare(`${y.apellidos} ${y.nombre}`, 'es'))
@@ -586,5 +591,136 @@ server.registerTool('mensaje_whatsapp_papas', {
   const texto = mensajeGenerico(titulo, cuerpo, link ?? null);
   return { mensajeWhatsApp: texto, enlaceWhatsApp: enlaceWhatsApp(texto) };
 }));
+
+
+// ── Jóvenes, papás y secciones (cualquier scouter, siempre en su sección) ──────
+const tutorSchema = z.object({
+  nombre: z.string(),
+  parentesco: z.string().optional().describe('Mamá, papá, abuela, tutor…'),
+  telefono: z.string().optional(),
+  email: z.string().optional(),
+});
+
+server.registerTool('registrar_joven', {
+  title: 'Registrar joven',
+  description: 'Da de alta a un joven (lobato/lobezna, scout, caminante o rover) y, opcionalmente, a sus papás (máximo 2). Un scouter registra solo en su sección; el administrador debe indicar la sección.',
+  inputSchema: {
+    nombre: z.string(),
+    apellidos: z.string(),
+    seccion: seccion.optional().describe('Obligatoria para el administrador'),
+    cum: z.string().optional(),
+    fechaNacimiento: fecha.optional(),
+    email: z.string().optional(),
+    equipo: z.string().optional().describe('Seisena, patrulla, equipo…'),
+    fechaPromesa: fecha.optional(),
+    fechaPaseInicio: fecha.optional(),
+    tutores: z.array(tutorSchema).max(2).optional(),
+  },
+  annotations: ESCRITURA,
+}, tool(async ({ tutores, ...datos }: any) => {
+  const c: any = await api('POST', '/caminantes', datos);
+  const t = tutores?.length ? await api('PUT', `/caminantes/${c.id}/tutores`, { tutores }) : [];
+  return { id: c.id, nombre: `${c.nombre} ${c.apellidos}`, seccion: c.seccion, tutores: t };
+}));
+
+server.registerTool('actualizar_joven', {
+  title: 'Actualizar joven',
+  description: 'Cambia datos de un joven (solo los campos enviados). Cambiar de sección solo lo hace el administrador.',
+  inputSchema: {
+    id: z.number().int(),
+    nombre: z.string().optional(), apellidos: z.string().optional(), seccion: seccion.optional(),
+    cum: z.string().optional(), fechaNacimiento: fecha.optional(), email: z.string().optional(),
+    equipo: z.string().optional(), fechaPromesa: fecha.optional(), fechaPaseInicio: fecha.optional(),
+  },
+  annotations: ESCRITURA,
+}, tool(async ({ id, ...cambios }: any) => {
+  const c: any = await api('PUT', `/caminantes/${id}`, cambios);
+  return { id: c.id, nombre: `${c.nombre} ${c.apellidos}`, seccion: c.seccion };
+}));
+
+server.registerTool('guardar_tutores', {
+  title: 'Guardar papás / tutores',
+  description: 'Reemplaza los papás/tutores de un joven (máximo 2). Manda la lista completa; usa ver_caminante antes para conservar los existentes.',
+  inputSchema: { id: z.number().int().describe('Id del joven'), tutores: z.array(tutorSchema).max(2) },
+  annotations: ESCRITURA,
+}, tool(({ id, tutores }: any) => api('PUT', `/caminantes/${id}/tutores`, { tutores })));
+
+server.registerTool('ver_secciones', {
+  title: 'Ver secciones',
+  description: 'Nombres (vocabulario: lobatos y lobeznas, scouts, caminantes, rovers), colores, logo y si usan progresión, por sección.',
+  inputSchema: {},
+  annotations: LECTURA,
+}, tool(() => api('GET', '/secciones')));
+
+// ── Herramientas de administrador (solo si la cuenta conectada lo es) ─────────
+const rolConectado = await usuarioActual().then(u => u.rol).catch(() => null);
+
+if (rolConectado === 'administrador') {
+  const ROLES_STAFF = ['administrador', 'jefe_grupo', 'sub_jefe_grupo', 'colaborador_grupo', 'contador_grupo', 'secretario_grupo',
+    'jefe_manada', 'sub_jefe_manada', 'jefe_tropa', 'sub_jefe_tropa', 'jefe_comunidad', 'sub_jefe_comunidad', 'jefe_clan', 'sub_jefe_clan'] as const;
+
+  server.registerTool('listar_usuarios', {
+    title: 'Listar cuentas de scouters',
+    description: 'Todas las cuentas de la app (sin contraseñas) con su rol y si están activas.',
+    inputSchema: { incluirJovenes: z.boolean().default(false) },
+    annotations: LECTURA,
+  }, tool(async ({ incluirJovenes }: { incluirJovenes: boolean }) => {
+    const us: any[] = await api('GET', '/usuarios');
+    return us.filter(u => incluirJovenes || u.rol !== 'scout')
+      .map(u => ({ id: u.id, nombre: u.nombre, email: u.email, rol: u.rol, activo: u.activo }));
+  }));
+
+  server.registerTool('crear_scouter', {
+    title: 'Crear cuenta de scouter',
+    description: 'Crea la cuenta de un scouter (p. ej. jefe_manada). Pide al usuario el correo y una contraseña inicial; recuérdale que la comparta de forma privada.',
+    inputSchema: { nombre: z.string(), email: z.string(), password: z.string().min(6), rol: z.enum(ROLES_STAFF) },
+    annotations: ESCRITURA,
+  }, tool(async (d: any) => {
+    const u: any = await api('POST', '/usuarios', d);
+    return { id: u.id, nombre: u.nombre, email: u.email, rol: u.rol };
+  }));
+
+  server.registerTool('actualizar_scouter', {
+    title: 'Actualizar cuenta de scouter',
+    description: 'Cambia nombre, correo, rol, contraseña o activa/desactiva una cuenta de scouter.',
+    inputSchema: {
+      id: z.number().int(), nombre: z.string().optional(), email: z.string().optional(),
+      password: z.string().min(6).optional(), rol: z.enum(ROLES_STAFF).optional(), activo: z.boolean().optional(),
+    },
+    annotations: ESCRITURA,
+  }, tool(async ({ id, ...cambios }: any) => {
+    const u: any = await api('PATCH', `/usuarios/${id}`, cambios);
+    return { id: u.id, nombre: u.nombre, email: u.email, rol: u.rol, activo: u.activo };
+  }));
+
+  const hex = z.string().regex(/^#[0-9A-Fa-f]{6}$/).describe('Color #RRGGBB');
+  server.registerTool('configurar_seccion', {
+    title: 'Configurar sección',
+    description: 'Cambia el vocabulario (nombres de la sección y de sus jóvenes, cargos), los colores o si usa progresión de una sección. Se refleja en el menú, las pantallas y los PDFs.',
+    inputSchema: {
+      clave: z.enum(['grupo', 'manada', 'tropa', 'comunidad', 'clan']),
+      nombreCompleto: z.string().optional(), nombreCorto: z.string().optional(),
+      jovenSingular: z.string().optional(), jovenPlural: z.string().optional(),
+      cargoJefe: z.string().optional(), cargoSubjefe: z.string().optional(),
+      colorPrincipal: hex.optional(), colorOscuro: hex.optional(), colorAcento: hex.optional(), colorTextoAcento: hex.optional(),
+      progresionHabilitada: z.boolean().optional(),
+    },
+    annotations: ESCRITURA,
+  }, tool(({ clave, ...cambios }: any) => api('PUT', `/secciones/${clave}`, cambios)));
+
+  server.registerTool('subir_logo_seccion', {
+    title: 'Subir logo de sección',
+    description: 'Sube el logo de una sección desde un archivo de la computadora (PNG, JPG o WEBP, idealmente cuadrado). Aparece en el menú y en los documentos de esa sección.',
+    inputSchema: {
+      clave: z.enum(['grupo', 'manada', 'tropa', 'comunidad', 'clan']),
+      archivo: z.string().describe('Ruta absoluta del archivo de imagen'),
+    },
+    annotations: ESCRITURA,
+  }, tool(async ({ clave, archivo }: { clave: string; archivo: string }) => {
+    const contenido = await fsp.readFile(archivo);
+    const s: any = await apiUpload(`/secciones/${clave}/logo`, 'logo', pathMod.basename(archivo), contenido);
+    return { clave: s.clave, logo: s.logo };
+  }));
+}
 
 await server.connect(new StdioServerTransport());

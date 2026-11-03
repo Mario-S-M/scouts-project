@@ -8,13 +8,16 @@
 import { AvisoSalidaDto, ParticipanteDto } from './dto/aviso-salida.dto';
 import { fechaCorta, fechaLarga, hora } from './aviso-formato';
 
-// ── Identidad de la Comunidad ────────────────────────────────────────────────
+// ── Paleta ───────────────────────────────────────────────────────────────────
+// `navy` y `gold` son el color principal y el acento de la sección del aviso;
+// se fijan al inicio de cada documento con aplicarIdentidad (la construcción
+// del documento es síncrona, así que no se mezclan entre peticiones).
 export const K = {
   navy: '#14265C',
-  navy2: '#22387A',
   navyLight: '#E8ECF6',
   gold: '#EFC02F',
   goldLight: '#FDF5D6',
+  sobreGold: '#14265C',
   page: '#F4F6FB',
   card: '#FFFFFF',
   border: '#D9DEEA',
@@ -23,18 +26,55 @@ export const K = {
   input: '#F7F8FB',
 };
 
+/** Colores de los chips de asistentes por sección */
 const SECCIONES: Record<string, { label: string; bg: string; fg: string }> = {
-  manada: { label: 'Lobatos', bg: '#FBBF24', fg: '#3A2A00' },
+  manada: { label: 'Lobatos y lobeznas', bg: '#FBBF24', fg: '#3A2A00' },
   tropa: { label: 'Scouts', bg: '#16A34A', fg: '#FFFFFF' },
   comunidad: { label: 'Caminantes', bg: '#2563EB', fg: '#FFFFFF' },
   clan: { label: 'Rovers', bg: '#DC2626', fg: '#FFFFFF' },
 };
 
+/** Identidad de la sección dueña del documento (de secciones_config) */
+export interface IdentidadSeccion {
+  nombreCompleto: string;
+  colorPrincipal: string;
+  colorAcento: string;
+  colorTextoAcento: string;
+}
+
 export interface ContextoPdf {
   logoGrupo: string | null;
+  /** Logo horizontal de la Comunidad (con texto) */
   logoCC: string | null;
+  /** Logo cuadrado de otra sección, si lo subió el administrador */
+  logoSeccion?: string | null;
   mapImage?: string | null;
+  identidad?: IdentidadSeccion | null;
+  /** Nombre en plural de los jóvenes por sección: { manada: 'lobatos y lobeznas', … } */
+  plurales?: Record<string, string>;
 }
+
+/** Mezcla un color con blanco (t = 0 → color, 1 → blanco) */
+function aclarar(hex: string, t: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  const c = [n >> 16, (n >> 8) & 255, n & 255].map((v) => Math.round(v + (255 - v) * t));
+  return '#' + c.map((v) => v.toString(16).padStart(2, '0')).join('');
+}
+
+function aplicarIdentidad(ctx: ContextoPdf) {
+  const id = ctx.identidad;
+  K.navy = id?.colorPrincipal ?? '#14265C';
+  K.gold = id?.colorAcento ?? '#EFC02F';
+  K.sobreGold = id?.colorTextoAcento ?? '#14265C';
+  K.navyLight = aclarar(K.navy, 0.9);
+  K.goldLight = aclarar(K.gold, 0.82);
+  for (const [k, plural] of Object.entries(ctx.plurales ?? {})) {
+    if (SECCIONES[k]) SECCIONES[k].label = plural.charAt(0).toUpperCase() + plural.slice(1);
+  }
+}
+
+const subtitulo = (ctx: ContextoPdf) =>
+  `PROVINCIA MICHOACÁN  ·  GRUPO 7 MORELIA${ctx.identidad ? '  ·  ' + ctx.identidad.nombreCompleto.toUpperCase() : ''}`;
 
 // ── Primitivas ───────────────────────────────────────────────────────────────
 
@@ -127,7 +167,16 @@ function encabezado(ctx: ContextoPdf, ancho: number, subtitulo: string): any {
                 { image: 'logoCC', width: 108, relativePosition: { x: 4, y: 2 } },
               ],
             }
-            : { text: '', width: 10 },
+            : ctx.logoSeccion
+              ? {
+                width: 58,
+                margin: [0, 9, 12, 0],
+                stack: [
+                  { relativePosition: { x: 0, y: 0 }, canvas: [{ type: 'rect', x: 0, y: 0, w: 46, h: 46, r: 23, color: '#FFFFFF' }] },
+                  { image: 'logoSeccion', width: 40, height: 40, relativePosition: { x: 3, y: 3 } },
+                ],
+              }
+              : { text: '', width: 10 },
         ],
       },
       { canvas: [{ type: 'line', x1: 0, y1: alto, x2: 0.01, y2: alto, lineWidth: 0, lineColor: K.navy }] },
@@ -145,6 +194,7 @@ const A4_ANCHO = 595.28;
 const M = 30;
 
 export function documentoAviso(dto: AvisoSalidaDto, ctx: ContextoPdf): any {
+  aplicarIdentidad(ctx);
   const W = A4_ANCHO - M * 2;
   const gap = 10;
   const scouters = (dto.scouters ?? []).filter((s) => s.nombre?.trim());
@@ -169,8 +219,8 @@ export function documentoAviso(dto: AvisoSalidaDto, ctx: ContextoPdf): any {
         ? {
           width: 92,
           stack: [tarjeta(92, 56, [
-            { text: 'COSTO', fontSize: 7, bold: true, color: K.navy, characterSpacing: 1.1, alignment: 'center' },
-            { text: `$${costo.toLocaleString('es-MX')}`, fontSize: 20, bold: true, color: K.navy, alignment: 'center', margin: [0, 2, 0, 0] },
+            { text: 'COSTO', fontSize: 7, bold: true, color: K.sobreGold, characterSpacing: 1.1, alignment: 'center' },
+            { text: `$${costo.toLocaleString('es-MX')}`, fontSize: 20, bold: true, color: K.sobreGold, alignment: 'center', margin: [0, 2, 0, 0] },
           ], { fill: K.gold, borde: null, pad: 8, r: 12 })],
         }
         : { width: 0, text: '' },
@@ -273,6 +323,7 @@ export function documentoAviso(dto: AvisoSalidaDto, ctx: ContextoPdf): any {
   if (ctx.mapImage) images.mapImg = ctx.mapImage;
   if (ctx.logoGrupo) images.logoGrupo = ctx.logoGrupo;
   if (ctx.logoCC) images.logoCC = ctx.logoCC;
+  if (ctx.logoSeccion) images.logoSeccion = ctx.logoSeccion;
 
   return {
     pageSize: 'A4',
@@ -280,7 +331,7 @@ export function documentoAviso(dto: AvisoSalidaDto, ctx: ContextoPdf): any {
     background: (_p: number, size: any) => ({ canvas: [{ type: 'rect', x: 0, y: 0, w: size.width, h: size.height, color: K.page }] }),
     footer: (pagina: number, totalPaginas: number) => ({
       columns: [
-        { text: 'Comunidad de Caminantes · Grupo 7 Morelia', fontSize: 7, color: K.muted },
+        { text: `${ctx.identidad?.nombreCompleto ?? 'Grupo Scout 7'} · Grupo 7 Morelia`, fontSize: 7, color: K.muted },
         { text: `${pagina} / ${totalPaginas}`, fontSize: 7, color: K.muted, alignment: 'right' },
       ],
       margin: [M, 12, M, 0],
@@ -288,7 +339,7 @@ export function documentoAviso(dto: AvisoSalidaDto, ctx: ContextoPdf): any {
     defaultStyle: { font: 'Roboto', fontSize: 9, color: K.text },
     images,
     content: [
-      encabezado(ctx, W, 'PROVINCIA MICHOACÁN  ·  GRUPO 7 MORELIA  ·  COMUNIDAD DE CAMINANTES'),
+      encabezado(ctx, W, subtitulo(ctx)),
       titulo,
       filaMov,
       filaInfo,
@@ -305,7 +356,7 @@ function listaAsistentes(dto: AvisoSalidaDto, W: number, scouters: any[], invita
   const bloques: any[] = [
     { columns: [
       { text: dto.nombre || 'Actividad', fontSize: 16, bold: true, color: K.navy, width: '*' },
-      chip(`${participantes.length + scouters.length + invitados.length} asistentes`, K.gold, K.navy, 8.5, 10),
+      chip(`${participantes.length + scouters.length + invitados.length} asistentes`, K.gold, K.sobreGold, 8.5, 10),
     ], margin: [2, 0, 0, 12] },
   ];
 
@@ -363,9 +414,11 @@ const CARTA_ANCHO = 612;
 const MP = 32;
 
 export function documentoPermisos(dto: AvisoSalidaDto, targets: (ParticipanteDto | null)[], ctx: ContextoPdf): any {
+  aplicarIdentidad(ctx);
   const images: Record<string, string> = {};
   if (ctx.logoGrupo) images.logoGrupo = ctx.logoGrupo;
   if (ctx.logoCC) images.logoCC = ctx.logoCC;
+  if (ctx.logoSeccion) images.logoSeccion = ctx.logoSeccion;
   const content: any[] = [];
   targets.forEach((p, i) => {
     const pagina = paginaPermiso(dto, p, ctx);
@@ -420,7 +473,7 @@ function paginaPermiso(dto: AvisoSalidaDto, p: ParticipanteDto | null, ctx: Cont
   const ca = dto.contactoActividad;
 
   return [
-    encabezado(ctx, W, 'PROVINCIA MICHOACÁN  ·  GRUPO 7 MORELIA  ·  COMUNIDAD DE CAMINANTES'),
+    encabezado(ctx, W, subtitulo(ctx)),
     {
       margin: [2, -2, 0, 10],
       columns: [
@@ -431,8 +484,8 @@ function paginaPermiso(dto: AvisoSalidaDto, p: ParticipanteDto | null, ctx: Cont
         ].filter(Boolean) },
         costo > 0
           ? { width: 80, stack: [tarjeta(80, 46, [
-            { text: 'COSTO', fontSize: 6.5, bold: true, color: K.navy, characterSpacing: 1, alignment: 'center' },
-            { text: `$${costo.toLocaleString('es-MX')}`, fontSize: 16, bold: true, color: K.navy, alignment: 'center' },
+            { text: 'COSTO', fontSize: 6.5, bold: true, color: K.sobreGold, characterSpacing: 1, alignment: 'center' },
+            { text: `$${costo.toLocaleString('es-MX')}`, fontSize: 16, bold: true, color: K.sobreGold, alignment: 'center' },
           ], { fill: K.gold, borde: null, pad: 7, r: 10 })] }
           : { width: 0, text: '' },
       ],

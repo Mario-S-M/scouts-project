@@ -7,6 +7,8 @@ import {
   ComponenteKit,
   COMPONENTES_KIT,
 } from './entities/solicitud-insignias-linea.entity';
+import { SeccionesService } from '../secciones/secciones.service';
+import { IdentidadPdf } from '../secciones/identidad-pdf';
 import {
   CategoriaCatalogo,
   CATEGORIAS_CATALOGO,
@@ -16,11 +18,11 @@ const PdfPrinter = require('pdfmake/js/Printer').default;
 const vfsFonts   = require('pdfmake/build/vfs_fonts');
 
 // ── Paleta institucional (tomada del emblema de la Comunidad: azul + oro) ────
-const AZUL     = '#14265C';  // azul marino del bordado del Grupo 7
-const AZUL_MED = '#2C4A9A';  // azul del emblema (rosa de los vientos)
-const AZUL_CLR = '#EDF1FA';  // fondo de fila alterna / encabezado de categoría
-const ORO      = '#EFC02F';  // amarillo del sol del emblema
-const ORO_OSC  = '#B8891A';  // oro oscuro para texto sobre claro
+let AZUL     = '#14265C';  // azul marino del bordado del Grupo 7
+let AZUL_MED = '#2C4A9A';  // azul del emblema (rosa de los vientos)
+let AZUL_CLR = '#EDF1FA';  // fondo de fila alterna / encabezado de categoría
+let ORO      = '#EFC02F';  // amarillo del sol del emblema
+let ORO_OSC  = '#B8891A';  // oro oscuro para texto sobre claro
 const WH       = '#FFFFFF';
 const BK       = '#1A1A1A';
 const TX_SUAVE = '#5A6478';  // texto secundario
@@ -49,6 +51,15 @@ const ETIQUETA_COMPONENTE: Record<ComponenteKit, string> = {
   flor_de_lis:  'Flor de lis',
 };
 
+/**
+ * La paleta toma los colores de la sección de la solicitud; se fija al inicio
+ * de cada documento (la construcción es síncrona tras la última espera).
+ */
+function aplicarPaleta(id: IdentidadPdf) {
+  AZUL = id.principal; AZUL_MED = id.principalMedio; AZUL_CLR = id.principalClaro;
+  ORO = id.acento; ORO_OSC = id.acentoOscuro;
+}
+
 /** Etiquetas legibles de las secciones del Grupo */
 const ETIQUETA_SECCION: Record<string, string> = {
   manada:    'Manada de Lobatos',
@@ -76,9 +87,8 @@ interface GrupoCategoria {
 export class SolicitudesPdfService {
   private printer:   any;
   private logoGrupo: string | null = null;
-  private logoCC:    string | null = null;
 
-  constructor() {
+  constructor(private readonly secciones: SeccionesService) {
     const fontBuffers: Record<string, Buffer> = {
       'Roboto-Regular.ttf':      Buffer.from(vfsFonts['Roboto-Regular.ttf'],      'base64'),
       'Roboto-Medium.ttf':       Buffer.from(vfsFonts['Roboto-Medium.ttf'],       'base64'),
@@ -96,10 +106,8 @@ export class SolicitudesPdfService {
     const pick = (...names: string[]) =>
       names.map(n => path.join(assetsDir, n)).find(f => fs.existsSync(f)) ?? null;
     const grupoPath = pick('logo_Grupo_pdf.png', 'logo_Grupo.png');
-    const ccPath    = pick('logo_CC_pdf.png',    'logo_CC.png');
     if (grupoPath) this.logoGrupo = `data:image/png;base64,${fs.readFileSync(grupoPath).toString('base64')}`;
-    if (ccPath)    this.logoCC    = `data:image/png;base64,${fs.readFileSync(ccPath).toString('base64')}`;
-    if (!grupoPath || !ccPath) {
+    if (!grupoPath) {
       // eslint-disable-next-line no-console
       console.warn(`[SolicitudesPdfService] Logos no encontrados en ${assetsDir}; el PDF usará el escudo de respaldo.`);
     }
@@ -202,10 +210,13 @@ export class SolicitudesPdfService {
 
     const caminanteNombre = this.nombreCompleto(
       sol.caminante,
-      sol.caminanteId ? `Caminante #${sol.caminanteId}` : '—',
+      sol.caminanteId ? `Joven #${sol.caminanteId}` : '—',
     );
     const solicitanteNombre = this.nombreCompleto(sol.solicitante);
-    const seccionLabel = this.seccionLabel(sol.seccion ?? sol.caminante?.seccion);
+    const identidad = await this.secciones.identidadPdf(sol.seccion ?? sol.caminante?.seccion);
+    aplicarPaleta(identidad);
+    const seccionLabel = identidad.config ? identidad.nombre : this.seccionLabel(sol.seccion ?? sol.caminante?.seccion);
+    const logoDerecha = identidad.logoDerecha;
     const fechaLabel   = this.fmtFecha(sol.fecha);
     const observaciones = (sol.observaciones ?? '').toString().trim() || 'Sin observaciones.';
     const folio = sol.id ? `FOLIO ${String(sol.id).padStart(4, '0')}` : 'BORRADOR';
@@ -295,7 +306,7 @@ export class SolicitudesPdfService {
       defaultStyle: { font: 'Roboto', fontSize: 9, color: BK },
       images: {
         ...(this.logoGrupo ? { logoGrupo: this.logoGrupo } : {}),
-        ...(this.logoCC    ? { logoCC:    this.logoCC    } : {}),
+        ...(logoDerecha ? { logoDerecha } : {}),
       },
       // ─ Pie de página: identidad, fecha de elaboración y folio de página ─
       footer: (currentPage: number, pageCount: number) => ({
@@ -352,8 +363,10 @@ export class SolicitudesPdfService {
                     ], margin: [0, 0, 0, 9] },
                 ],
               },
-              this.logoCC
-                ? { image: 'logoCC', width: 84, alignment: 'center', margin: [2, 8, 2, 8] }
+              logoDerecha
+                ? identidad.logoDerechaHorizontal
+                  ? { image: 'logoDerecha', width: 84, alignment: 'center', margin: [2, 8, 2, 8] }
+                  : { image: 'logoDerecha', width: 52, height: 52, alignment: 'center', margin: [2, 8, 2, 8] }
                 : { text: '⚜', fontSize: 26, color: ORO, alignment: 'center', margin: [0, 14, 0, 14] },
             ]],
           },

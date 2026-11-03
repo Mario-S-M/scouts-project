@@ -18,11 +18,12 @@
             <i class="pi pi-users" style="font-size: 2.5rem;"></i>
           </div>
           <div class="stat-number text-green-700">{{ stats.totalCaminantes }}</div>
-          <div class="stat-label">Caminantes Registrados</div>
+          <div class="stat-label">{{ 'Plural' | termino }} registrados</div>
         </div>
       </p-card>
     </div>
 
+    <ng-container *ngIf="conProgresion">
     <div class="col-12 md:col-6 lg:col-3">
       <p-card styleClass="stat-card border-round-lg shadow-2">
         <div class="text-center">
@@ -58,13 +59,14 @@
         </div>
       </p-card>
     </div>
+    </ng-container>
   </div>
 
   <!-- Insignias breakdown + Recent activity -->
   <div class="grid">
 
     <!-- Insignias Breakdown -->
-    <div class="col-12 lg:col-4">
+    <div class="col-12 lg:col-4" *ngIf="conProgresion">
       <p-card header="Insignias por Tipo" styleClass="h-full shadow-2">
         <div class="flex flex-column gap-3">
           <div class="flex align-items-center justify-content-between p-3 border-round"
@@ -123,15 +125,15 @@
 
     <!-- Recent Caminantes -->
     <div class="col-12 lg:col-4">
-      <p-card header="Caminantes Recientes" styleClass="h-full shadow-2">
+      <p-card [header]="('Plural' | termino) + ' recientes'" styleClass="h-full shadow-2">
         <div *ngIf="stats.recentCaminantes.length === 0" class="text-center text-color-secondary p-3">
           <i class="pi pi-users text-4xl mb-2 block"></i>
-          <p>No hay caminantes registrados aún.</p>
+          <p>No hay {{ 'plural' | termino }} registrados aún.</p>
         </div>
         <div *ngFor="let c of stats.recentCaminantes"
              class="flex align-items-center gap-3 p-2 border-bottom-1 surface-border">
           <div class="avatar-circle flex-shrink-0" style="width:40px;height:40px;font-size:1rem;">
-            {{ c.nombre.charAt(0) }}{{ c.apellidos.charAt(0) }}
+            {{ c.nombre?.charAt(0) }}{{ c.apellidos?.charAt(0) }}
           </div>
           <div class="flex-1 min-w-0">
             <div class="font-semibold text-sm white-space-nowrap overflow-hidden text-overflow-ellipsis">
@@ -144,7 +146,7 @@
     </div>
 
     <!-- Recent Evidencias -->
-    <div class="col-12 lg:col-4">
+    <div class="col-12 lg:col-4" *ngIf="conProgresion">
       <p-card header="Actividad Reciente" styleClass="h-full shadow-2">
         <div *ngIf="stats.recentEvidencias.length === 0" class="text-center text-color-secondary p-3">
           <i class="pi pi-inbox text-4xl mb-2 block"></i>

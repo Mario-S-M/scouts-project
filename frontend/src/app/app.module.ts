@@ -11,11 +11,13 @@ import { AppComponent } from './app.component';
 import { CoreModule } from './core/core.module';
 import { AuthInterceptor } from './core/interceptors/auth.interceptor';
 
-// PrimeNG needed at root level for p-toast and p-menubar
+// PrimeNG que usa el shell: toast, menús del navbar y panel del usuario
 import { MenubarModule } from 'primeng/menubar';
 import { ToastModule } from 'primeng/toast';
 import { ButtonModule } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
+import { TieredMenuModule } from 'primeng/tieredmenu';
+import { OverlayPanelModule } from 'primeng/overlaypanel';
 
 @NgModule({
   declarations: [AppComponent],
@@ -29,6 +31,8 @@ import { TooltipModule } from 'primeng/tooltip';
     ToastModule,
     ButtonModule,
     TooltipModule,
+    TieredMenuModule,
+    OverlayPanelModule,
   ],
   providers: [
     MessageService,

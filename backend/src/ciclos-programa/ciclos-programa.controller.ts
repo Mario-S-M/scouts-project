@@ -8,6 +8,7 @@ import { Response } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CiclosProgramaService } from './ciclos-programa.service';
 import { CrearCicloDto } from './dto/ciclo-programa.dto';
+import { assertPuedeEditar, assertPuedeVer, seccionParaCrear, seccionParaVer } from '../common/rol-seccion.util';
 
 @UseGuards(JwtAuthGuard)
 @Controller('ciclos-programa')
@@ -16,8 +17,8 @@ export class CiclosProgramaController {
 
   /** Listar todos los ciclos */
   @Get()
-  findAll() {
-    return this.service.findAll();
+  findAll(@Req() req: any) {
+    return this.service.findAll(seccionParaVer(req.user));
   }
 
   /** Actividades del ciclo de programa que caen en un mes/año específico */
@@ -26,7 +27,9 @@ export class CiclosProgramaController {
     @Param('seccion') seccion: string,
     @Param('anio', ParseIntPipe) anio: number,
     @Param('mes', ParseIntPipe) mes: number,
+    @Req() req: any,
   ) {
+    assertPuedeVer(req.user, seccion);
     return this.service.findActividadesMes(seccion, anio, mes);
   }
 
@@ -38,6 +41,7 @@ export class CiclosProgramaController {
     @Res() res: Response,
     @Req() req: any,
   ) {
+    assertPuedeVer(req.user, seccion);
     const ciclos = await this.service.findByAnioSeccion(anio, seccion);
     if (!ciclos.length) {
       throw new NotFoundException(`No hay ciclos en ${anio} para la sección ${seccion}`);
@@ -54,26 +58,31 @@ export class CiclosProgramaController {
 
   /** Obtener un ciclo */
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.service.findOne(id);
+  async findOne(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    const ciclo = await this.service.findOne(id);
+    assertPuedeVer(req.user, ciclo.seccion);
+    return ciclo;
   }
 
   /** Crear ciclo */
   @Post()
   create(@Body() dto: CrearCicloDto, @Req() req: any) {
     const userId = req.user?.sub ?? req.user?.id ?? 0;
+    dto.seccion = seccionParaCrear(req.user, dto.seccion);
     return this.service.create(dto, userId);
   }
 
   /** Actualizar ciclo */
   @Put(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: CrearCicloDto) {
+  async update(@Param('id', ParseIntPipe) id: number, @Body() dto: CrearCicloDto, @Req() req: any) {
+    assertPuedeEditar(req.user, (await this.service.findOne(id)).seccion);
     return this.service.update(id, dto);
   }
 
   /** Eliminar ciclo */
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
+  async remove(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    assertPuedeEditar(req.user, (await this.service.findOne(id)).seccion);
     return this.service.remove(id);
   }
 
@@ -81,6 +90,7 @@ export class CiclosProgramaController {
   @Get(':id/pdf')
   async getPdf(@Param('id', ParseIntPipe) id: number, @Res() res: Response, @Req() req: any) {
     const ciclo  = await this.service.findOne(id);
+    assertPuedeVer(req.user, ciclo.seccion);
     const autor  = req.user?.nombre ?? ciclo.creadoPor?.nombre ?? '';
     const buffer = await this.service.generatePdf(ciclo, autor);
     const filename = `ciclo-programa-${ciclo.nombre.replace(/\s+/g, '-')}.pdf`;

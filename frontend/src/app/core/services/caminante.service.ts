@@ -48,4 +48,22 @@ export class CaminanteService {
     formData.append('foto', file);
     return this.http.post<Caminante>(`${this.baseUrl}/${id}/foto`, formData);
   }
+
+  getTutores(id: number): Observable<Tutor[]> {
+    return this.http.get<Tutor[]>(`${this.baseUrl}/${id}/tutores`);
+  }
+
+  /** Reemplaza los tutores del joven (máximo 2) */
+  guardarTutores(id: number, tutores: Tutor[]): Observable<Tutor[]> {
+    return this.http.put<Tutor[]>(`${this.baseUrl}/${id}/tutores`, { tutores });
+  }
+}
+
+/** Papá, mamá o tutor: datos de contacto */
+export interface Tutor {
+  id?: number;
+  nombre: string;
+  parentesco?: string;
+  telefono?: string;
+  email?: string;
 }

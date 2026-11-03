@@ -16,6 +16,8 @@ import { EspecialidadProgreso } from '../progreso/entities/especialidad-progreso
 import { SolicitudInsignias } from '../insignias/entities/solicitud-insignias.entity';
 
 import { PDFDocument } from 'pdf-lib';
+import { SeccionesService } from '../secciones/secciones.service';
+import { IdentidadPdf } from '../secciones/identidad-pdf';
 const PdfPrinter = require('pdfmake/js/Printer').default;
 const vfsFonts    = require('pdfmake/build/vfs_fonts');
 
@@ -61,12 +63,12 @@ function peso(n: number | string): string {
 }
 
 // ── Paleta institucional (tomada del emblema de la Comunidad: azul + oro) ────
-const AZUL     = '#14265C';  // azul marino del bordado del Grupo 7
-const AZUL_MED = '#2C4A9A';  // azul del emblema (rosa de los vientos)
-const AZUL_CLR = '#EDF1FA';  // fondo de fila alterna
-const ORO      = '#EFC02F';  // amarillo del sol del emblema
-const ORO_OSC  = '#B8891A';  // oro oscuro para texto sobre claro
-const ORO_CLR  = '#FDF7E6';  // fondo dorado tenue
+let AZUL     = '#14265C';  // azul marino del bordado del Grupo 7
+let AZUL_MED = '#2C4A9A';  // azul del emblema (rosa de los vientos)
+let AZUL_CLR = '#EDF1FA';  // fondo de fila alterna
+let ORO      = '#EFC02F';  // amarillo del sol del emblema
+let ORO_OSC  = '#B8891A';  // oro oscuro para texto sobre claro
+let ORO_CLR  = '#FDF7E6';  // fondo dorado tenue
 const BK = '#1A1A1A';
 const GR = '#D9D9D9';
 const WH = '#FFFFFF';
@@ -76,11 +78,19 @@ const LINEA    = '#C7D0E4';  // líneas de tabla suaves
 const VERDE    = '#1E7A46';  // ingresos
 const ROJO     = '#B3261E';  // egresos
 
+/**
+ * Los azules y dorados toman los colores de la sección del informe; se fijan al
+ * inicio de cada documento (la construcción es síncrona tras la última espera).
+ */
+function aplicarPaleta(id: IdentidadPdf) {
+  AZUL = id.principal; AZUL_MED = id.principalMedio; AZUL_CLR = id.principalClaro;
+  ORO = id.acento; ORO_OSC = id.acentoOscuro; ORO_CLR = id.acentoClaro;
+}
+
 @Injectable()
 export class InformesService {
   private printer:   any;
   private logoGrupo: string | null = null;
-  private logoCC:    string | null = null;
 
   constructor(
     @InjectRepository(InformeMensual)
@@ -103,6 +113,7 @@ export class InformesService {
     private especialidadRepo: Repository<EspecialidadProgreso>,
     @InjectRepository(SolicitudInsignias)
     private solicitudRepo: Repository<SolicitudInsignias>,
+    private readonly secciones: SeccionesService,
   ) {
     const fontBuffers: Record<string, Buffer> = {
       'Roboto-Regular.ttf':      Buffer.from(vfsFonts['Roboto-Regular.ttf'],      'base64'),
@@ -121,10 +132,8 @@ export class InformesService {
     const pick = (...names: string[]) =>
       names.map(n => path.join(assetsDir, n)).find(f => fs.existsSync(f)) ?? null;
     const grupoPath = pick('logo_Grupo_pdf.png', 'logo_Grupo.png');
-    const ccPath    = pick('logo_CC_pdf.png',    'logo_CC.png');
     if (grupoPath) this.logoGrupo = `data:image/png;base64,${fs.readFileSync(grupoPath).toString('base64')}`;
-    if (ccPath)    this.logoCC    = `data:image/png;base64,${fs.readFileSync(ccPath).toString('base64')}`;
-    if (!grupoPath || !ccPath) {
+    if (!grupoPath) {
       // eslint-disable-next-line no-console
       console.warn(`[InformesService] Logos no encontrados en ${assetsDir}; el PDF usará el escudo de respaldo.`);
     }
@@ -148,7 +157,7 @@ export class InformesService {
   async update(id: number, dto: CrearInformeDto): Promise<InformeMensual> {
     const informe = await this.findOne(id);
     Object.assign(informe, {
-      mes: dto.mes, anio: dto.anio, seccion: dto.seccion,
+      mes: dto.mes, anio: dto.anio, seccion: informe.seccion,
       totalRegistrados: dto.totalRegistrados, totalEnlace: dto.totalEnlace,
       totalCaptacion: dto.totalCaptacion, totalNoRegistrados: dto.totalNoRegistrados,
       saldoInicial: dto.saldoInicial,
@@ -183,8 +192,25 @@ export class InformesService {
         this.progresionRepo.create({ ...p, fecha: toIso(p.fecha), informeId: id })));
   }
 
-  findAll(): Promise<InformeMensual[]> {
-    return this.informeRepo.find({ relations: ['creadoPor'], order: { anio: 'DESC', mes: 'DESC' } });
+  /** `seccion` null = todas (administrador y roles de grupo) */
+  findAll(seccion: string | null): Promise<InformeMensual[]> {
+    return this.informeRepo.find({
+      where: seccion ? { seccion } : {},
+      relations: ['creadoPor'], order: { anio: 'DESC', mes: 'DESC' },
+    });
+  }
+
+  /** Sección de un informe, sin cargar sus relaciones (para el candado) */
+  async seccionDeInforme(id: number): Promise<string> {
+    const i = await this.informeRepo.findOne({ where: { id }, select: ['id', 'seccion'] });
+    if (!i) throw new NotFoundException(`Informe #${id} no encontrado`);
+    return i.seccion;
+  }
+
+  async seccionDeInventario(id: number): Promise<string> {
+    const item = await this.inventarioRepo.findOneBy({ id });
+    if (!item) throw new NotFoundException(`Item #${id} no encontrado`);
+    return item.seccion;
   }
 
   /** Último informe guardado de una sección, con saldoActual calculado */
@@ -337,7 +363,7 @@ export class InformesService {
   async updateInventarioItem(id: number, dto: InventarioItemCrudDto): Promise<InventarioItem> {
     const item = await this.inventarioRepo.findOneBy({ id });
     if (!item) throw new NotFoundException(`Item #${id} no encontrado`);
-    Object.assign(item, dto);
+    Object.assign(item, { ...dto, seccion: item.seccion });
     return this.inventarioRepo.save(item);
   }
 
@@ -398,8 +424,11 @@ export class InformesService {
     inventario: InventarioItem[],
     personas?: { jefe: string; subjefe: string; jefeGrupo: string },
   ): Promise<Buffer> {
+    const identidad = await this.secciones.identidadPdf(informe.seccion);
+    aplicarPaleta(identidad);
+    const logoDerecha = identidad.logoDerecha;
     const mesLabel = MESES[informe.mes];
-    const seccionLabel = this.seccionLabel(informe.seccion);
+    const seccionLabel = identidad.config ? identidad.nombre : this.seccionLabel(informe.seccion);
     const jefeNombre    = personas?.jefe      ?? 'Jefe de Sección';
     const subjefeNombre = personas?.subjefe   ?? 'Subjefe de Sección';
     const jefeGrupoNombre = personas?.jefeGrupo ?? 'Jefe de Grupo';
@@ -825,7 +854,7 @@ export class InformesService {
       defaultStyle: { font: 'Roboto', fontSize: 9, color: BK },
       images: {
         ...(this.logoGrupo ? { logoGrupo: this.logoGrupo } : {}),
-        ...(this.logoCC    ? { logoCC:    this.logoCC    } : {}),
+        ...(logoDerecha ? { logoDerecha } : {}),
       },
       // ─ Pie de página: identidad, fecha de elaboración y folio de página ─
       footer: (currentPage: number, pageCount: number) => ({
@@ -876,8 +905,10 @@ export class InformesService {
                     layout: 'noBorders', alignment: 'center', margin: [0, 0, 0, 9] },
                 ],
               },
-              this.logoCC
-                ? { image: 'logoCC', width: 84, alignment: 'center', margin: [2, 8, 2, 8] }
+              logoDerecha
+                ? identidad.logoDerechaHorizontal
+                  ? { image: 'logoDerecha', width: 84, alignment: 'center', margin: [2, 8, 2, 8] }
+                  : { image: 'logoDerecha', width: 52, height: 52, alignment: 'center', margin: [2, 8, 2, 8] }
                 : { text: '⚜', fontSize: 26, color: ORO, alignment: 'center', margin: [0, 14, 0, 14] },
             ]],
           },

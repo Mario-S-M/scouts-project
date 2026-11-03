@@ -5,6 +5,7 @@ import { AvisoSalidaDto } from './dto/aviso-salida.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UsersService } from '../users/users.service';
 import { ProtocoloTrasladoService } from './protocolo-traslado.service';
+import { assertPuedeEditar, assertPuedeVer, seccionDeRol, seccionParaCrear, seccionParaVer } from '../common/rol-seccion.util';
 
 @UseGuards(JwtAuthGuard)
 @Controller('avisos-salida')
@@ -30,10 +31,23 @@ export class AvisosSalidaController {
     return this.protocoloService.defaults();
   }
 
-  /** Listar todos los avisos guardados */
+  /** Avisos visibles para el usuario (su sección; todas para admin y grupo) */
   @Get()
-  findAll() {
-    return this.avisosSalidaService.findAll();
+  findAll(@Req() req: any) {
+    return this.avisosSalidaService.findAll(seccionParaVer(req.user));
+  }
+
+  /** Aviso existente que el usuario puede ver; si no, 403 */
+  private async avisoVisible(id: number, req: any) {
+    const aviso = await this.avisosSalidaService.findOne(id);
+    assertPuedeVer(req.user, aviso.seccion);
+    return aviso;
+  }
+
+  private async avisoEditable(id: number, req: any) {
+    const aviso = await this.avisosSalidaService.findOne(id);
+    assertPuedeEditar(req.user, aviso.seccion);
+    return aviso;
   }
 
   /** Guardar aviso */
@@ -41,14 +55,15 @@ export class AvisosSalidaController {
   async saveAviso(@Body() dto: AvisoSalidaDto, @Req() req: any) {
     const userId   = req.user?.sub ?? req.user?.id ?? 0;
     const userName = req.user?.nombre ?? '';
-    return this.avisosSalidaService.save(dto, userId, userName);
+    const seccion  = seccionParaCrear(req.user, dto.seccion);
+    return this.avisosSalidaService.save(dto, userId, userName, seccion);
   }
 
   /** Descargar PDF de aviso guardado */
   @Get(':id/pdf')
-  async getPdfById(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
-    const aviso  = await this.avisosSalidaService.findOne(id);
-    const buffer = await this.avisosSalidaService.generatePdf(aviso.data);
+  async getPdfById(@Param('id', ParseIntPipe) id: number, @Req() req: any, @Res() res: Response) {
+    const aviso  = await this.avisoVisible(id, req);
+    const buffer = await this.avisosSalidaService.generatePdf(aviso.data, aviso.seccion);
     const filename = `aviso-salida-${aviso.nombre.replace(/\s+/g, '-')}.pdf`;
     res.set({
       'Content-Type':        'application/pdf',
@@ -60,7 +75,8 @@ export class AvisosSalidaController {
 
   /** Descargar ZIP con permisos de salida individuales (un PDF por participante) */
   @Get(':id/permisos')
-  async getPermisosPdf(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
+  async getPermisosPdf(@Param('id', ParseIntPipe) id: number, @Req() req: any, @Res() res: Response) {
+    await this.avisoVisible(id, req);
     const { zip, nombre } = await this.avisosSalidaService.generatePermisosZip(id);
     const filename = `permisos-${nombre.replace(/\s+/g, '-')}.zip`;
     res.set({
@@ -73,8 +89,8 @@ export class AvisosSalidaController {
 
   /** Descargar permiso en blanco con datos de la actividad pero sin datos del joven */
   @Get(':id/permiso-en-blanco')
-  async getPermisoEnBlancoPdf(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
-    const aviso  = await this.avisosSalidaService.findOne(id);
+  async getPermisoEnBlancoPdf(@Param('id', ParseIntPipe) id: number, @Req() req: any, @Res() res: Response) {
+    const aviso  = await this.avisoVisible(id, req);
     const buffer = await this.avisosSalidaService.generatePermisoEnBlanco(id);
     const filename = `permiso-en-blanco-${aviso.nombre.replace(/\s+/g, '-')}.pdf`;
     res.set({
@@ -87,8 +103,8 @@ export class AvisosSalidaController {
 
   /** Protocolo de seguridad en el traslado (formato oficial CNAR, .docx) */
   @Get(':id/protocolo')
-  async getProtocolo(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
-    const aviso  = await this.avisosSalidaService.findOne(id);
+  async getProtocolo(@Param('id', ParseIntPipe) id: number, @Req() req: any, @Res() res: Response) {
+    const aviso  = await this.avisoVisible(id, req);
     const buffer = this.protocoloService.generarDocx(aviso.data);
     const filename = `protocolo-traslado-${aviso.nombre.replace(/\s+/g, '-')}.docx`;
     res.set({
@@ -101,33 +117,36 @@ export class AvisosSalidaController {
 
   /** Campos obligatorios del protocolo que faltan por llenar */
   @Get(':id/protocolo/faltantes')
-  async getProtocoloFaltantes(@Param('id', ParseIntPipe) id: number) {
-    const aviso = await this.avisosSalidaService.findOne(id);
+  async getProtocoloFaltantes(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    const aviso = await this.avisoVisible(id, req);
     return { faltantes: this.protocoloService.faltantes(aviso.data) };
   }
 
   /** Obtener un aviso por id */
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.avisosSalidaService.findOne(id);
+  findOne(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.avisoVisible(id, req);
   }
 
   /** Actualizar aviso */
   @Put(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: AvisoSalidaDto) {
+  async update(@Param('id', ParseIntPipe) id: number, @Body() dto: AvisoSalidaDto, @Req() req: any) {
+    await this.avisoEditable(id, req);
     return this.avisosSalidaService.update(id, dto);
   }
 
   /** Eliminar aviso */
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
+  async remove(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    await this.avisoEditable(id, req);
     return this.avisosSalidaService.remove(id);
   }
 
   /** Generar PDF sin guardar */
   @Post('pdf')
-  async generatePdf(@Body() dto: AvisoSalidaDto, @Res() res: Response) {
-    const buffer = await this.avisosSalidaService.generatePdf(dto);
+  async generatePdf(@Body() dto: AvisoSalidaDto, @Req() req: any, @Res() res: Response) {
+    // Vista previa: con la identidad de la sección de quien la genera (o la indicada por el admin)
+    const buffer = await this.avisosSalidaService.generatePdf(dto, dto.seccion ?? seccionDeRol(req.user?.rol));
     const filename = `aviso-salida-${(dto.nombre || 'actividad').replace(/\s+/g, '-')}.pdf`;
     res.set({
       'Content-Type':        'application/pdf',

@@ -19,6 +19,11 @@
     <!-- Actividad -->
     <p-card header="Actividad" styleClass="shadow-2 mb-3">
       <div class="grid">
+        <div class="col-12 p-field" *ngIf="esAdmin">
+          <label class="font-semibold block mb-1">Sección <span class="text-red-500">*</span></label>
+          <p-dropdown formControlName="seccion" [options]="opcionesSeccion" optionLabel="label" optionValue="value"
+                      placeholder="¿De qué sección es la salida?" styleClass="w-full"></p-dropdown>
+        </div>
         <div class="col-12 md:col-6 p-field">
           <label class="font-semibold block mb-1">Tipo <span class="text-red-500">*</span></label>
           <p-dropdown formControlName="tipo" [options]="tiposActividad"
@@ -172,7 +177,7 @@
           </div>
           <div class="col-6 md:col-4 p-field">
             <label class="text-sm block mb-1">Cargo</label>
-            <input pInputText formControlName="cargo" class="w-full" placeholder="Ej: Jefe de Comunidad" />
+            <input pInputText formControlName="cargo" class="w-full" [placeholder]="'Ej: ' + seccionService.actual().cargoJefe" />
           </div>
           <div class="col-6 md:col-3 p-field">
             <label class="text-sm block mb-1">Teléfono</label>
@@ -400,7 +405,7 @@
               <span class="font-bold text-sm px-2 py-1 border-round"
                     [style]="{'background': seccionColors[sec.key].bg,
                               'color': seccionColors[sec.key].text}">
-                {{ sec.label }}
+                {{ 'Plural' | termino: sec.key }}
               </span>
               <span class="text-xs text-color-secondary">
                 {{ selectedPorSeccion(sec.key) }}/{{ caminantesPorSeccion(sec.key).length }}
@@ -484,19 +489,19 @@
         <div class="aviso-counts-grid mt-2">
           <div class="aviso-count-row">
             <div class="aviso-count-num">{{ counts.lobatos }}</div>
-            <div class="aviso-seccion-badge" style="background:#FBBF24;color:#000">Lobatos</div>
+            <div class="aviso-seccion-badge" style="background:#FBBF24;color:#000">{{ 'Plural' | termino: 'manada' }}</div>
           </div>
           <div class="aviso-count-row">
             <div class="aviso-count-num">{{ counts.scouts }}</div>
-            <div class="aviso-seccion-badge" style="background:#16A34A;color:#fff">Scouts</div>
+            <div class="aviso-seccion-badge" style="background:#16A34A;color:#fff">{{ 'Plural' | termino: 'tropa' }}</div>
           </div>
           <div class="aviso-count-row">
             <div class="aviso-count-num">{{ counts.caminantes }}</div>
-            <div class="aviso-seccion-badge" style="background:#2563EB;color:#fff">Caminantes</div>
+            <div class="aviso-seccion-badge" style="background:#2563EB;color:#fff">{{ 'Plural' | termino: 'comunidad' }}</div>
           </div>
           <div class="aviso-count-row">
             <div class="aviso-count-num">{{ counts.rovers }}</div>
-            <div class="aviso-seccion-badge" style="background:#DC2626;color:#fff">Rovers</div>
+            <div class="aviso-seccion-badge" style="background:#DC2626;color:#fff">{{ 'Plural' | termino: 'clan' }}</div>
           </div>
           <div class="aviso-count-row aviso-count-total">
             <div class="aviso-count-num">{{ counts.total }}</div>
@@ -625,7 +630,7 @@
           <div class="aviso-pill aviso-pill-full mb-2"
                [style]="{'background': seccionColors[sec.key].bg,
                          'color': seccionColors[sec.key].text}">
-            {{ sec.label | uppercase }}
+            {{ ('Plural' | termino: sec.key) | uppercase }}
           </div>
           <table class="aviso-tabla w-full">
             <thead>

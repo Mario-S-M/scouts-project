@@ -1,7 +1,7 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { AuthGuard } from './core/guards/auth.guard';
-import { JefeGrupoGuard } from './core/guards/role.guard';
+import { JefeGrupoGuard, AdminGuard } from './core/guards/role.guard';
 
 const routes: Routes = [
   {
@@ -32,6 +32,11 @@ const routes: Routes = [
     path: 'insignias',
     canActivate: [AuthGuard],
     loadChildren: () => import('./features/insignias/insignias.module').then(m => m.InsigniasModule),
+  },
+  {
+    path: 'secciones',
+    canActivate: [AuthGuard, AdminGuard],
+    loadChildren: () => import('./features/secciones/secciones.module').then(m => m.SeccionesModule),
   },
   {
     path: 'usuarios',

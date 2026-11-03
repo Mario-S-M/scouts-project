@@ -8,6 +8,8 @@ export interface UserInfo {
   nombre: string;
   email: string;
   rol: string;
+  /** Sección del joven (rol scout); en scouters sale de su rol */
+  seccion?: string | null;
 }
 
 export interface LoginResponse {
@@ -34,6 +36,7 @@ export const SECCION_LABEL: Record<string, string> = {
 // ─── Mapa de roles ────────────────────────────────────────────────────────────
 export const ROL_INFO: Record<string, { label: string; seccion: string }> = {
   // Grupo
+  administrador:       { label: 'Administrador',                    seccion: 'grupo' },
   jefe_grupo:          { label: 'Jefe de Grupo',                    seccion: 'grupo' },
   sub_jefe_grupo:      { label: 'Subjefe de Grupo',                  seccion: 'grupo' },
   colaborador_grupo:   { label: 'Colaborador de Grupo',              seccion: 'grupo' },

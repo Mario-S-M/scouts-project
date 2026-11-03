@@ -14,6 +14,7 @@ import { SolicitudInsignias } from './entities/solicitud-insignias.entity';
 import { SolicitudInsigniasLinea } from './entities/solicitud-insignias-linea.entity';
 import { User } from '../users/entities/user.entity';
 import { ProgresoModule } from '../progreso/progreso.module';
+import { SeccionesModule } from '../secciones/secciones.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { ProgresoModule } from '../progreso/progreso.module';
       SolicitudInsignias,
       SolicitudInsigniasLinea,
     ]),
+    SeccionesModule,
     ProgresoModule,
   ],
   // El orden importa: InsigniasController tiene @Get(':caminanteId') con

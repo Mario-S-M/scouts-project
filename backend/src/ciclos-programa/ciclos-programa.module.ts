@@ -4,9 +4,10 @@ import { CiclosProgramaService } from './ciclos-programa.service';
 import { CiclosProgramaController } from './ciclos-programa.controller';
 import { CicloPrograma } from './entities/ciclo-programa.entity';
 import { ActividadCiclo } from './entities/actividad-ciclo.entity';
+import { SeccionesModule } from '../secciones/secciones.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([CicloPrograma, ActividadCiclo])],
+  imports: [TypeOrmModule.forFeature([CicloPrograma, ActividadCiclo]), SeccionesModule],
   controllers: [CiclosProgramaController],
   providers: [CiclosProgramaService],
 })

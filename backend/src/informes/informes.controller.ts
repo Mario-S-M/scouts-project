@@ -7,6 +7,7 @@ import { Response } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { InformesService } from './informes.service';
 import { CrearInformeDto, InventarioItemCrudDto } from './dto/informe-mensual.dto';
+import { assertPuedeEditar, assertPuedeVer, seccionParaCrear, seccionParaVer } from '../common/rol-seccion.util';
 
 @UseGuards(JwtAuthGuard)
 @Controller('informes')
@@ -15,11 +16,19 @@ export class InformesController {
 
   // ── Informes ────────────────────────────────────────────────────────────────
   @Get()
-  findAll() { return this.svc.findAll(); }
+  findAll(@Req() req: any) { return this.svc.findAll(seccionParaVer(req.user)); }
+
+  private async verInforme(id: number, req: any) {
+    assertPuedeVer(req.user, await this.svc.seccionDeInforme(id));
+  }
+  private async editarInforme(id: number, req: any) {
+    assertPuedeEditar(req.user, await this.svc.seccionDeInforme(id));
+  }
 
   /** Último informe de una sección (para pre-cargar datos en nuevo informe) */
   @Get('ultimo/:seccion')
-  findUltimo(@Param('seccion') seccion: string) {
+  findUltimo(@Param('seccion') seccion: string, @Req() req: any) {
+    assertPuedeVer(req.user, seccion);
     return this.svc.findUltimo(seccion);
   }
 
@@ -30,50 +39,64 @@ export class InformesController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) { return this.svc.findOne(id); }
+  async findOne(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    await this.verInforme(id, req);
+    return this.svc.findOne(id);
+  }
 
   @Post()
   create(@Body() dto: CrearInformeDto, @Req() req: any) {
+    dto.seccion = seccionParaCrear(req.user, dto.seccion);
     return this.svc.create(dto, req.user?.sub ?? req.user?.id ?? 0);
   }
 
   @Put(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: CrearInformeDto) {
+  async update(@Param('id', ParseIntPipe) id: number, @Body() dto: CrearInformeDto, @Req() req: any) {
+    await this.editarInforme(id, req);
     return this.svc.update(id, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) { return this.svc.remove(id); }
+  async remove(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    await this.editarInforme(id, req);
+    return this.svc.remove(id);
+  }
 
   // ── Partial updates (auto-save por tab) ─────────────────────────────────────
   @Patch(':id/config')
-  updateConfig(@Param('id', ParseIntPipe) id: number, @Body() body: any) {
+  async updateConfig(@Param('id', ParseIntPipe) id: number, @Body() body: any, @Req() req: any) {
+    await this.editarInforme(id, req);
     return this.svc.updateConfig(id, body);
   }
 
   @Patch(':id/membresia')
-  updateMembresia(@Param('id', ParseIntPipe) id: number, @Body() body: any) {
+  async updateMembresia(@Param('id', ParseIntPipe) id: number, @Body() body: any, @Req() req: any) {
+    await this.editarInforme(id, req);
     return this.svc.updateMembresia(id, body);
   }
 
   @Patch(':id/actividades')
-  updateActividades(@Param('id', ParseIntPipe) id: number, @Body() body: any) {
+  async updateActividades(@Param('id', ParseIntPipe) id: number, @Body() body: any, @Req() req: any) {
+    await this.editarInforme(id, req);
     return this.svc.updateActividades(id, body);
   }
 
   @Patch(':id/financiero')
-  updateFinanciero(@Param('id', ParseIntPipe) id: number, @Body() body: any) {
+  async updateFinanciero(@Param('id', ParseIntPipe) id: number, @Body() body: any, @Req() req: any) {
+    await this.editarInforme(id, req);
     return this.svc.updateFinanciero(id, body);
   }
 
   @Patch(':id/progresion')
-  updateProgresion(@Param('id', ParseIntPipe) id: number, @Body() body: any) {
+  async updateProgresion(@Param('id', ParseIntPipe) id: number, @Body() body: any, @Req() req: any) {
+    await this.editarInforme(id, req);
     return this.svc.updateProgresion(id, body);
   }
 
   /** Agrega a Progresión las solicitudes de insignias del mes de la sección */
   @Post(':id/importar-solicitudes-insignias')
-  importarSolicitudesInsignias(@Param('id', ParseIntPipe) id: number) {
+  async importarSolicitudesInsignias(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    await this.editarInforme(id, req);
     return this.svc.importarSolicitudesInsignias(id);
   }
 
@@ -82,8 +105,10 @@ export class InformesController {
   async getPdfAnual(
     @Param('seccion') seccion: string,
     @Param('anio', ParseIntPipe) anio: number,
+    @Req() req: any,
     @Res() res: Response,
   ) {
+    assertPuedeVer(req.user, seccion);
     const buffer = await this.svc.generatePdfAnual(seccion, anio);
     res.set({
       'Content-Type':        'application/pdf',
@@ -94,7 +119,8 @@ export class InformesController {
   }
 
   @Get(':id/pdf')
-  async getPdf(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
+  async getPdf(@Param('id', ParseIntPipe) id: number, @Req() req: any, @Res() res: Response) {
+    await this.verInforme(id, req);
     const informe    = await this.svc.findOne(id);
     const inventario = await this.svc.getInventario(informe.seccion);
     const personas   = await this.svc.getPersonasSeccion(informe.seccion);
@@ -110,22 +136,26 @@ export class InformesController {
 
   // ── Inventario ──────────────────────────────────────────────────────────────
   @Get('inventario/:seccion')
-  getInventario(@Param('seccion') seccion: string) {
+  getInventario(@Param('seccion') seccion: string, @Req() req: any) {
+    assertPuedeVer(req.user, seccion);
     return this.svc.getInventario(seccion);
   }
 
   @Post('inventario')
-  createItem(@Body() dto: InventarioItemCrudDto) {
+  createItem(@Body() dto: InventarioItemCrudDto, @Req() req: any) {
+    dto.seccion = seccionParaCrear(req.user, dto.seccion);
     return this.svc.createInventarioItem(dto);
   }
 
   @Put('inventario/:id')
-  updateItem(@Param('id', ParseIntPipe) id: number, @Body() dto: InventarioItemCrudDto) {
+  async updateItem(@Param('id', ParseIntPipe) id: number, @Body() dto: InventarioItemCrudDto, @Req() req: any) {
+    assertPuedeEditar(req.user, await this.svc.seccionDeInventario(id));
     return this.svc.updateInventarioItem(id, dto);
   }
 
   @Delete('inventario/:id')
-  removeItem(@Param('id', ParseIntPipe) id: number) {
+  async removeItem(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    assertPuedeEditar(req.user, await this.svc.seccionDeInventario(id));
     return this.svc.removeInventarioItem(id);
   }
 }

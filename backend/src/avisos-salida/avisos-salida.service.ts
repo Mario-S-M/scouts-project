@@ -5,7 +5,8 @@ import * as fs from "fs";
 import * as path from "path";
 import { AvisoSalidaDto, ParticipanteDto } from "./dto/aviso-salida.dto";
 import { AvisoSalida } from "./aviso-salida.entity";
-import { documentoAviso, documentoPermisos } from "./aviso-pdf.builder";
+import { ContextoPdf, documentoAviso, documentoPermisos } from "./aviso-pdf.builder";
+import { SeccionesService } from "../secciones/secciones.service";
 
 const PdfPrinter = require("pdfmake/js/Printer").default;
 const vfsFonts = require("pdfmake/build/vfs_fonts");
@@ -19,6 +20,7 @@ export class AvisosSalidaService {
   constructor(
     @InjectRepository(AvisoSalida)
     private readonly repo: Repository<AvisoSalida>,
+    private readonly secciones: SeccionesService,
   ) {
     const assetsDir = path.join(__dirname, "../../public/assets");
     // Versiones *_pdf: mismo logo a menor resolución, para que el PDF pese poco al mandarlo por WhatsApp
@@ -219,9 +221,34 @@ export class AvisosSalidaService {
     }
   }
 
-  async generatePdf(dto: AvisoSalidaDto): Promise<Buffer> {
+  /**
+   * Colores, nombre y logo de la sección dueña del aviso. La Comunidad usa su
+   * logo horizontal; las demás, el logo cuadrado que suba el administrador.
+   */
+  private async contexto(seccion: string | null | undefined, mapImage?: string | null): Promise<ContextoPdf> {
+    const todas = await this.secciones.findAll();
+    const propia = todas.find((x) => x.clave === (seccion || "grupo")) ?? null;
+    let logoSeccion: string | null = null;
+    if (seccion !== "comunidad") {
+      const ruta = this.secciones.rutaLogoEnDisco(propia);
+      if (ruta) {
+        const ext = path.extname(ruta).slice(1).replace("jpg", "jpeg");
+        logoSeccion = `data:image/${ext};base64,${fs.readFileSync(ruta).toString("base64")}`;
+      }
+    }
+    return {
+      logoGrupo: this.logoGrupo,
+      logoCC: seccion === "comunidad" ? this.logoCC : null,
+      logoSeccion,
+      mapImage,
+      identidad: propia,
+      plurales: Object.fromEntries(todas.map((x) => [x.clave, x.jovenPlural])),
+    };
+  }
+
+  async generatePdf(dto: AvisoSalidaDto, seccion?: string | null): Promise<Buffer> {
     const mapImage = dto.mapUrl ? await this.fetchMapImage(dto.mapUrl) : null;
-    const docDef = documentoAviso(dto, { logoGrupo: this.logoGrupo, logoCC: this.logoCC, mapImage });
+    const docDef = documentoAviso(dto, await this.contexto(seccion ?? dto.seccion, mapImage));
     // In pdfmake v0.3, createPdfKitDocument returns a Promise<PDFDocument>
     const doc = await this.printer.createPdfKitDocument(docDef);
     return new Promise((resolve, reject) => {
@@ -237,7 +264,7 @@ export class AvisosSalidaService {
 
   async generatePermisos(id: number): Promise<Buffer> {
     const aviso = await this.findOne(id);
-    const docDef = this.buildPermisosDocument(aviso.data as AvisoSalidaDto);
+    const docDef = this.buildPermisosDocument(aviso.data as AvisoSalidaDto, await this.contexto(aviso.seccion));
     const doc = await this.printer.createPdfKitDocument(docDef);
     return new Promise((resolve, reject) => {
       const chunks: Buffer[] = [];
@@ -251,8 +278,9 @@ export class AvisosSalidaService {
   private async generateSinglePermisoPdf(
     dto: AvisoSalidaDto,
     p: ParticipanteDto | null,
+    ctx: ContextoPdf,
   ): Promise<Buffer> {
-    const docDef = documentoPermisos(dto, [p], { logoGrupo: this.logoGrupo, logoCC: this.logoCC });
+    const docDef = documentoPermisos(dto, [p], ctx);
     const doc = await this.printer.createPdfKitDocument(docDef);
     return new Promise((resolve, reject) => {
       const chunks: Buffer[] = [];
@@ -282,13 +310,14 @@ export class AvisosSalidaService {
 
   async generatePermisosZip(id: number): Promise<{ zip: Buffer; nombre: string }> {
     const aviso = await this.findOne(id);
+    const ctx = await this.contexto(aviso.seccion);
     const dto = aviso.data as AvisoSalidaDto;
     const participantes = (dto.participantes ?? []).filter((p) =>
       p.nombre?.trim(),
     );
 
     if (!participantes.length) {
-      const pdfBuffer = await this.generateSinglePermisoPdf(dto, null);
+      const pdfBuffer = await this.generateSinglePermisoPdf(dto, null, ctx);
       const zip = await this.createZip([
         { name: "permiso-en-blanco.pdf", buffer: pdfBuffer },
       ]);
@@ -304,7 +333,7 @@ export class AvisosSalidaService {
           .replace(/[^a-zA-Z0-9 ]/g, "")
           .replace(/\s+/g, "_");
         const name = `${String(i + 1).padStart(2, "0")}_${slug || "participante"}.pdf`;
-        const buffer = await this.generateSinglePermisoPdf(dto, p);
+        const buffer = await this.generateSinglePermisoPdf(dto, p, ctx);
         return { name, buffer };
       }),
     );
@@ -316,7 +345,7 @@ export class AvisosSalidaService {
   async generatePermisoEnBlanco(id: number): Promise<Buffer> {
     const aviso = await this.findOne(id);
     const dto = { ...(aviso.data as AvisoSalidaDto), participantes: [] };
-    const docDef = this.buildPermisosDocument(dto);
+    const docDef = this.buildPermisosDocument(dto, await this.contexto(aviso.seccion));
     const doc = await this.printer.createPdfKitDocument(docDef);
     return new Promise((resolve, reject) => {
       const chunks: Buffer[] = [];
@@ -327,10 +356,10 @@ export class AvisosSalidaService {
     });
   }
 
-  private buildPermisosDocument(dto: AvisoSalidaDto): any {
+  private buildPermisosDocument(dto: AvisoSalidaDto, ctx: ContextoPdf): any {
     const participantes = dto.participantes ?? [];
     const targets: (ParticipanteDto | null)[] = participantes.length > 0 ? participantes : [null];
-    return documentoPermisos(dto, targets, { logoGrupo: this.logoGrupo, logoCC: this.logoCC });
+    return documentoPermisos(dto, targets, ctx);
   }
 
   // ── CRUD ─────────────────────────────────────────────────────────────────────
@@ -339,8 +368,10 @@ export class AvisosSalidaService {
     dto: AvisoSalidaDto,
     userId: number,
     userName: string,
+    seccion: string,
   ): Promise<AvisoSalida> {
     const entity = this.repo.create({
+      seccion,
       tipo: dto.tipo || "Otro",
       nombre: dto.nombre || "Sin nombre",
       fechaSalida: dto.salida?.fecha ? dto.salida.fecha.slice(0, 10) : null,
@@ -351,8 +382,24 @@ export class AvisosSalidaService {
     return this.repo.save(entity);
   }
 
-  findAll(): Promise<AvisoSalida[]> {
-    return this.repo.find({ order: { createdAt: "DESC" } });
+  /**
+   * Avisos anteriores a la columna `seccion`: se les asigna la sección de quien
+   * los creó (si fue un scouter de sección). Idempotente; corre al arrancar.
+   */
+  async asignarSeccionFaltante(): Promise<number> {
+    const r = await this.repo.query(`
+      UPDATE avisos_salida a
+         SET seccion = substring(u.rol from 'jefe_(manada|tropa|comunidad|clan)$')
+        FROM users u
+       WHERE a."creadoPorId" = u.id
+         AND a.seccion IS NULL
+         AND u.rol ~ '^(sub_)?jefe_(manada|tropa|comunidad|clan)$'`);
+    return Array.isArray(r) ? r[1] ?? 0 : 0;
+  }
+
+  /** `seccion` null = todas (administrador y roles de grupo) */
+  findAll(seccion: string | null): Promise<AvisoSalida[]> {
+    return this.repo.find({ where: seccion ? { seccion } : {}, order: { createdAt: "DESC" } });
   }
 
   async findOne(id: number): Promise<AvisoSalida> {
@@ -368,7 +415,8 @@ export class AvisosSalidaService {
     aviso.fechaSalida = dto.salida?.fecha
       ? dto.salida.fecha.slice(0, 10)
       : aviso.fechaSalida;
-    aviso.data = dto;
+    // La sección del aviso no cambia al editarlo
+    aviso.data = { ...dto, seccion: aviso.seccion };
     return this.repo.save(aviso);
   }
 

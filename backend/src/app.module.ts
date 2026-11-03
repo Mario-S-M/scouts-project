@@ -15,6 +15,7 @@ import { ProgresoModule } from './progreso/progreso.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { AvisosSalidaModule } from './avisos-salida/avisos-salida.module';
+import { SeccionesModule } from './secciones/secciones.module';
 import { CiclosProgramaModule } from './ciclos-programa/ciclos-programa.module';
 import { InformesModule } from './informes/informes.module';
 import { CalendarioModule } from './calendario/calendario.module';
@@ -39,6 +40,7 @@ import { TelegramModule } from './telegram/telegram.module';
     UsersModule,
     AuthModule,
     AvisosSalidaModule,
+    SeccionesModule,
     CiclosProgramaModule,
     InformesModule,
     CalendarioModule,

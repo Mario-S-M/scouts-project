@@ -13,6 +13,8 @@ import { CatalogoInsignia } from '../insignias/entities/catalogo-insignia.entity
 import { SolicitudInsignias } from '../insignias/entities/solicitud-insignias.entity';
 import { SolicitudInsigniasLinea } from '../insignias/entities/solicitud-insignias-linea.entity';
 import { AvisoSalida } from '../avisos-salida/aviso-salida.entity';
+import { Tutor } from '../caminantes/entities/tutor.entity';
+import { SeccionConfig } from '../secciones/seccion-config.entity';
 import { CicloPrograma } from '../ciclos-programa/entities/ciclo-programa.entity';
 import { ActividadCiclo } from '../ciclos-programa/entities/actividad-ciclo.entity';
 import { InformeMensual } from '../informes/entities/informe-mensual.entity';
@@ -52,6 +54,8 @@ export const databaseConfig = (): TypeOrmModuleOptions => ({
     InformeMensual, AltaBajaInforme, AsistenciaActividad,
     ActividadPendiente, MovimientoFinanciero, InventarioItem, ProgresionInforme,
     Actividad, ConfiguracionRecordatorio,
+    Tutor,
+    SeccionConfig,
   ],
   synchronize: true,
   logging: process.env.NODE_ENV === 'development',

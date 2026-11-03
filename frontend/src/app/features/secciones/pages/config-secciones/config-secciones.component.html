@@ -1,0 +1,54 @@
+<app-page-header title="Secciones" subtitle="Nombres, colores y logo de cada sección. Se usan en el menú, las pantallas y los documentos."></app-page-header>
+
+<div class="grid">
+  <div class="col-12 xl:col-6" *ngFor="let s of secciones">
+    <div class="seccion-card" [attr.data-seccion]="s.clave">
+
+      <!-- Vista previa del navbar con los colores actuales -->
+      <div class="preview" [style.background]="'linear-gradient(180deg,' + s.colorPrincipal + ',' + s.colorOscuro + ')'"
+           [style.border-bottom-color]="s.colorAcento">
+        <img [src]="logo(s)" alt="" class="preview-logo" [style.box-shadow]="'0 0 0 2px ' + s.colorAcento" />
+        <div class="preview-texto">
+          <div class="preview-titulo">Grupo 7 · Itsï Tarhiata</div>
+          <div class="preview-sub" [style.color]="s.colorAcento">{{ s.nombreCompleto }}</div>
+        </div>
+        <div class="preview-avatar" [style.background]="s.colorAcento" [style.color]="s.colorTextoAcento">A</div>
+      </div>
+
+      <div class="cuerpo">
+        <div class="grid">
+          <div class="col-12 md:col-6 p-field" *ngFor="let c of campos">
+            <label class="font-semibold block mb-1 text-sm">{{ c.label }}</label>
+            <input pInputText [(ngModel)]="$any(s)[c.key]" class="w-full" [placeholder]="c.ayuda || ''"
+                   [attr.data-campo]="c.key" />
+          </div>
+        </div>
+
+        <div class="font-semibold text-sm mb-2 mt-1">Colores</div>
+        <div class="colores">
+          <label class="color" *ngFor="let c of colores">
+            <input type="color" [(ngModel)]="$any(s)[c.key]" [attr.data-color]="c.key" />
+            <span>{{ c.label }}<br /><code>{{ $any(s)[c.key] }}</code></span>
+          </label>
+        </div>
+
+        <div class="flex flex-wrap align-items-center justify-content-between gap-3 mt-3">
+          <div class="flex align-items-center gap-2">
+            <p-inputSwitch [(ngModel)]="s.progresionHabilitada" [inputId]="'prog-' + s.clave"></p-inputSwitch>
+            <label [for]="'prog-' + s.clave" class="text-sm">Usa progresión (senderos, insignias)</label>
+          </div>
+          <div class="flex align-items-center gap-2">
+            <label class="p-button p-button-sm p-button-outlined cursor-pointer m-0">
+              <i class="pi pi-image mr-2"></i>{{ subiendo === s.clave ? 'Subiendo…' : 'Cambiar logo' }}
+              <input type="file" accept=".png,.jpg,.jpeg,.webp" hidden (change)="subirLogo(s, $event)" />
+            </label>
+            <button pButton *ngIf="s.logo" icon="pi pi-times" class="p-button-sm p-button-text p-button-danger"
+                    pTooltip="Quitar logo (usa el del grupo)" (click)="quitarLogo(s)"></button>
+            <button pButton icon="pi pi-check" label="Guardar" class="p-button-sm"
+                    [loading]="guardando === s.clave" (click)="guardar(s)"></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

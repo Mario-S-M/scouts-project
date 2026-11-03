@@ -30,6 +30,7 @@ import { AvatarModule } from 'primeng/avatar';
 import { TimelineModule } from 'primeng/timeline';
 import { AccordionModule } from 'primeng/accordion';
 import { CheckboxModule } from 'primeng/checkbox';
+import { InputSwitchModule } from 'primeng/inputswitch';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
@@ -42,6 +43,7 @@ import { BadgeChipComponent } from './components/badge-chip/badge-chip.component
 // Shared Pipes
 import { EstadoBadgePipe } from './pipes/estado-badge.pipe';
 import { SeccionFilterPipe } from './pipes/seccion-filter.pipe';
+import { TerminoPipe } from './pipes/termino.pipe';
 
 const PRIMENG_MODULES = [
   MenubarModule,
@@ -70,6 +72,7 @@ const PRIMENG_MODULES = [
   TimelineModule,
   AccordionModule,
   CheckboxModule,
+  InputSwitchModule,
   MultiSelectModule,
   InputNumberModule,
   ConfirmDialogModule,
@@ -81,7 +84,7 @@ const SHARED_COMPONENTS = [
   BadgeChipComponent,
 ];
 
-const SHARED_PIPES = [EstadoBadgePipe, SeccionFilterPipe];
+const SHARED_PIPES = [EstadoBadgePipe, SeccionFilterPipe, TerminoPipe];
 
 @NgModule({
   declarations: [...SHARED_COMPONENTS, ...SHARED_PIPES],

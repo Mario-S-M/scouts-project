@@ -6,6 +6,8 @@ import { CaminanteService } from '../../../../core/services/caminante.service';
 import { AvisoService, StaffContacto } from '../../../../core/services/aviso.service';
 import { Caminante } from '../../../../core/models/caminante.model';
 import { MessageService } from 'primeng/api';
+import { SeccionService } from '../../../../core/services/seccion.service';
+import { SECCIONES } from '../../../../core/services/auth.service';
 
 export const SECCION_COLORS: Record<string, { bg: string; text: string; label: string }> = {
   manada:    { bg: '#FBBF24', text: '#000000', label: 'Lobatos' },
@@ -75,7 +77,14 @@ export class CrearAvisoComponent implements OnInit {
     private messageService: MessageService,
     private router: Router,
     private route: ActivatedRoute,
+    public seccionService: SeccionService,
   ) {}
+
+  /** El administrador elige la sección del aviso; los scouters usan la suya */
+  get esAdmin(): boolean {
+    return this.authService.getUser()?.rol === 'administrador';
+  }
+  readonly opcionesSeccion = SECCIONES;
 
   ngOnInit() {
     const user = this.authService.getUser();
@@ -84,6 +93,7 @@ export class CrearAvisoComponent implements OnInit {
     this.seccionUsuario = !this.esGrupo && rolInfo?.seccion !== 'scout' ? rolInfo?.seccion ?? null : null;
 
     this.form = this.fb.group({
+      seccion: [null],
       tipo: ['Excursión', Validators.required],
       nombre: ['', Validators.required],
       salida: this.fb.group({
@@ -189,6 +199,7 @@ export class CrearAvisoComponent implements OnInit {
       next: (aviso) => {
         const d = aviso.data;
         this.form.patchValue({
+          seccion: aviso.seccion ?? null,
           tipo: d.tipo,
           nombre: d.nombre,
           salida: {
@@ -415,6 +426,7 @@ export class CrearAvisoComponent implements OnInit {
     const v = this.form.value;
     const toISO = (v: any) => { if (!v) return null; if (v instanceof Date) return v.toISOString(); return v; };
     const dto = {
+      seccion: v.seccion || undefined,
       tipo: v.tipo, nombre: v.nombre, costo: v.costo ?? 0,
       salida:   { lugar: v.salida.lugar,   fecha: toISO(v.salida.fecha),   hora: toISO(v.salida.hora) },
       llegada:  { lugar: v.llegada.lugar,  fecha: toISO(v.llegada.fecha),  hora: toISO(v.llegada.hora) },
@@ -454,6 +466,7 @@ export class CrearAvisoComponent implements OnInit {
     const v = this.form.value;
     const toISO = (v: any) => { if (!v) return null; if (v instanceof Date) return v.toISOString(); return v; };
     const dto = {
+      seccion:     v.seccion || undefined,
       tipo:        v.tipo,
       nombre:      v.nombre,
       costo:       v.costo ?? 0,

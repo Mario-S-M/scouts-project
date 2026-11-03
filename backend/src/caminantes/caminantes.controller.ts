@@ -17,9 +17,10 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { CaminantesService } from './caminantes.service';
 import { CreateCaminanteDto } from './dto/create-caminante.dto';
+import { GuardarTutoresDto } from './dto/tutores.dto';
 import { InsigniasService } from '../insignias/insignias.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { getSeccionFromRol } from '../common/rol-seccion.util';
+import { seccionParaVer } from '../common/rol-seccion.util';
 
 @UseGuards(JwtAuthGuard)
 @Controller('caminantes')
@@ -31,13 +32,13 @@ export class CaminantesController {
 
   @Get()
   findAll(@Request() req) {
-    const seccion = getSeccionFromRol(req.user.rol);
-    return this.caminantesService.findAll(seccion);
+    return this.caminantesService.findAll(seccionParaVer(req.user));
   }
 
+  /** Solo el scouter de la sección (o el administrador, indicando la sección) */
   @Post()
-  create(@Body() dto: CreateCaminanteDto) {
-    return this.caminantesService.create(dto);
+  create(@Body() dto: CreateCaminanteDto, @Request() req) {
+    return this.caminantesService.create(dto, req.user);
   }
 
   // ── Rutas del scout autenticado (deben ir ANTES de :id) ──────────────────
@@ -56,8 +57,7 @@ export class CaminantesController {
 
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number, @Request() req) {
-    const seccion = getSeccionFromRol(req.user.rol);
-    return this.caminantesService.findOne(id, seccion);
+    return this.caminantesService.findOne(id, req.user);
   }
 
   @Put(':id')
@@ -66,22 +66,28 @@ export class CaminantesController {
     @Body() dto: Partial<CreateCaminanteDto>,
     @Request() req,
   ) {
-    const seccion = getSeccionFromRol(req.user.rol);
-    return this.caminantesService.update(id, dto, seccion);
+    return this.caminantesService.update(id, dto, req.user);
+  }
+
+  @Get(':id/tutores')
+  getTutores(@Param('id', ParseIntPipe) id: number, @Request() req) {
+    return this.caminantesService.getTutores(id, req.user);
+  }
+
+  @Put(':id/tutores')
+  guardarTutores(@Param('id', ParseIntPipe) id: number, @Body() dto: GuardarTutoresDto, @Request() req) {
+    return this.caminantesService.guardarTutores(id, dto.tutores, req.user);
   }
 
   @Get(':id/progreso')
   async getProgreso(@Param('id', ParseIntPipe) id: number, @Request() req) {
-    const seccion = getSeccionFromRol(req.user.rol);
-    // Verify access before returning progreso
-    await this.caminantesService.findOne(id, seccion);
+    await this.caminantesService.findOne(id, req.user);
     return this.caminantesService.getProgreso(id);
   }
 
   @Get(':id/insignias')
   async getInsignias(@Param('id', ParseIntPipe) id: number, @Request() req) {
-    const seccion = getSeccionFromRol(req.user.rol);
-    await this.caminantesService.findOne(id, seccion);
+    await this.caminantesService.findOne(id, req.user);
     return this.insigniasService.getInsignias(id);
   }
 
@@ -113,8 +119,7 @@ export class CaminantesController {
     @Request() req,
   ) {
     if (!file) return { error: 'Invalid file type' };
-    const seccion = getSeccionFromRol(req.user.rol);
     const url = `/uploads/fotos/${file.filename}`;
-    return this.caminantesService.update(id, { foto: url }, seccion);
+    return this.caminantesService.update(id, { foto: url }, req.user);
   }
 }

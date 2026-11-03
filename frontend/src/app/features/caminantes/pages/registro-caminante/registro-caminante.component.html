@@ -1,5 +1,5 @@
 <div class="page-header">
-  <h1><i class="pi pi-user-plus mr-2"></i>Registro de Caminante</h1>
+  <h1><i class="pi pi-user-plus mr-2"></i>Registrar {{ 'singular' | termino: form.getRawValue().seccion }}</h1>
   <p>Registra un nuevo miembro en el Grupo {{ GRUPO }} · {{ COMUNIDAD }}</p>
 </div>
 
@@ -92,6 +92,43 @@
                    class="w-full" placeholder="Nombre del equipo (opcional)" />
           </div>
 
+          <!-- ── Papás / tutores ── -->
+          <div class="col-12 mt-2 flex align-items-center justify-content-between">
+            <div class="seccion-titulo mb-0"><i class="pi pi-users mr-2"></i>Papás / tutores</div>
+            <button pButton type="button" icon="pi pi-plus" label="Agregar"
+                    class="p-button-sm p-button-text" *ngIf="tutores.length < 2"
+                    (click)="agregarTutor()"></button>
+          </div>
+          <ng-container formArrayName="tutores">
+            <div class="col-12" *ngFor="let t of tutores.controls; let i = index" [formGroupName]="i">
+              <div class="grid tutor-fila">
+                <div class="col-12 md:col-4 p-field">
+                  <label>Nombre</label>
+                  <input pInputText formControlName="nombre" class="w-full" placeholder="Nombre completo" />
+                </div>
+                <div class="col-6 md:col-2 p-field">
+                  <label>Parentesco</label>
+                  <input pInputText formControlName="parentesco" class="w-full" placeholder="Mamá, papá…" />
+                </div>
+                <div class="col-6 md:col-2 p-field">
+                  <label>Teléfono</label>
+                  <input pInputText formControlName="telefono" class="w-full" placeholder="443…" />
+                </div>
+                <div class="col-10 md:col-3 p-field">
+                  <label>Correo</label>
+                  <input pInputText formControlName="email" type="email" class="w-full" placeholder="correo@ejemplo.com" />
+                </div>
+                <div class="col-2 md:col-1 flex align-items-end pb-3">
+                  <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-danger"
+                          pTooltip="Quitar" (click)="quitarTutor(i)"></button>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+          <div class="col-12 text-sm text-color-secondary" *ngIf="tutores.length === 0">
+            Sin papás registrados. Puedes agregar hasta 2.
+          </div>
+
           <!-- ── Fechas scout ── -->
           <div class="col-12 mt-2">
             <div class="seccion-titulo"><i class="pi pi-calendar mr-2"></i>Fechas Scout</div>
@@ -119,7 +156,7 @@
           <button pButton type="button" label="Cancelar" icon="pi pi-times"
                   class="p-button-outlined p-button-secondary"
                   routerLink="/caminantes"></button>
-          <button pButton type="submit" label="Registrar Caminante" icon="pi pi-check"
+          <button pButton type="submit" [label]="'Registrar ' + ('singular' | termino: form.getRawValue().seccion)" icon="pi pi-check"
                   [loading]="submitting" [disabled]="submitting"></button>
         </div>
 

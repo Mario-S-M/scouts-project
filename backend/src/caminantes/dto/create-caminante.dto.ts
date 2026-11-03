@@ -7,14 +7,16 @@ export class CreateCaminanteDto {
   @IsString()
   apellidos: string;
 
-  @IsString()
-  grupo: string;
+  // Datos del grupo; si no vienen se usan los del Grupo 7 (ver caminantes.service)
+  @IsOptional() @IsString()
+  grupo?: string;
 
-  @IsString()
-  provincia: string;
+  @IsOptional() @IsString()
+  provincia?: string;
 
-  @IsString()
-  comunidad: string;
+  /** Nombre del grupo ("Itsï Tarhiata"), no la sección */
+  @IsOptional() @IsString()
+  comunidad?: string;
 
   @IsOptional()
   @IsString()

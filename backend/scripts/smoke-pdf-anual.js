@@ -16,7 +16,10 @@ const ciclo = (nombre, mesInicio, tipo = 'trimestral') => ({
 const paginas = (buf) => (buf.toString('latin1').match(/\/Type \/Page\b/g) || []).length;
 
 (async () => {
-  const svc = new CiclosProgramaService({}, {});
+  // Sin base de datos: identidad de la Comunidad con su logo horizontal
+  const { identidadPdf } = require('../dist/secciones/identidad-pdf');
+  const secciones = { identidadPdf: async () => identidadPdf({ clave: 'comunidad', nombreCompleto: 'Comunidad de Caminantes', colorPrincipal: '#14265C', colorAcento: '#EFC02F' }, null) };
+  const svc = new CiclosProgramaService({}, {}, secciones);
 
   // Período: el mes final debe ser el último mes del ciclo
   assert.strictEqual(svc.periodoLabel(ciclo('a', 1)), 'Enero – Marzo 2026');

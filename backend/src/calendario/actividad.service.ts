@@ -3,14 +3,20 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { Actividad, SeccionActividad } from './entities/actividad.entity';
 import { CrearActividadDto } from './dto/actividad.dto';
-import { getSeccionFromRol } from '../common/rol-seccion.util';
+import { esAdmin, seccionDeRol } from '../common/rol-seccion.util';
 
-const ADMIN_ROLES = ['jefe_grupo', 'sub_jefe_grupo'];
+/** Jefatura de grupo: gestiona las actividades generales del grupo */
+const JEFATURA_GRUPO = ['jefe_grupo', 'sub_jefe_grupo'];
 
-/** Determina si un rol puede crear/editar/borrar actividades de una sección dada. */
+/**
+ * Quién crea/edita/borra actividades (y recordatorios) de una sección:
+ * el administrador todas; la jefatura de grupo solo las generales; cada
+ * scouter las de su sección.
+ */
 export function puedeGestionarSeccion(rol: string, seccion: string): boolean {
-  if (ADMIN_ROLES.includes(rol)) return true;
-  const seccionDelRol = getSeccionFromRol(rol);
+  if (esAdmin(rol)) return true;
+  if (JEFATURA_GRUPO.includes(rol)) return seccion === 'general';
+  const seccionDelRol = seccionDeRol(rol);
   return seccionDelRol !== null && seccionDelRol === seccion;
 }
 

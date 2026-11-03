@@ -9,7 +9,19 @@ export class JefeGrupoGuard implements CanActivate {
 
   canActivate(): boolean {
     const user = this.authService.getUser();
-    if (user?.rol === 'jefe_grupo') return true;
+    if (user?.rol === 'jefe_grupo' || user?.rol === 'administrador') return true;
+    this.router.navigate(['/']);
+    return false;
+  }
+}
+
+/** Solo la cuenta de administrador (configuración de secciones) */
+@Injectable({ providedIn: 'root' })
+export class AdminGuard implements CanActivate {
+  constructor(private authService: AuthService, private router: Router) {}
+
+  canActivate(): boolean {
+    if (this.authService.getUser()?.rol === 'administrador') return true;
     this.router.navigate(['/']);
     return false;
   }
