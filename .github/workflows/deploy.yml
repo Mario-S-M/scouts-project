@@ -1,75 +1,96 @@
-name: Deploy to Raspberry Pi
+name: Deploy a Raspberry
 
+# Igual que servidor-coronas: las imágenes linux/arm64 se construyen en la Mac
+# (runner propio) y se mandan por SSH a la Raspberry, que solo las arranca.
+# Solo se dispara con push a main: el repo es público y un runner propio nunca
+# debe ejecutar código de pull requests ni de forks.
 on:
   push:
     branches: [main]
-  workflow_dispatch: {}
+    paths-ignore:
+      - "**.md"
+      - ".gitignore"
+      - "specs/**"
+      - "mcp-server/**"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-raspberry-scouts
+  cancel-in-progress: false
+
+env:
+  # Se pueden cambiar en Settings > Secrets and variables > Actions > Variables
+  DEPLOY_HOST: ${{ vars.DEPLOY_HOST || 'raspberrypi.local' }}
+  DEPLOY_USER: ${{ vars.DEPLOY_USER || 'rasp' }}
+  DEPLOY_DIR: ${{ vars.DEPLOY_DIR || '/home/rasp/scouts-app' }}
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, macOS, ARM64, scouts]
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
 
-      - name: Connect to Tailscale
-        uses: tailscale/github-action@v3
-        with:
-          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Preparar PATH de Docker
+        run: echo "/usr/local/bin" >> "$GITHUB_PATH"
 
-      - name: Set up SSH agent
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+      - name: Verificar Docker
+        run: docker info --format '{{.ServerVersion}}'
 
-      - name: Pin Raspberry Pi host key
+      - name: Construir imágenes linux/arm64
         run: |
-          mkdir -p ~/.ssh
-          echo "raspberrypi.tail6ac242.ts.net ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINLFHwjVkPyF2gZ30F4gZiKAdx3QgKgHrWaV9Q+9Q5uT" >> ~/.ssh/known_hosts
+          SHA=${GITHUB_SHA::7}
+          docker buildx build --platform linux/arm64 --tag "scouts-app-backend:$SHA" --load ./backend
+          docker buildx build --platform linux/arm64 --tag "scouts-app-frontend:$SHA" --load ./frontend
 
-      - name: Sync code to Raspberry Pi
+      - name: Verificar acceso SSH a la Raspberry
         run: |
-          rsync -az --delete \
-            --exclude='.git' \
-            --exclude='node_modules' \
-            --exclude='frontend/node_modules' \
-            --exclude='backend/node_modules' \
-            --exclude='frontend/dist' \
-            --exclude='backend/dist' \
-            --exclude='uploads' \
-            --exclude='.env' \
-            ./ rasp@raspberrypi.tail6ac242.ts.net:~/scouts-app/
+          ssh -o BatchMode=yes -o ConnectTimeout=10 \
+            "$DEPLOY_USER@$DEPLOY_HOST" 'echo conectado a $(hostname)'
 
-      - name: Write production .env
+      - name: Enviar imágenes y docker-compose a la Raspberry
         run: |
-          ssh rasp@raspberrypi.tail6ac242.ts.net "cat > ~/scouts-app/.env" <<EOF
-          DB_HOST=postgres
-          DB_PORT=5432
-          DB_NAME=${{ secrets.DB_NAME }}
-          DB_USER=${{ secrets.DB_USER }}
-          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          PORT=3000
-          NODE_ENV=production
-          UPLOAD_DIR=/app/uploads
-          JWT_SECRET=${{ secrets.JWT_SECRET }}
-          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_BOT_USERNAME=${{ secrets.TELEGRAM_BOT_USERNAME }}
-          TELEGRAM_GROUP_CHAT_ID=${{ secrets.TELEGRAM_GROUP_CHAT_ID }}
-          EOF
+          SHA=${GITHUB_SHA::7}
+          docker save "scouts-app-backend:$SHA" "scouts-app-frontend:$SHA" | gzip \
+            | ssh -o BatchMode=yes "$DEPLOY_USER@$DEPLOY_HOST" 'gunzip | docker load'
+          scp -o BatchMode=yes docker-compose.prod.yml "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_DIR/docker-compose.prod.yml"
 
-      - name: Build and deploy with Docker Compose
+      - name: Reiniciar backend y frontend en la Raspberry
         run: |
-          ssh rasp@raspberrypi.tail6ac242.ts.net "cd ~/scouts-app && docker compose -f docker-compose.prod.yml up -d --build && docker image prune -f"
+          ssh -o BatchMode=yes "$DEPLOY_USER@$DEPLOY_HOST" \
+            "SHA=${GITHUB_SHA::7} DEPLOY_DIR=$DEPLOY_DIR bash -s" <<'REMOTE'
+          set -eu
+          for img in scouts-app-backend scouts-app-frontend; do
+            # Guardar la imagen actual para poder volver atrás
+            if docker image inspect "$img:latest" >/dev/null 2>&1; then
+              docker tag "$img:latest" "$img:previous"
+            fi
+            docker tag "$img:$SHA" "$img:latest"
+          done
+          cd "$DEPLOY_DIR"
+          # Solo la app: no se toca Postgres ni el .env de la Raspberry
+          docker compose -f docker-compose.prod.yml up -d --no-build --no-deps backend frontend
+          REMOTE
 
-      - name: Smoke check
+      - name: Esperar a que la app responda
         run: |
-          ssh rasp@raspberrypi.tail6ac242.ts.net '
-            for i in $(seq 1 15); do
-              curl -sf --max-time 5 http://localhost:8091 >/dev/null && \
-              curl -sf --max-time 5 http://localhost:3002/api >/dev/null && \
-              echo "scouts-app is up" && exit 0
-              echo "waiting for scouts-app to respond ($i/15)..."
-              sleep 4
-            done
-            echo "scouts-app did not respond in time" >&2
-            exit 1
-          '
+          ssh -o BatchMode=yes "$DEPLOY_USER@$DEPLOY_HOST" 'bash -s' <<'REMOTE'
+          for i in $(seq 1 40); do
+            api=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:3002/api/auth/login -H 'Content-Type: application/json' -d '{}' || true)
+            web=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8091 || true)
+            if { [ "$api" = "400" ] || [ "$api" = "401" ]; } && [ "$web" = "200" ]; then
+              echo "Scouts arriba (intento $i)"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "La app no respondió. Últimos logs:"
+          docker logs --tail 40 scouts_backend
+          exit 1
+          REMOTE
+
+      - name: Limpiar imágenes viejas
+        if: success()
+        run: |
+          docker image prune -f >/dev/null
+          ssh -o BatchMode=yes "$DEPLOY_USER@$DEPLOY_HOST" 'docker image prune -f >/dev/null'

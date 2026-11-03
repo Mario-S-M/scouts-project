@@ -20,6 +20,8 @@ services:
       retries: 5
 
   backend:
+    # La imagen se construye en la Mac (runner propio) y llega ya hecha; ver deploy.yml
+    image: scouts-app-backend:latest
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -47,6 +49,7 @@ services:
       - scouts_network
 
   frontend:
+    image: scouts-app-frontend:latest
     build:
       context: ./frontend
       dockerfile: Dockerfile
