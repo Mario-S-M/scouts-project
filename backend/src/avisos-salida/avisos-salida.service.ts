@@ -21,8 +21,9 @@ export class AvisosSalidaService {
     private readonly repo: Repository<AvisoSalida>,
   ) {
     const assetsDir = path.join(__dirname, "../../public/assets");
-    const grupoPath = path.join(assetsDir, "logo_Grupo.png");
-    const ccPath = path.join(assetsDir, "logo_CC.png");
+    // Versiones *_pdf: mismo logo a menor resolución, para que el PDF pese poco al mandarlo por WhatsApp
+    const grupoPath = path.join(assetsDir, "logo_Grupo_pdf.png");
+    const ccPath = path.join(assetsDir, "logo_CC_pdf.png");
     if (fs.existsSync(grupoPath))
       this.logoGrupo = `data:image/png;base64,${fs.readFileSync(grupoPath).toString("base64")}`;
     if (fs.existsSync(ccPath))
@@ -81,7 +82,7 @@ export class AvisosSalidaService {
       const res = await fetch(url, {
         method: "GET",
         redirect: "follow",
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(10000),
       });
       return res.url || url;
     } catch {
@@ -128,24 +129,37 @@ export class AvisosSalidaService {
       const minTY = Math.floor(tileY) - pad;
       const maxTY = Math.floor(tileY) + pad;
 
-      // 4. Descargar tiles en paralelo
+      // 4. Descargar tiles: pocos a la vez y con un reintento. Un tile que falle
+      //    queda en blanco; antes uno solo tiraba el mapa completo.
       const fetchTile = async (tx: number, ty: number) => {
         const url = `https://tile.openstreetmap.org/${fetchZoom}/${tx}/${ty}.png`;
-        const res = await fetch(url, {
-          headers: { "User-Agent": "ScoutsApp/1.0 (educational use)" },
-          signal: AbortSignal.timeout(6000),
-        });
-        if (!res.ok) return null;
-        return { tx, ty, buf: Buffer.from(await res.arrayBuffer()) };
+        for (let intento = 0; intento < 2; intento++) {
+          try {
+            const res = await fetch(url, {
+              headers: { "User-Agent": "ScoutsApp/1.0 (educational use)" },
+              signal: AbortSignal.timeout(10000),
+            });
+            if (res.ok) return { tx, ty, buf: Buffer.from(await res.arrayBuffer()) };
+          } catch {
+            /* reintento */
+          }
+        }
+        return null;
       };
 
-      const jobs: Promise<any>[] = [];
+      const pendientes: [number, number][] = [];
       for (let ty = minTY; ty <= maxTY; ty++) {
-        for (let tx = minTX; tx <= maxTX; tx++) {
-          jobs.push(fetchTile(tx, ty));
-        }
+        for (let tx = minTX; tx <= maxTX; tx++) pendientes.push([tx, ty]);
       }
-      const tiles = (await Promise.all(jobs)).filter(Boolean);
+      const tiles: { tx: number; ty: number; buf: Buffer }[] = [];
+      const trabajador = async () => {
+        for (let t = pendientes.shift(); t; t = pendientes.shift()) {
+          const tile = await fetchTile(t[0], t[1]);
+          if (tile) tiles.push(tile);
+        }
+      };
+      await Promise.all(Array.from({ length: 8 }, trabajador));
+      if (!tiles.length) return null;
 
       // 5. Componer grid completo
       const gridW = (maxTX - minTX + 1) * TILE;

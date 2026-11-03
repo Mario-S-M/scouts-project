@@ -108,11 +108,11 @@ function encabezado(ctx: ContextoPdf, ancho: number, subtitulo: string): any {
         relativePosition: { x: 0, y: 0 },
         columns: [
           ctx.logoGrupo
-            ? { image: 'logoGrupo', width: 46, height: 46, margin: [12, 6, 0, 0] }
+            ? { image: 'logoGrupo', width: 46, height: 46, margin: [14, 6, 4, 0] }
             : { text: '⚜', fontSize: 30, color: K.gold, width: 58, margin: [16, 10, 0, 0] },
           {
             width: '*',
-            margin: [10, 13, 0, 0],
+            margin: [12, 13, 0, 0],
             stack: [
               { text: 'ASOCIACIÓN DE SCOUTS DE MÉXICO, A.C.', fontSize: 11.5, bold: true, color: '#FFFFFF', characterSpacing: 0.6 },
               { text: subtitulo, fontSize: 8.5, color: K.gold, margin: [0, 3, 0, 0], characterSpacing: 0.4 },
@@ -162,7 +162,7 @@ export function documentoAviso(dto: AvisoSalidaDto, ctx: ContextoPdf): any {
         stack: [
           { columns: [chip('AVISO DE SALIDA', K.navy, '#FFFFFF', 7.5), { width: 6, text: '' }, chip((dto.tipo || 'Actividad').toUpperCase(), K.goldLight, K.navy, 7.5)], columnGap: 0 },
           { text: dto.nombre || 'Actividad', fontSize: 20, bold: true, color: K.navy, margin: [0, 8, 0, 2] },
-          { text: fechaLarga(dto.salida?.fecha) + (dto.llegada?.fecha && fechaCorta(dto.llegada.fecha) !== fechaCorta(dto.salida?.fecha) ? `  →  ${fechaLarga(dto.llegada.fecha)}` : ''), fontSize: 9.5, color: K.muted },
+          { text: fechaLarga(dto.salida?.fecha) + (dto.llegada?.fecha && fechaCorta(dto.llegada.fecha) !== fechaCorta(dto.salida?.fecha) ? `  al  ${fechaLarga(dto.llegada.fecha)}` : ''), fontSize: 9.5, color: K.muted },
         ],
       },
       costo > 0
