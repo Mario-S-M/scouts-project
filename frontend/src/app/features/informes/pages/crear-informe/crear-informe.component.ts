@@ -507,6 +507,29 @@ export class CrearInformeComponent implements OnInit, OnDestroy {
   }
   removeProgresion(i: number) { this.progresiones.splice(i, 1); this.triggerProgresion(); }
 
+  importandoInsignias = false;
+
+  /** Trae a Progresión las solicitudes de insignias de la sección en el mes del informe */
+  importarSolicitudesInsignias() {
+    if (!this.informeId) return;
+    this.importandoInsignias = true;
+    this.svc.importarSolicitudesInsignias(this.informeId).subscribe({
+      next: ({ agregadas, informe }) => {
+        this.importandoInsignias = false;
+        this.progresiones = [...informe.progresiones];
+        this.msg.add({
+          severity: agregadas ? 'success' : 'info',
+          summary:  'Solicitudes de insignias',
+          detail:   agregadas ? `${agregadas} insignia(s) agregada(s) a Progresión.` : 'No hay solicitudes nuevas para este mes.',
+        });
+      },
+      error: () => {
+        this.importandoInsignias = false;
+        this.msg.add({ severity: 'error', summary: 'Error', detail: 'No se pudieron importar las solicitudes.' });
+      },
+    });
+  }
+
   private _buildDescripcionOpts(catalog: { ejeTematico: string; nombre: string }[]) {
     // ── Ejes Temáticos (se entrega el eje completo, no cada camino) ───────────
     const ejesGroup = {

@@ -11,10 +11,16 @@
     <span class="text-500 text-sm">
       {{ ciclos.length }} ciclo(s) registrado(s)
     </span>
-    <button pButton icon="pi pi-plus" label="Nuevo Ciclo"
-            class="p-button-sm"
-            (click)="nuevo()">
-    </button>
+    <div class="flex gap-2">
+      <button pButton icon="pi pi-file-pdf" label="Descargar anual"
+              class="p-button-sm p-button-outlined"
+              (click)="abrirDialogAnual()">
+      </button>
+      <button pButton icon="pi pi-plus" label="Nuevo Ciclo"
+              class="p-button-sm"
+              (click)="nuevo()">
+      </button>
+    </div>
   </div>
 
   <!-- Loading -->
@@ -96,5 +102,26 @@
   </p-table>
 
 </div>
+
+<p-dialog header="Ciclo de programa anual" [(visible)]="dialogAnual"
+          [modal]="true" [style]="{ width: '24rem' }" [draggable]="false">
+  <div class="flex flex-column gap-3">
+    <div class="flex flex-column gap-1">
+      <label for="anioAnual" class="text-sm text-600">Año</label>
+      <p-dropdown inputId="anioAnual" [options]="aniosAnual" [(ngModel)]="anioAnual"
+                  optionLabel="label" optionValue="value" styleClass="w-full"></p-dropdown>
+    </div>
+    <div class="flex flex-column gap-1">
+      <label for="seccionAnual" class="text-sm text-600">Sección</label>
+      <p-dropdown inputId="seccionAnual" [options]="seccionesAnual" [(ngModel)]="seccionAnual"
+                  optionLabel="label" optionValue="value" styleClass="w-full"></p-dropdown>
+    </div>
+  </div>
+  <ng-template pTemplate="footer">
+    <button pButton label="Cancelar" class="p-button-text" (click)="dialogAnual = false"></button>
+    <button pButton label="Descargar PDF" icon="pi pi-download"
+            [loading]="descargandoAnual" (click)="descargarAnual()"></button>
+  </ng-template>
+</p-dialog>
 
 <p-confirmDialog></p-confirmDialog>

@@ -71,6 +71,28 @@ export class InformesController {
     return this.svc.updateProgresion(id, body);
   }
 
+  /** Agrega a Progresión las solicitudes de insignias del mes de la sección */
+  @Post(':id/importar-solicitudes-insignias')
+  importarSolicitudesInsignias(@Param('id', ParseIntPipe) id: number) {
+    return this.svc.importarSolicitudesInsignias(id);
+  }
+
+  /** PDF con todos los informes mensuales de una sección en un año */
+  @Get('anual/:seccion/:anio/pdf')
+  async getPdfAnual(
+    @Param('seccion') seccion: string,
+    @Param('anio', ParseIntPipe) anio: number,
+    @Res() res: Response,
+  ) {
+    const buffer = await this.svc.generatePdfAnual(seccion, anio);
+    res.set({
+      'Content-Type':        'application/pdf',
+      'Content-Disposition': `attachment; filename="informe-anual-${seccion}-${anio}.pdf"`,
+      'Content-Length':      buffer.length,
+    });
+    res.end(buffer);
+  }
+
   @Get(':id/pdf')
   async getPdf(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
     const informe    = await this.svc.findOne(id);

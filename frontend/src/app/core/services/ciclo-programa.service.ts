@@ -37,6 +37,10 @@ export class CicloProgramaService {
     return this.http.get(`${this.base}/${id}/pdf`, { responseType: 'blob' });
   }
 
+  downloadPdfAnual(anio: number, seccion: string): Observable<Blob> {
+    return this.http.get(`${this.base}/anual/pdf`, { params: { anio, seccion }, responseType: 'blob' });
+  }
+
   previewPdf(dto: CrearCicloDto): Observable<Blob> {
     return this.http.post(`${this.base}/pdf-preview`, dto, { responseType: 'blob' });
   }

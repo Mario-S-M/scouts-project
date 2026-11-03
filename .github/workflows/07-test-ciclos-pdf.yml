@@ -1,0 +1,46 @@
+name: Probar ciclos de programa (PDF anual)
+
+on:
+  pull_request:
+    paths:
+      - 'backend/src/ciclos-programa/**'
+      - 'backend/scripts/smoke-pdf-anual.js'
+      - 'frontend/src/app/features/ciclos-programa/**'
+      - 'frontend/src/app/core/services/ciclo-programa.service.ts'
+      - '.github/workflows/07-test-ciclos-pdf.yml'
+  workflow_dispatch: {}
+
+jobs:
+  backend:
+    name: Backend - build y smoke test del PDF
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - name: Smoke test del PDF anual
+        run: node scripts/smoke-pdf-anual.js
+
+  frontend:
+    name: Frontend - build de producción
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run build

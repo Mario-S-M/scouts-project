@@ -9,6 +9,9 @@ import { Evento } from '../progreso/entities/evento.entity';
 import { PuntaDeFlecha } from '../progreso/entities/punta-de-flecha.entity';
 import { Insignia } from '../insignias/entities/insignia.entity';
 import { Camisola } from '../insignias/entities/camisola.entity';
+import { CatalogoInsignia } from '../insignias/entities/catalogo-insignia.entity';
+import { SolicitudInsignias } from '../insignias/entities/solicitud-insignias.entity';
+import { SolicitudInsigniasLinea } from '../insignias/entities/solicitud-insignias-linea.entity';
 import { AvisoSalida } from '../avisos-salida/aviso-salida.entity';
 import { CicloPrograma } from '../ciclos-programa/entities/ciclo-programa.entity';
 import { ActividadCiclo } from '../ciclos-programa/entities/actividad-ciclo.entity';
@@ -40,6 +43,9 @@ export const databaseConfig = (): TypeOrmModuleOptions => ({
     PuntaDeFlecha,
     Insignia,
     Camisola,
+    CatalogoInsignia,
+    SolicitudInsignias,
+    SolicitudInsigniasLinea,
     AvisoSalida,
     CicloPrograma,
     ActividadCiclo,

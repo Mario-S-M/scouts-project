@@ -1,0 +1,26 @@
+// Todos los colores salen de las variables del tema para que la pantalla se
+// vea bien igual en claro que en oscuro.
+
+.item-catalogo {
+  padding: 0.5rem 0.25rem;
+  border-bottom: 1px solid var(--surface-border);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+// Bloque desplegable con los seis componentes del kit de pañoleta
+.kit-componentes {
+  margin-left: 2rem;
+  padding: 0.75rem;
+  border-left: 3px solid var(--primary-color, var(--surface-border));
+  border-radius: 6px;
+  background: var(--surface-ground);
+}
+
+@media (max-width: 576px) {
+  .kit-componentes {
+    margin-left: 0.5rem;
+  }
+}

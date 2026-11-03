@@ -1,0 +1,253 @@
+<app-page-header
+  title="Catálogo de insignias"
+  subtitle="Ítems que se pueden pedir en una solicitud de insignias">
+</app-page-header>
+
+<div class="page-container">
+
+  <!-- Barra de herramientas: resumen, filtros y alta -->
+  <div class="flex justify-content-between align-items-center mb-3 flex-wrap gap-3">
+
+    <div class="flex align-items-center flex-wrap gap-3">
+      <span class="text-500 text-sm">
+        {{ itemsFiltrados.length }} ítem(s) a la vista · {{ totalActivos }} activo(s)
+      </span>
+
+      <!-- Interruptor de ítems dados de baja -->
+      <div class="flex align-items-center gap-2">
+        <p-checkbox
+          inputId="mostrarInactivos"
+          [(ngModel)]="mostrarInactivos"
+          [binary]="true"
+          (onChange)="cargar()">
+        </p-checkbox>
+        <label for="mostrarInactivos" class="text-sm cursor-pointer">
+          Mostrar inactivos
+        </label>
+      </div>
+
+      <!-- Filtro por categoría -->
+      <p-dropdown
+        [options]="opcionesFiltro"
+        [(ngModel)]="categoriaFiltro"
+        (onChange)="aplicarFiltro()"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Todas las categorías"
+        [style]="{ minWidth: '16rem' }">
+      </p-dropdown>
+    </div>
+
+    <button pButton
+            icon="pi pi-plus"
+            label="Nuevo ítem"
+            class="p-button-sm"
+            (click)="nuevo()">
+    </button>
+  </div>
+
+  <!-- Cargando -->
+  <div *ngIf="cargando" class="flex justify-content-center py-5">
+    <p-progressSpinner strokeWidth="4" styleClass="w-3rem h-3rem"></p-progressSpinner>
+  </div>
+
+  <!-- Catálogo vacío -->
+  <div *ngIf="!cargando && itemsFiltrados.length === 0" class="empty-state">
+    <i class="pi pi-tags text-4xl text-300 mb-3"></i>
+    <p class="text-600">
+      {{ categoriaFiltro
+          ? 'No hay ítems en esta categoría.'
+          : 'El catálogo está vacío.' }}
+    </p>
+    <button pButton label="Agregar un ítem" icon="pi pi-plus"
+            class="p-button-outlined p-button-sm mt-2"
+            (click)="nuevo()">
+    </button>
+  </div>
+
+  <!-- Tabla del catálogo, agrupada por categoría -->
+  <p-table *ngIf="!cargando && itemsFiltrados.length > 0"
+           [value]="itemsFiltrados"
+           rowGroupMode="subheader"
+           groupRowsBy="categoria"
+           dataKey="id"
+           styleClass="p-datatable-sm"
+           responsiveLayout="scroll">
+
+    <ng-template pTemplate="header">
+      <tr>
+        <th>Nombre</th>
+        <th>Descripción</th>
+        <th style="width:160px">Clave de progreso</th>
+        <th style="width:90px; text-align:center">Orden</th>
+        <th style="width:110px; text-align:center">Estado</th>
+        <th style="width:110px; text-align:center">Acciones</th>
+      </tr>
+    </ng-template>
+
+    <!-- Subencabezado: una fila por categoría -->
+    <ng-template pTemplate="groupheader" let-item>
+      <tr pRowGroupHeader>
+        <td colspan="6">
+          <div class="flex align-items-center gap-2 py-1">
+            <i class="pi pi-tag text-sm" style="color: var(--text-color-secondary)"></i>
+            <span class="font-semibold" style="color: var(--text-color)">
+              {{ categoriaLabel[item.categoria] }}
+            </span>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="body" let-item>
+      <tr [class.opacity-50]="!item.activo">
+        <td>
+          <span class="font-semibold">{{ item.nombre }}</span>
+        </td>
+        <td>
+          <span class="text-600">{{ item.descripcion || '—' }}</span>
+        </td>
+        <td>
+          <p-tag *ngIf="item.claveProgreso"
+                 [value]="item.claveProgreso"
+                 severity="info">
+          </p-tag>
+          <span *ngIf="!item.claveProgreso" class="text-500">—</span>
+        </td>
+        <td class="text-center">{{ item.orden ?? 0 }}</td>
+        <td class="text-center">
+          <p-tag [value]="item.activo ? 'Activo' : 'Inactivo'"
+                 [severity]="item.activo ? 'success' : 'secondary'">
+          </p-tag>
+        </td>
+        <td class="text-center">
+          <div class="flex gap-1 justify-content-center">
+            <button pButton icon="pi pi-pencil"
+                    class="p-button-text p-button-sm p-button-rounded"
+                    pTooltip="Editar"
+                    (click)="editar(item)">
+            </button>
+            <button *ngIf="item.activo"
+                    pButton icon="pi pi-trash"
+                    class="p-button-text p-button-sm p-button-rounded p-button-danger"
+                    pTooltip="Desactivar"
+                    (click)="confirmarBorrado(item)">
+            </button>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<!-- Diálogo de alta y edición -->
+<p-dialog
+  [(visible)]="dialogoVisible"
+  [modal]="true"
+  [draggable]="false"
+  [style]="{ width: '34rem' }"
+  [breakpoints]="{ '960px': '75vw', '640px': '95vw' }"
+  [header]="itemEnEdicion ? 'Editar ítem del catálogo' : 'Nuevo ítem del catálogo'"
+  (onHide)="alCerrarDialogo()">
+
+  <div class="formgrid grid">
+
+    <div class="field col-12">
+      <label for="categoria" class="block mb-2">Categoría *</label>
+      <p-dropdown
+        inputId="categoria"
+        [options]="opcionesCategoria"
+        [(ngModel)]="formulario.categoria"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Elige una categoría"
+        appendTo="body"
+        styleClass="w-full">
+      </p-dropdown>
+    </div>
+
+    <div class="field col-12">
+      <label for="nombre" class="block mb-2">Nombre *</label>
+      <input id="nombre" type="text" pInputText
+             class="w-full"
+             maxlength="200"
+             [(ngModel)]="formulario.nombre"
+             placeholder="Por ejemplo: Cordón de Mando">
+    </div>
+
+    <div class="field col-12">
+      <label for="descripcion" class="block mb-2">Descripción</label>
+      <textarea id="descripcion" pInputTextarea
+                class="w-full"
+                rows="3"
+                maxlength="500"
+                [(ngModel)]="formulario.descripcion"
+                placeholder="Opcional: para qué sirve o cómo se entrega">
+      </textarea>
+    </div>
+
+    <div class="field col-12 md:col-6">
+      <label for="claveProgreso" class="block mb-2">Clave de progreso</label>
+      <input id="claveProgreso" type="text" pInputText
+             class="w-full"
+             maxlength="50"
+             [(ngModel)]="formulario.claveProgreso"
+             placeholder="Cenit, Jade, …">
+      <small class="block mt-1" style="color: var(--text-color-secondary)">
+        Empata el ítem con el progreso del caminante. Déjala vacía si el ítem
+        no se sugiere solo.
+      </small>
+    </div>
+
+    <div class="field col-12 md:col-6">
+      <label for="orden" class="block mb-2">Orden</label>
+      <p-inputNumber
+        inputId="orden"
+        [(ngModel)]="formulario.orden"
+        [min]="0"
+        [useGrouping]="false"
+        styleClass="w-full"
+        [inputStyleClass]="'w-full'">
+      </p-inputNumber>
+      <small class="block mt-1" style="color: var(--text-color-secondary)">
+        Posición dentro de su categoría.
+      </small>
+    </div>
+
+    <div class="field col-12">
+      <div class="flex align-items-center gap-2">
+        <p-checkbox
+          inputId="activo"
+          [(ngModel)]="formulario.activo"
+          [binary]="true">
+        </p-checkbox>
+        <label for="activo" class="cursor-pointer">
+          Activo: se ofrece al armar solicitudes nuevas
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <button pButton label="Cancelar"
+            icon="pi pi-times"
+            class="p-button-text p-button-sm"
+            (click)="cancelar()">
+    </button>
+    <button pButton
+            [label]="itemEnEdicion ? 'Guardar cambios' : 'Crear ítem'"
+            [icon]="guardando ? 'pi pi-spin pi-spinner' : 'pi pi-check'"
+            class="p-button-sm"
+            [disabled]="!formularioValido || guardando"
+            (click)="guardar()">
+    </button>
+  </ng-template>
+</p-dialog>
+
+<!-- Confirmación de borrado lógico; con clave propia porque el feature
+     comparte el ConfirmationService con las otras pantallas -->
+<p-confirmDialog
+  key="catalogoInsignias"
+  [style]="{ width: '30rem' }"
+  [breakpoints]="{ '640px': '95vw' }">
+</p-confirmDialog>

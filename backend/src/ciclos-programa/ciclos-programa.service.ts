@@ -189,22 +189,94 @@ export class CiclosProgramaService {
 
   // ── PDF ────────────────────────────────────────────────────────────────────
   async generatePdf(ciclo: CicloPrograma, autorNombre?: string): Promise<Buffer> {
-    const mesesDuracion = ciclo.tipo === 'trimestral' ? 3 : 4;
-    const mesFin = ((ciclo.mesInicio - 1 + mesesDuracion) % 12) + 1;
-    const anioFin = ciclo.mesInicio + mesesDuracion - 1 > 12
-      ? ciclo.anio + 1
-      : ciclo.anio;
-
-    const periodLabel =
-      mesFin < ciclo.mesInicio
-        ? `${MESES[ciclo.mesInicio]} ${ciclo.anio} – ${MESES[mesFin]} ${anioFin}`
-        : `${MESES[ciclo.mesInicio]} – ${MESES[mesFin]} ${ciclo.anio}`;
+    const periodLabel = this.periodoLabel(ciclo);
 
     const tipoLabel = ciclo.tipo === 'trimestral' ? 'Trimestral (3 meses)' : 'Cuatrimestral (4 meses)';
     const seccionLabel = this.seccionLabel(ciclo.seccion);
     const autor = autorNombre || 'Sin especificar';
 
-    // Filas de la tabla
+    const tablaActividades = this.buildTablaActividades(ciclo);
+
+    const dd: any = {
+      pageSize: 'LETTER',
+      pageOrientation: 'landscape',
+      pageMargins: [30, 30, 30, 30],
+      defaultStyle: { font: 'Roboto', fontSize: 10, color: C.text },
+      images: {
+        ...(this.logoGrupo ? { logoGrupo: this.logoGrupo } : {}),
+        ...(this.logoCC    ? { logoCC:    this.logoCC    } : {}),
+      },
+      content: [
+        // ── Encabezado ──────────────────────────────────────────────────────
+        {
+          columns: [
+            // Logo Grupo (izquierda)
+            this.logoGrupo
+              ? { image: 'logoGrupo', width: 55, alignment: 'center', margin: [0, 0, 10, 0] }
+              : { width: 55, text: '' },
+            // Título central
+            {
+              width: '*',
+              stack: [
+                { text: 'CICLO DE PROGRAMA', fontSize: 20, bold: true, color: C.purple },
+                { text: ciclo.nombre,  fontSize: 14, bold: true, color: C.text, margin: [0, 2, 0, 0] },
+                { text: seccionLabel, fontSize: 11, color: C.gray,  margin: [0, 2, 0, 0] },
+              ],
+            },
+            // Metadata (derecha)
+            {
+              width: 'auto',
+              stack: [
+                { columns: [{ text: 'Período:', bold: true, fontSize: 9, color: C.gray, width: 65 }, { text: periodLabel, fontSize: 9, color: C.text }], margin: [0, 0, 0, 3] },
+                { columns: [{ text: 'Tipo:', bold: true, fontSize: 9, color: C.gray, width: 65 }, { text: tipoLabel, fontSize: 9, color: C.text }], margin: [0, 0, 0, 3] },
+                { columns: [{ text: 'Creado por:', bold: true, fontSize: 9, color: C.gray, width: 65 }, { text: autor, fontSize: 9, color: C.text }], margin: [0, 0, 0, 3] },
+                { columns: [{ text: 'Fines de semana:', bold: true, fontSize: 9, color: C.gray, width: 65 }, { text: ciclo.actividades.length.toString(), fontSize: 9, color: C.text }] },
+              ],
+              alignment: 'right',
+              margin: [10, 0, 10, 0],
+            },
+            // Logo CC (derecha)
+            this.logoCC
+              ? { image: 'logoCC', width: 55, alignment: 'center', margin: [10, 0, 0, 0] }
+              : { width: 55, text: '' },
+          ],
+          margin: [0, 0, 0, 8],
+        },
+        // Línea divisora
+        {
+          canvas: [
+            { type: 'line', x1: 0, y1: 0, x2: 760, y2: 0, lineWidth: 2, lineColor: C.purple },
+          ],
+          margin: [0, 0, 0, 10],
+        },
+        // ── Tabla de actividades ────────────────────────────────────────────
+        tablaActividades,
+        ...this.buildLeyendaPie(),
+      ],
+      styles: {
+        tableHeader: {
+          bold: true,
+          fontSize: 9,
+          color: C.white,
+          fillColor: C.purple,
+          margin: [4, 5, 4, 5],
+        },
+      },
+    };
+
+    return this.renderPdf(dd);
+  }
+
+  private periodoLabel(ciclo: CicloPrograma): string {
+    const dur = ciclo.tipo === 'trimestral' ? 3 : 4;
+    const mesFin = ((ciclo.mesInicio - 1 + dur - 1) % 12) + 1;
+    const anioFin = ciclo.mesInicio + dur - 1 > 12 ? ciclo.anio + 1 : ciclo.anio;
+    return mesFin < ciclo.mesInicio
+      ? `${MESES[ciclo.mesInicio]} ${ciclo.anio} – ${MESES[mesFin]} ${anioFin}`
+      : `${MESES[ciclo.mesInicio]} – ${MESES[mesFin]} ${ciclo.anio}`;
+  }
+
+  private buildTablaActividades(ciclo: CicloPrograma): any {
     const tableBody: any[][] = [
       // Header row
       [
@@ -262,6 +334,137 @@ export class CiclosProgramaService {
       ]);
     });
 
+    return {
+      table: {
+        headerRows: 1,
+        widths: [25, 115, '*', 130, 120],
+        body: tableBody,
+      },
+      layout: {
+        hLineWidth: (i: number) => (i === 0 || i === 1) ? 1.5 : 0.5,
+        vLineWidth: () => 0.5,
+        hLineColor: () => C.border,
+        vLineColor: () => C.border,
+        paddingLeft: () => 0,
+        paddingRight: () => 0,
+        paddingTop: () => 0,
+        paddingBottom: () => 0,
+      },
+    };
+  }
+
+  private buildLeyendaPie(): any[] {
+    return [
+      { text: 'Ejes Temáticos', fontSize: 9, bold: true, color: C.gray, margin: [0, 12, 0, 4] },
+      {
+        columns: Object.entries(EJE_COLORS).map(([eje, col]) => ({
+          text: `■ ${eje}`,
+          fontSize: 7,
+          bold: true,
+          color: col.text,
+          margin: [0, 0, 8, 0],
+        })),
+        columnGap: 4,
+      },
+      {
+        canvas: [
+          { type: 'line', x1: 0, y1: 0, x2: 760, y2: 0, lineWidth: 0.5, lineColor: C.border },
+        ],
+        margin: [0, 10, 0, 4],
+      },
+      {
+        columns: [
+          { text: 'Scouts México — Nuevo Programa', fontSize: 7, color: C.gray },
+          {
+            text: `Generado el ${new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}`,
+            fontSize: 7,
+            color: C.gray,
+            alignment: 'right',
+          },
+        ],
+      },
+    ];
+  }
+
+  private renderPdf(dd: any): Promise<Buffer> {
+    return this.printer.createPdfKitDocument(dd).then((doc: any) =>
+      new Promise<Buffer>((resolve, reject) => {
+        const chunks: Buffer[] = [];
+        doc.on('data', (c: Buffer) => chunks.push(c));
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        doc.on('error', reject);
+        doc.end();
+      }),
+    );
+  }
+
+  /** Ciclos de una sección en un año, ordenados por mes de inicio */
+  async findByAnioSeccion(anio: number, seccion: string): Promise<CicloPrograma[]> {
+    const ciclos = await this.cicloRepo.find({
+      where: { anio, seccion },
+      order: { mesInicio: 'ASC' },
+    });
+    for (const c of ciclos) {
+      c.actividades.sort((a, b) => a.fechaSabado.localeCompare(b.fechaSabado));
+    }
+    return ciclos;
+  }
+
+  async generatePdfAnual(ciclos: CicloPrograma[], anio: number, seccion: string, autorNombre?: string): Promise<Buffer> {
+    const totalFines = ciclos.reduce((n, c) => n + c.actividades.length, 0);
+    const autor = autorNombre || 'Sin especificar';
+
+    const encabezado = {
+      columns: [
+        this.logoGrupo
+          ? { image: 'logoGrupo', width: 55, alignment: 'center', margin: [0, 0, 10, 0] }
+          : { width: 55, text: '' },
+        {
+          width: '*',
+          stack: [
+            { text: `CICLO DE PROGRAMA ANUAL ${anio}`, fontSize: 20, bold: true, color: C.purple },
+            { text: this.seccionLabel(seccion), fontSize: 14, bold: true, color: C.text, margin: [0, 2, 0, 0] },
+          ],
+        },
+        {
+          width: 'auto',
+          stack: [
+            { columns: [{ text: 'Ciclos:', bold: true, fontSize: 9, color: C.gray, width: 85 }, { text: ciclos.length.toString(), fontSize: 9, color: C.text }], margin: [0, 0, 0, 3] },
+            { columns: [{ text: 'Fines de semana:', bold: true, fontSize: 9, color: C.gray, width: 85 }, { text: totalFines.toString(), fontSize: 9, color: C.text }], margin: [0, 0, 0, 3] },
+            { columns: [{ text: 'Generado por:', bold: true, fontSize: 9, color: C.gray, width: 85 }, { text: autor, fontSize: 9, color: C.text }] },
+          ],
+          alignment: 'right',
+          margin: [10, 0, 10, 0],
+        },
+        this.logoCC
+          ? { image: 'logoCC', width: 55, alignment: 'center', margin: [10, 0, 0, 0] }
+          : { width: 55, text: '' },
+      ],
+      margin: [0, 0, 0, 8],
+    };
+    const linea = {
+      canvas: [{ type: 'line', x1: 0, y1: 0, x2: 760, y2: 0, lineWidth: 2, lineColor: C.purple }],
+      margin: [0, 0, 0, 10],
+    };
+
+    const secciones: any[] = [];
+    ciclos.forEach((ciclo, i) => {
+      const tipoLabel = ciclo.tipo === 'trimestral' ? 'Trimestral (3 meses)' : 'Cuatrimestral (4 meses)';
+      secciones.push(
+        {
+          text: ciclo.nombre,
+          fontSize: 14, bold: true, color: C.purple,
+          margin: [0, i === 0 ? 0 : 0, 0, 2],
+          ...(i > 0 ? { pageBreak: 'before' } : {}),
+        },
+        {
+          text: `${this.periodoLabel(ciclo)} · ${tipoLabel} · ${ciclo.actividades.length} fines de semana`,
+          fontSize: 9, color: C.gray, margin: [0, 0, 0, 8],
+        },
+        this.buildTablaActividades(ciclo),
+      );
+    });
+
     const dd: any = {
       pageSize: 'LETTER',
       pageOrientation: 'landscape',
@@ -271,117 +474,12 @@ export class CiclosProgramaService {
         ...(this.logoGrupo ? { logoGrupo: this.logoGrupo } : {}),
         ...(this.logoCC    ? { logoCC:    this.logoCC    } : {}),
       },
-      content: [
-        // ── Encabezado ──────────────────────────────────────────────────────
-        {
-          columns: [
-            // Logo Grupo (izquierda)
-            this.logoGrupo
-              ? { image: 'logoGrupo', width: 55, alignment: 'center', margin: [0, 0, 10, 0] }
-              : { width: 55, text: '' },
-            // Título central
-            {
-              width: '*',
-              stack: [
-                { text: 'CICLO DE PROGRAMA', fontSize: 20, bold: true, color: C.purple },
-                { text: ciclo.nombre,  fontSize: 14, bold: true, color: C.text, margin: [0, 2, 0, 0] },
-                { text: seccionLabel, fontSize: 11, color: C.gray,  margin: [0, 2, 0, 0] },
-              ],
-            },
-            // Metadata (derecha)
-            {
-              width: 'auto',
-              stack: [
-                { columns: [{ text: 'Período:', bold: true, fontSize: 9, color: C.gray, width: 65 }, { text: periodLabel, fontSize: 9, color: C.text }], margin: [0, 0, 0, 3] },
-                { columns: [{ text: 'Tipo:', bold: true, fontSize: 9, color: C.gray, width: 65 }, { text: tipoLabel, fontSize: 9, color: C.text }], margin: [0, 0, 0, 3] },
-                { columns: [{ text: 'Creado por:', bold: true, fontSize: 9, color: C.gray, width: 65 }, { text: autor, fontSize: 9, color: C.text }], margin: [0, 0, 0, 3] },
-                { columns: [{ text: 'Fines de semana:', bold: true, fontSize: 9, color: C.gray, width: 65 }, { text: ciclo.actividades.length.toString(), fontSize: 9, color: C.text }] },
-              ],
-              alignment: 'right',
-              margin: [10, 0, 10, 0],
-            },
-            // Logo CC (derecha)
-            this.logoCC
-              ? { image: 'logoCC', width: 55, alignment: 'center', margin: [10, 0, 0, 0] }
-              : { width: 55, text: '' },
-          ],
-          margin: [0, 0, 0, 8],
-        },
-        // Línea divisora
-        {
-          canvas: [
-            { type: 'line', x1: 0, y1: 0, x2: 760, y2: 0, lineWidth: 2, lineColor: C.purple },
-          ],
-          margin: [0, 0, 0, 10],
-        },
-        // ── Tabla de actividades ────────────────────────────────────────────
-        {
-          table: {
-            headerRows: 1,
-            widths: [25, 115, '*', 130, 120],
-            body: tableBody,
-          },
-          layout: {
-            hLineWidth: (i: number) => (i === 0 || i === 1) ? 1.5 : 0.5,
-            vLineWidth: () => 0.5,
-            hLineColor: () => C.border,
-            vLineColor: () => C.border,
-            paddingLeft: () => 0,
-            paddingRight: () => 0,
-            paddingTop: () => 0,
-            paddingBottom: () => 0,
-          },
-        },
-        // ── Leyenda de ejes ─────────────────────────────────────────────────
-        { text: 'Ejes Temáticos', fontSize: 9, bold: true, color: C.gray, margin: [0, 12, 0, 4] },
-        {
-          columns: Object.entries(EJE_COLORS).map(([eje, col]) => ({
-            text: `■ ${eje}`,
-            fontSize: 7,
-            bold: true,
-            color: col.text,
-            margin: [0, 0, 8, 0],
-          })),
-          columnGap: 4,
-        },
-        // ── Pie ─────────────────────────────────────────────────────────────
-        {
-          canvas: [
-            { type: 'line', x1: 0, y1: 0, x2: 760, y2: 0, lineWidth: 0.5, lineColor: C.border },
-          ],
-          margin: [0, 10, 0, 4],
-        },
-        {
-          columns: [
-            { text: 'Scouts México — Nuevo Programa', fontSize: 7, color: C.gray },
-            {
-              text: `Generado el ${new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}`,
-              fontSize: 7,
-              color: C.gray,
-              alignment: 'right',
-            },
-          ],
-        },
-      ],
+      content: [encabezado, linea, ...secciones, ...this.buildLeyendaPie()],
       styles: {
-        tableHeader: {
-          bold: true,
-          fontSize: 9,
-          color: C.white,
-          fillColor: C.purple,
-          margin: [4, 5, 4, 5],
-        },
+        tableHeader: { bold: true, fontSize: 9, color: C.white, fillColor: C.purple, margin: [4, 5, 4, 5] },
       },
     };
-
-    const doc = await this.printer.createPdfKitDocument(dd);
-    return new Promise((resolve, reject) => {
-      const chunks: Buffer[] = [];
-      doc.on('data', (c: Buffer) => chunks.push(c));
-      doc.on('end', () => resolve(Buffer.concat(chunks)));
-      doc.on('error', reject);
-      doc.end();
-    });
+    return this.renderPdf(dd);
   }
 
   private seccionLabel(seccion: string): string {

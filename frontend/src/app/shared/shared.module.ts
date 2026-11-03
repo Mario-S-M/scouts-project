@@ -31,6 +31,8 @@ import { TimelineModule } from 'primeng/timeline';
 import { AccordionModule } from 'primeng/accordion';
 import { CheckboxModule } from 'primeng/checkbox';
 import { MultiSelectModule } from 'primeng/multiselect';
+import { InputNumberModule } from 'primeng/inputnumber';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 
 // Shared Components
 import { PageHeaderComponent } from './components/page-header/page-header.component';
@@ -69,6 +71,8 @@ const PRIMENG_MODULES = [
   AccordionModule,
   CheckboxModule,
   MultiSelectModule,
+  InputNumberModule,
+  ConfirmDialogModule,
 ];
 
 const SHARED_COMPONENTS = [

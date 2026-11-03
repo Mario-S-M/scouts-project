@@ -5,3 +5,14 @@ dist/
 uploads/
 .DS_Store
 **/.angular/
+
+# Respaldos de base de datos (contienen datos personales)
+backups/
+
+# Artefactos de sesión
+.playwright-mcp/
+dashboard-restaurado.png
+informe-*-ejemplo.pdf
+
+# Configuración local (volúmenes del rescate del Pi); no se despliega
+docker-compose.override.yml

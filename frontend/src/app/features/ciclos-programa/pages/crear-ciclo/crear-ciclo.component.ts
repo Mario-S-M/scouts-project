@@ -283,7 +283,7 @@ export class CrearCicloComponent implements OnInit, OnDestroy {
     const { mesInicio, anio, tipo } = this.form?.value ?? {};
     if (!mesInicio || !anio || !tipo) return '';
     const meses = tipo === 'trimestral' ? 3 : 4;
-    const mesFin = ((mesInicio - 1 + meses) % 12) + 1;
+    const mesFin = ((mesInicio - 1 + meses - 1) % 12) + 1;
     const anioFin = mesInicio + meses - 1 > 12 ? anio + 1 : anio;
     const label = mesFin < mesInicio
       ? `${MESES_NOMBRES[mesInicio]} ${anio} – ${MESES_NOMBRES[mesFin]} ${anioFin}`

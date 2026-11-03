@@ -3,6 +3,7 @@ import { Router, NavigationEnd } from '@angular/router';
 import { MenuItem } from 'primeng/api';
 import { ThemeService } from './core/theme.service';
 import { AuthService } from './core/services/auth.service';
+import { ROLES_JEFE_SECCION } from './core/models/solicitud-insignias.model';
 import { filter } from 'rxjs/operators';
 
 @Component({
@@ -46,6 +47,18 @@ export class AppComponent {
     const seccion = user ? this.authService.getSeccion(user.rol) : 'comunidad';
     const seccionLabel = this.authService.getSeccionLabel(seccion);
 
+    // Solicitudes y catálogo solo para los nueve roles con mando de sección;
+    // la galería la ve cualquiera que llegue a este menú
+    const insigniasItems: MenuItem[] = [
+      { label: 'Galería de Insignias', icon: 'pi pi-star', routerLink: ['/insignias'] },
+    ];
+    if (user && ROLES_JEFE_SECCION.includes(user.rol)) {
+      insigniasItems.push(
+        { label: 'Solicitudes', icon: 'pi pi-send', routerLink: ['/insignias/solicitudes'] },
+        { label: 'Catálogo',    icon: 'pi pi-book', routerLink: ['/insignias/catalogo'] },
+      );
+    }
+
     const items: MenuItem[] = [
       { label: 'Dashboard', icon: 'pi pi-home', routerLink: ['/'] },
       {
@@ -57,7 +70,7 @@ export class AppComponent {
           { label: 'Subir Evidencia', icon: 'pi pi-upload', routerLink: ['/evidencias/nueva'] },
           { label: 'Panel de Validación', icon: 'pi pi-shield', routerLink: ['/validacion'] },
           { separator: true },
-          { label: 'Insignias', icon: 'pi pi-star', routerLink: ['/insignias'] },
+          { label: 'Insignias', icon: 'pi pi-star', items: insigniasItems },
         ],
       },
       {

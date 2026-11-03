@@ -1,0 +1,199 @@
+<app-page-header
+  [title]="solicitudId !== null ? 'Editar solicitud de insignias' : 'Nueva solicitud de insignias'"
+  subtitle="Un pedido por caminante: elige los ítems del catálogo y genera el documento"
+  icon="pi pi-shopping-cart">
+</app-page-header>
+
+<div class="page-container">
+
+  <!-- Carga inicial del catálogo y, en edición, de la solicitud -->
+  <div *ngIf="cargando" class="flex align-items-center gap-2 py-4">
+    <p-progressSpinner strokeWidth="4" styleClass="w-2rem h-2rem"></p-progressSpinner>
+    <span class="text-color-secondary">Cargando datos...</span>
+  </div>
+
+  <ng-container *ngIf="!cargando">
+
+    <!-- ── Cabecera: caminante, fecha y observaciones ───────────────────── -->
+    <p-card header="Datos de la solicitud">
+      <form [formGroup]="form" class="formgrid grid">
+        <div class="field col-12 md:col-5">
+          <label for="caminante" class="font-semibold">Caminante *</label>
+          <p-dropdown
+            inputId="caminante"
+            formControlName="caminanteId"
+            [options]="caminantesOpts"
+            optionLabel="label"
+            optionValue="value"
+            [filter]="true"
+            filterBy="label"
+            appendTo="body"
+            placeholder="Selecciona un caminante"
+            styleClass="w-full"
+            (onChange)="onCaminanteChange()">
+          </p-dropdown>
+          <small class="text-color-secondary">
+            Solo se listan los scouts de tu sección.
+          </small>
+        </div>
+
+        <div class="field col-12 md:col-3">
+          <label for="fecha" class="font-semibold">Fecha *</label>
+          <p-calendar
+            inputId="fecha"
+            formControlName="fecha"
+            dateFormat="dd/mm/yy"
+            appendTo="body"
+            [showIcon]="true"
+            styleClass="w-full"
+            [style]="{ width: '100%' }">
+          </p-calendar>
+        </div>
+
+        <div class="field col-12 md:col-4">
+          <label for="observaciones" class="font-semibold">Observaciones</label>
+          <textarea
+            id="observaciones"
+            pInputTextarea
+            formControlName="observaciones"
+            rows="2"
+            class="w-full"
+            placeholder="Notas para quien surte el pedido">
+          </textarea>
+        </div>
+      </form>
+    </p-card>
+
+    <!-- ── Selección de ítems, agrupada por categoría ───────────────────── -->
+    <p-card header="Ítems solicitados" styleClass="mt-3">
+      <p-message
+        *ngIf="!form.value.caminanteId"
+        severity="info"
+        text="Elige primero al caminante: los ítems que ya tiene ganados se premarcan solos y puedes desmarcarlos."
+        styleClass="mb-3 w-full">
+      </p-message>
+
+      <div *ngFor="let grupo of grupos; let primero = first" [class.mt-4]="!primero">
+        <div class="flex align-items-center gap-2 mb-2">
+          <span class="font-bold text-lg">{{ grupo.label }}</span>
+          <p-divider class="flex-1"></p-divider>
+        </div>
+
+        <div *ngFor="let item of grupo.items" class="item-catalogo">
+          <div class="flex align-items-center gap-2 flex-wrap">
+            <p-checkbox
+              [(ngModel)]="seleccion[item.id]"
+              [ngModelOptions]="{ standalone: true }"
+              [binary]="true"
+              [inputId]="'item-' + item.id"
+              (onChange)="onItemToggle(item)">
+            </p-checkbox>
+            <label [for]="'item-' + item.id" class="cursor-pointer flex-1">
+              {{ item.nombre }}
+              <span *ngIf="!item.activo" class="text-color-secondary text-sm">
+                (retirado del catálogo)
+              </span>
+              <span *ngIf="item.descripcion" class="block text-color-secondary text-sm">
+                {{ item.descripcion }}
+              </span>
+            </label>
+
+            <!-- Cantidad: solo tiene sentido en los ítems elegidos -->
+            <div *ngIf="seleccion[item.id]" class="flex align-items-center gap-2">
+              <label [for]="'cant-' + item.id" class="text-sm text-color-secondary">
+                Cantidad
+              </label>
+              <p-inputNumber
+                [inputId]="'cant-' + item.id"
+                [(ngModel)]="cantidades[item.id]"
+                [ngModelOptions]="{ standalone: true }"
+                [min]="1"
+                [max]="99"
+                [showButtons]="true"
+                buttonLayout="horizontal"
+                incrementButtonIcon="pi pi-plus"
+                decrementButtonIcon="pi pi-minus"
+                inputStyleClass="w-3rem text-center">
+              </p-inputNumber>
+            </div>
+          </div>
+
+          <!-- ── Kit de pañoleta: sus seis componentes ──────────────────── -->
+          <div
+            *ngIf="seleccion[item.id] && item.categoria === 'kit_panoleta'"
+            class="kit-componentes mt-2">
+            <div class="text-sm font-semibold mb-2">Componentes del kit</div>
+            <div class="grid">
+              <div *ngFor="let comp of componentesKit" class="col-12 sm:col-6 md:col-4">
+                <div class="flex align-items-center gap-2">
+                  <p-checkbox
+                    [(ngModel)]="kitDe(item.id)[comp]"
+                    [ngModelOptions]="{ standalone: true }"
+                    [binary]="true"
+                    [inputId]="'kit-' + item.id + '-' + comp"
+                    [disabled]="esComponenteObligatorio(comp)">
+                  </p-checkbox>
+                  <label
+                    [for]="'kit-' + item.id + '-' + comp"
+                    class="text-sm"
+                    [class.cursor-pointer]="!esComponenteObligatorio(comp)">
+                    {{ etiquetaComponente(comp) }}
+                  </label>
+                  <p-tag
+                    *ngIf="esComponenteObligatorio(comp)"
+                    value="Siempre"
+                    severity="warning"
+                    styleClass="text-xs">
+                  </p-tag>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p *ngIf="!grupos.length" class="text-color-secondary">
+        El catálogo está vacío. Da de alta ítems en
+        <a routerLink="/insignias/catalogo">Catálogo de insignias</a>.
+      </p>
+    </p-card>
+
+    <!-- ── Acciones ─────────────────────────────────────────────────────── -->
+    <div class="flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+      <button
+        pButton
+        type="button"
+        label="Cancelar"
+        icon="pi pi-times"
+        class="p-button-outlined p-button-secondary"
+        (click)="cancelar()">
+      </button>
+
+      <div class="flex align-items-center gap-2 flex-wrap">
+        <span class="text-color-secondary text-sm">
+          {{ totalSeleccionados }} ítem(s) seleccionado(s)
+        </span>
+        <button
+          pButton
+          type="button"
+          label="Previsualizar PDF"
+          icon="pi pi-file-pdf"
+          class="p-button-outlined"
+          [loading]="generandoPreview"
+          [disabled]="formularioIncompleto"
+          (click)="previsualizarPdf()">
+        </button>
+        <button
+          pButton
+          type="button"
+          label="Guardar"
+          icon="pi pi-check"
+          [loading]="guardando"
+          [disabled]="formularioIncompleto"
+          (click)="guardar()">
+        </button>
+      </div>
+    </div>
+
+  </ng-container>
+</div>

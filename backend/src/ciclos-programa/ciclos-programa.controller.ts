@@ -1,6 +1,7 @@
 import {
   Controller, Get, Post, Put, Delete,
-  Body, Param, Res, Req,
+  Body, Param, Query, Res, Req,
+  NotFoundException,
   UseGuards, ParseIntPipe,
 } from '@nestjs/common';
 import { Response } from 'express';
@@ -27,6 +28,28 @@ export class CiclosProgramaController {
     @Param('mes', ParseIntPipe) mes: number,
   ) {
     return this.service.findActividadesMes(seccion, anio, mes);
+  }
+
+  /** PDF anual: todos los ciclos de una sección en un año (antes de :id) */
+  @Get('anual/pdf')
+  async getPdfAnual(
+    @Query('anio', ParseIntPipe) anio: number,
+    @Query('seccion') seccion: string,
+    @Res() res: Response,
+    @Req() req: any,
+  ) {
+    const ciclos = await this.service.findByAnioSeccion(anio, seccion);
+    if (!ciclos.length) {
+      throw new NotFoundException(`No hay ciclos en ${anio} para la sección ${seccion}`);
+    }
+    const buffer = await this.service.generatePdfAnual(ciclos, anio, seccion, req.user?.nombre ?? '');
+    const safeSeccion = (seccion ?? '').replace(/[^a-z0-9_-]/gi, '');
+    res.set({
+      'Content-Type':        'application/pdf',
+      'Content-Disposition': `attachment; filename="ciclo-programa-anual-${safeSeccion}-${anio}.pdf"`,
+      'Content-Length':      buffer.length,
+    });
+    res.end(buffer);
   }
 
   /** Obtener un ciclo */

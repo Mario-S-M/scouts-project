@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { MessageService, ConfirmationService } from 'primeng/api';
+import { AuthService } from '../../../../core/services/auth.service';
 import { CicloProgramaService } from '../../../../core/services/ciclo-programa.service';
 import { CicloPrograma, MESES_NOMBRES } from '../../../../core/models/ciclo-programa.model';
 
@@ -15,14 +16,33 @@ export class ListaCiclosComponent implements OnInit {
 
   readonly meses = MESES_NOMBRES;
 
+  dialogAnual = false;
+  descargandoAnual = false;
+  anioAnual = new Date().getFullYear();
+  seccionAnual = 'comunidad';
+  readonly aniosAnual = Array.from({ length: 5 }, (_, i) => {
+    const a = new Date().getFullYear() - 2 + i;
+    return { label: String(a), value: a };
+  });
+  readonly seccionesAnual = [
+    { label: 'Manada de Lobatos',       value: 'manada' },
+    { label: 'Tropa de Scouts',         value: 'tropa' },
+    { label: 'Comunidad de Caminantes', value: 'comunidad' },
+    { label: 'Clan de Rovers',          value: 'clan' },
+  ];
+
   constructor(
     private svc: CicloProgramaService,
     private messageService: MessageService,
     private confirmationService: ConfirmationService,
     private router: Router,
+    private authService: AuthService,
   ) {}
 
   ngOnInit() {
+    const user = this.authService.getUser();
+    const seccion = user ? this.authService.getSeccion(user.rol) : '';
+    if (this.seccionesAnual.some(s => s.value === seccion)) this.seccionAnual = seccion;
     this.load();
   }
 
@@ -46,12 +66,7 @@ export class ListaCiclosComponent implements OnInit {
     this.descargando = ciclo.id;
     this.svc.downloadPdf(ciclo.id).subscribe({
       next: (blob) => {
-        const url = URL.createObjectURL(blob);
-        const a   = document.createElement('a');
-        a.href     = url;
-        a.download = `ciclo-${ciclo.nombre.replace(/\s+/g, '-')}.pdf`;
-        a.click();
-        URL.revokeObjectURL(url);
+        this.guardarBlob(blob, `ciclo-${ciclo.nombre.replace(/\s+/g, '-')}.pdf`);
         this.descargando = null;
       },
       error: () => {
@@ -59,6 +74,43 @@ export class ListaCiclosComponent implements OnInit {
         this.descargando = null;
       },
     });
+  }
+
+  abrirDialogAnual() {
+    this.dialogAnual = true;
+  }
+
+  descargarAnual() {
+    this.descargandoAnual = true;
+    this.svc.downloadPdfAnual(this.anioAnual, this.seccionAnual).subscribe({
+      next: (blob) => {
+        this.guardarBlob(blob, `ciclo-programa-anual-${this.seccionAnual}-${this.anioAnual}.pdf`);
+        this.descargandoAnual = false;
+        this.dialogAnual = false;
+      },
+      error: (err) => {
+        const sinCiclos = err?.status === 404;
+        this.messageService.add({
+          severity: sinCiclos ? 'warn' : 'error',
+          summary: sinCiclos ? 'Sin ciclos' : 'Error',
+          detail: sinCiclos
+            ? `No hay ciclos en ${this.anioAnual} para esa sección.`
+            : 'No se pudo generar el PDF anual.',
+        });
+        this.descargandoAnual = false;
+      },
+    });
+  }
+
+  private guardarBlob(blob: Blob, nombre: string) {
+    const url = URL.createObjectURL(blob);
+    const a   = document.createElement('a');
+    a.href     = url;
+    a.download = nombre;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   confirmarEliminar(ciclo: CicloPrograma) {
@@ -85,7 +137,7 @@ export class ListaCiclosComponent implements OnInit {
 
   periodoLabel(ciclo: CicloPrograma): string {
     const meses = ciclo.tipo === 'trimestral' ? 3 : 4;
-    const mesFin = ((ciclo.mesInicio - 1 + meses) % 12) + 1;
+    const mesFin = ((ciclo.mesInicio - 1 + meses - 1) % 12) + 1;
     const anioFin = ciclo.mesInicio + meses - 1 > 12 ? ciclo.anio + 1 : ciclo.anio;
     return mesFin < ciclo.mesInicio
       ? `${this.meses[ciclo.mesInicio]} ${ciclo.anio} – ${this.meses[mesFin]} ${anioFin}`

@@ -467,8 +467,14 @@
       <p-card>
         <div class="section-header mb-3">
           <span class="font-bold">Entrega de Insignias y/o Reconocimientos</span>
-          <button pButton label="+ Agregar" icon="pi pi-plus" class="p-button-sm"
-                  (click)="addProgresion()"></button>
+          <div class="flex gap-2">
+            <button pButton label="Importar solicitudes de insignias" icon="pi pi-download"
+                    class="p-button-sm p-button-outlined" *ngIf="informeId"
+                    [loading]="importandoInsignias"
+                    (click)="importarSolicitudesInsignias()"></button>
+            <button pButton label="+ Agregar" icon="pi pi-plus" class="p-button-sm"
+                    (click)="addProgresion()"></button>
+          </div>
         </div>
         <div *ngIf="progresiones.length === 0" class="text-500 text-sm mb-3">Sin reconocimientos este mes.</div>
         <div class="tabla-filas" *ngIf="progresiones.length > 0">

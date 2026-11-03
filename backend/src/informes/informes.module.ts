@@ -11,12 +11,13 @@ import { InventarioItem } from './entities/inventario-item.entity';
 import { ProgresionInforme } from './entities/progresion-informe.entity';
 import { User } from '../users/entities/user.entity';
 import { EspecialidadProgreso } from '../progreso/entities/especialidad-progreso.entity';
+import { SolicitudInsignias } from '../insignias/entities/solicitud-insignias.entity';
 
 @Module({
   imports: [TypeOrmModule.forFeature([
     InformeMensual, AltaBajaInforme, AsistenciaActividad,
     ActividadPendiente, MovimientoFinanciero, InventarioItem, ProgresionInforme,
-    User, EspecialidadProgreso,
+    User, EspecialidadProgreso, SolicitudInsignias,
   ])],
   controllers: [InformesController],
   providers: [InformesService],

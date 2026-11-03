@@ -42,6 +42,10 @@ export class InformeService {
     return this.http.get(`${this.base}/${id}/pdf`, { responseType: 'blob' });
   }
 
+  downloadPdfAnual(seccion: string, anio: number): Observable<Blob> {
+    return this.http.get(`${this.base}/anual/${seccion}/${anio}/pdf`, { responseType: 'blob' });
+  }
+
   // ── Partial updates (auto-save por tab) ──────────────────────────────────────
   patchConfig(id: number, data: { mes: number; anio: number; saldoInicial: number; observacionesGenerales?: string }): Observable<void> {
     return this.http.patch<void>(`${this.base}/${id}/config`, data);
@@ -61,6 +65,10 @@ export class InformeService {
 
   patchProgresion(id: number, data: { progresiones: ProgresionInforme[]; observacionesGenerales?: string }): Observable<void> {
     return this.http.patch<void>(`${this.base}/${id}/progresion`, data);
+  }
+
+  importarSolicitudesInsignias(id: number): Observable<{ agregadas: number; informe: InformeMensual }> {
+    return this.http.post<{ agregadas: number; informe: InformeMensual }>(`${this.base}/${id}/importar-solicitudes-insignias`, {});
   }
 
   getCatalogoProgresion(): Observable<{ ejeTematico: string; nombre: string }[]> {

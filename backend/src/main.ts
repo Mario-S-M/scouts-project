@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { UsersService } from './users/users.service';
 import { ConfiguracionRecordatorioService } from './calendario/configuracion-recordatorio.service';
+import { CatalogoInsigniasService } from './insignias/catalogo-insignias.service';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -37,6 +38,10 @@ async function bootstrap() {
   // Seed default reminder configuration (miércoles 10:00 por ámbito)
   const configuracionRecordatorioService = app.get(ConfiguracionRecordatorioService);
   await configuracionRecordatorioService.seedDefaults();
+
+  // Seed del catálogo de insignias solicitables (17 ítems, idempotente)
+  const catalogoInsigniasService = app.get(CatalogoInsigniasService);
+  await catalogoInsigniasService.seedCatalogo();
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
