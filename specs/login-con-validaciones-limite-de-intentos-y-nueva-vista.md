@@ -2,7 +2,7 @@
 
 Áreas: Frontend
 
-> **Estado:** Aprobado
+> **Estado:** Reemplazada por `login-con-validaciones-limite-de-intentos-y-nueva-vista-2.md`
 > **Fecha:** 2026-11-04
 > **Origen:** GrillMe No. 0002 (`specs/grill/0002-login-con-validaciones-limite-de-intentos-y-nueva-vista.md`), decisiones aprobadas por Mario.
 
