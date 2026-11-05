@@ -20,6 +20,7 @@
     "@nestjs/platform-socket.io": "^11.1.19",
     "@nestjs/schedule": "^4.1.2",
     "@nestjs/serve-static": "^4.0.0",
+    "@nestjs/throttler": "^6.7.1",
     "@nestjs/typeorm": "^10.0.0",
     "@nestjs/websockets": "^11.1.19",
     "archiver": "^6.0.0",
