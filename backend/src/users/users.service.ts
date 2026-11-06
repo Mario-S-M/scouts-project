@@ -1,12 +1,26 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import { Injectable, ConflictException, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, UserRole } from './entities/user.entity';
 import * as bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
+import { normalizarCorreo } from '../common/normalizar-correo';
+
+/**
+ * Hay más de una cuenta cuyo correo solo difiere en mayúsculas o espacios.
+ * No se elige ninguna: quien llama decide (login → 401 genérico, alta/edición → 409).
+ */
+export class CorreoDuplicadoError extends Error {
+  constructor(readonly correo: string) {
+    super(`Hay cuentas cuyo correo solo difiere en mayúsculas: ${correo}`);
+    this.name = 'CorreoDuplicadoError';
+  }
+}
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
@@ -17,8 +31,34 @@ export class UsersService {
     return users.map(({ password, ...u }) => u);
   }
 
+  /**
+   * Busca sin distinguir mayúsculas: los correos viejos pueden estar guardados con
+   * mayúsculas (no hubo migración). Si dos cuentas coinciden, lanza CorreoDuplicadoError.
+   */
   async findByEmail(email: string): Promise<User | null> {
-    return this.usersRepository.findOne({ where: { email } });
+    const correo = normalizarCorreo(email);
+    if (!correo) return null;
+    const encontrados = await this.usersRepository
+      .createQueryBuilder('u')
+      .where('LOWER(TRIM(u.email)) = :correo', { correo })
+      .take(2)
+      .getMany();
+    if (encontrados.length > 1) {
+      this.logger.warn(`Hay cuentas cuyo correo solo difiere en mayúsculas: ${correo}; resuélvelo a mano`);
+      throw new CorreoDuplicadoError(correo);
+    }
+    return encontrados[0] ?? null;
+  }
+
+  /** ¿El correo ya lo usa otra cuenta? Un duplicado cuenta como "ya registrado" */
+  private async correoOcupado(email: string, excluirId?: number): Promise<boolean> {
+    try {
+      const existente = await this.findByEmail(email);
+      return !!existente && existente.id !== excluirId;
+    } catch (e) {
+      if (e instanceof CorreoDuplicadoError) return true;
+      throw e;
+    }
   }
 
   async findById(id: number): Promise<User | null> {
@@ -26,8 +66,7 @@ export class UsersService {
   }
 
   async create(nombre: string, email: string, password: string, rol: string = UserRole.SCOUT): Promise<User> {
-    const exists = await this.findByEmail(email);
-    if (exists) throw new ConflictException('El correo ya está registrado');
+    if (await this.correoOcupado(email)) throw new ConflictException('El correo ya está registrado');
     const hash = await bcrypt.hash(password, 10);
     const user = this.usersRepository.create({ nombre, email, password: hash, rol });
     return this.usersRepository.save(user);
@@ -37,9 +76,9 @@ export class UsersService {
     const user = await this.findById(id);
     if (!user) throw new NotFoundException('Usuario no encontrado');
 
-    if (data.email && data.email !== user.email) {
-      const exists = await this.findByEmail(data.email);
-      if (exists) throw new ConflictException('El correo ya está en uso');
+    // Cambiar solo las mayúsculas del propio correo no choca consigo mismo
+    if (data.email && normalizarCorreo(data.email) !== normalizarCorreo(user.email)) {
+      if (await this.correoOcupado(data.email, id)) throw new ConflictException('El correo ya está registrado');
     }
 
     const update: Partial<User> = {};
@@ -80,7 +119,17 @@ export class UsersService {
     ];
 
     for (const s of seeds) {
-      const existing = await this.findByEmail(s.email);
+      let existing: User | null;
+      try {
+        existing = await this.findByEmail(s.email);
+      } catch (e) {
+        // Que una cuenta duplicada no tumbe el arranque del backend
+        if (e instanceof CorreoDuplicadoError) {
+          this.logger.warn(`Cuenta base omitida por correo duplicado: ${e.correo}`);
+          continue;
+        }
+        throw e;
+      }
       if (!existing) {
         // Sin contraseñas en el código (el repo es público): se crea con una
         // aleatoria y el administrador la cambia/comparte de forma privada
