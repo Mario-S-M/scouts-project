@@ -24,6 +24,10 @@ async function login(): Promise<void> {
   } catch {
     throw new Error(`No se pudo conectar con la app en ${API_URL}. ¿Está levantado el backend (docker-compose up -d)?`);
   }
+  if (res.status === 429) {
+    const espera = res.headers.get('retry-after') ?? '60';
+    throw new Error(`Demasiados intentos de inicio de sesión en la app. Espera ${espera} segundos y vuelve a intentarlo.`);
+  }
   if (!res.ok) throw new Error(`Login fallido (${res.status}): revisa SCOUTS_EMAIL / SCOUTS_PASSWORD.`);
   const body = (await res.json()) as { access_token: string; user: typeof usuario };
   token = body.access_token;
