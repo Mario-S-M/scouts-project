@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { UsersService } from '../users/users.service';
+import { CorreoDuplicadoError, UsersService } from '../users/users.service';
+import { User } from '../users/entities/user.entity';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
@@ -11,7 +12,15 @@ export class AuthService {
   ) {}
 
   async login(email: string, password: string) {
-    const user = await this.usersService.findByEmail(email);
+    // Mismo 401 genérico para correo inexistente, duplicado, inactivo o contraseña mala:
+    // la respuesta no revela qué correos existen
+    let user: User | null;
+    try {
+      user = await this.usersService.findByEmail(email);
+    } catch (e) {
+      if (e instanceof CorreoDuplicadoError) throw new UnauthorizedException('Credenciales inválidas');
+      throw e;
+    }
     if (!user || !user.activo) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
