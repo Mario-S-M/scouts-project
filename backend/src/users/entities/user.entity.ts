@@ -15,6 +15,7 @@ import { Evento } from '../../progreso/entities/evento.entity';
 import { PuntaDeFlecha } from '../../progreso/entities/punta-de-flecha.entity';
 import { Insignia } from '../../insignias/entities/insignia.entity';
 import { Camisola } from '../../insignias/entities/camisola.entity';
+import { normalizarCorreo } from '../../common/normalizar-correo';
 
 export enum UserRole {
   // Soporte del sistema: ve y edita todas las secciones
@@ -50,7 +51,8 @@ export class User {
   @Column({ length: 200 })
   nombre: string;
 
-  @Column({ length: 200, unique: true })
+  // Trim + minúsculas al escribir, por cualquier ruta (save, update, seed, caminantes)
+  @Column({ length: 200, unique: true, transformer: { to: normalizarCorreo, from: (v: string) => v } })
   email: string;
 
   // Nunca sale en las respuestas de la API (ClassSerializerInterceptor global)
