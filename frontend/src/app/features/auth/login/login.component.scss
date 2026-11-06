@@ -1,19 +1,38 @@
+// Identidad de la Comunidad (emblema): marino + oro
+$marino: #14265C;
+$oro: #EFC02F;
+$oro-osc: #B8891A;
+
+:host {
+  --login-error: #fca5a5;
+  --login-foco: #{$oro};
+}
+
+// En tema claro el oro sobre blanco no llega a 3:1: errores y foco se oscurecen
+:host-context(body.p-theme-aura-light-blue) {
+  --login-error: #b91c1c;
+  --login-foco: #{$marino};
+}
+
 .login-wrapper {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(145deg, #0d1b33 0%, #1B2A4A 50%, #0d1b33 100%);
   padding: 1rem;
+  background: linear-gradient(160deg, #0d1b33, $marino);
 }
 
 .login-card {
-  background: var(--surface-card, #fff);
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-  padding: 2.5rem 2rem;
   width: 100%;
-  max-width: 420px;
+  max-width: 26rem;
+  padding: 2.5rem 2rem 1.5rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 1rem;
+  background: var(--surface-card);
+  color: var(--text-color);
+  box-shadow: 0 1.5rem 3rem rgb(0 0 0 / .35);
 }
 
 .login-header {
@@ -22,57 +41,123 @@
 }
 
 .login-logo {
-  font-size: 3.5rem;
   display: block;
-  margin-bottom: 0.5rem;
+  width: 7.5rem;
+  height: auto;
+  margin: 0 auto 1rem;
 }
 
 .login-title {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: var(--text-color, #333);
-  margin: 0 0 0.25rem 0;
+  margin: 0 0 .25rem;
+  font-size: 1.375rem;
+  line-height: 1.3;
 }
 
 .login-subtitle {
-  font-size: 0.75rem;
-  letter-spacing: 2px;
-  color: var(--text-color-secondary, #666);
   margin: 0;
+  font-size: .875rem;
+  color: var(--text-color-secondary);
 }
 
 .login-form {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+}
 
-  .field {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
 
-    label {
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: var(--text-color, #333);
-    }
+  label {
+    font-size: .875rem;
+    font-weight: 600;
   }
+
+  input {
+    min-height: 2.75rem;
+  }
+}
+
+.password-wrap {
+  position: relative;
+
+  input {
+    padding-right: 3rem;
+  }
+}
+
+.toggle-password {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 2.75rem;
+  height: 100%;
+  border: 0;
+  background: none;
+  color: var(--text-color-secondary);
+  cursor: pointer;
+}
+
+.field-error,
+.server-error {
+  margin: 0;
+  font-size: .875rem;
+  color: var(--login-error);
+}
+
+// Reserva su alto aunque esté vacío: sin saltos de diseño
+.server-error {
+  min-height: 1.5rem;
 }
 
 .login-btn {
-  margin-top: 0.5rem;
-  background: #2563EB !important;
-  border-color: #2563EB !important;
+  width: 100%;
+  min-height: 2.75rem;
+  border: 1px solid $oro;
+  border-radius: .5rem;
+  background: $oro;
+  color: $marino;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
 
-  &:hover {
-    background: #1d4ed8 !important;
-    border-color: #1d4ed8 !important;
+  &:hover:not(:disabled) {
+    background: $oro-osc;
+    border-color: $oro-osc;
+  }
+
+  &:disabled {
+    opacity: .6;
+    cursor: not-allowed;
   }
 }
 
+input:focus-visible,
+button:focus-visible {
+  outline: 3px solid var(--login-foco);
+  outline-offset: 2px;
+}
+
 .login-footer {
-  text-align: center;
   margin-top: 1.5rem;
-  font-size: 0.75rem;
-  color: var(--text-color-secondary, #999);
+  text-align: center;
+  font-size: .75rem;
+  color: var(--text-color-secondary);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (max-width: 399px) {
+  .login-card {
+    padding: 2rem 1.25rem 1.25rem;
+  }
 }
