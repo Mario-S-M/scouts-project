@@ -1,31 +1,18 @@
 import { Component, ElementRef, OnDestroy, ViewChild } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { AbstractControl, FormBuilder, FormControl, FormGroup, ValidationErrors, Validators } from '@angular/forms';
+import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import {
+  TEXTOS,
+  leerRetryAfter,
+  mensajePorStatus,
+  normalizarCorreo,
+  sinEspaciosValidator,
+  textoEsperaInicio,
+} from './login-errores';
 
 type Campo = 'email' | 'password';
-
-/** Textos del login. Los define el frontend: nunca se muestra el mensaje del backend. */
-const TEXTOS = {
-  correoVacio: 'Escribe tu correo',
-  correoFormato: 'Revisa el correo, por ejemplo nombre@scouts.mx',
-  correoEspacios: 'El correo no puede tener espacios',
-  passwordVacia: 'Escribe tu contraseña',
-  credenciales: 'Correo o contraseña incorrectos',
-  sinConexion: 'No pudimos conectar con el servidor, revisa tu conexión',
-  esperaFin: 'Ya puedes intentarlo de nuevo',
-  esperaInicio: (s: number) => `Demasiados intentos. Espera ${s} segundos e inténtalo de nuevo`,
-};
-
-/** Si el servidor no manda Retry-After (o no es válido), se espera esto */
-const ESPERA_POR_DEFECTO = 60;
-
-/** Error `espacios` si al correo le quedan espacios después del trim */
-function sinEspacios(control: AbstractControl): ValidationErrors | null {
-  const valor = (control.value ?? '').toString().trim();
-  return /\s/.test(valor) ? { espacios: true } : null;
-}
 
 @Component({
   selector: 'app-login',
@@ -56,7 +43,7 @@ export class LoginComponent implements OnDestroy {
     private router: Router,
   ) {
     this.form = fb.nonNullable.group({
-      email: ['', [Validators.required, Validators.email, sinEspacios]],
+      email: ['', [Validators.required, Validators.email, sinEspaciosValidator]],
       password: ['', [Validators.required]],
     });
   }
@@ -72,7 +59,7 @@ export class LoginComponent implements OnDestroy {
   /** Trim y minúsculas al salir del campo; no es un error escribir mayúsculas */
   normalizarCorreo(): void {
     const control = this.form.controls.email;
-    const limpio = control.value.trim().toLowerCase();
+    const limpio = normalizarCorreo(control.value);
     if (limpio !== control.value) control.setValue(limpio, { emitEvent: false });
     control.updateValueAndValidity({ emitEvent: false });
   }
@@ -115,12 +102,9 @@ export class LoginComponent implements OnDestroy {
       error: (err: HttpErrorResponse) => {
         this.loading = false;
         if (err.status === 429) {
-          this.iniciarEspera(this.leerRetryAfter(err));
-        } else if (err.status === 401 || err.status === 400) {
-          this.mostrarError(TEXTOS.credenciales);
+          this.iniciarEspera(leerRetryAfter(err.headers?.get('Retry-After') ?? null));
         } else {
-          // Red caída (status 0), 5xx o cualquier otro código inesperado
-          this.mostrarError(TEXTOS.sinConexion);
+          this.mostrarError(mensajePorStatus(err.status));
         }
       },
     });
@@ -145,16 +129,11 @@ export class LoginComponent implements OnDestroy {
     }
   }
 
-  private leerRetryAfter(err: HttpErrorResponse): number {
-    const segundos = Number.parseInt(err.headers?.get('Retry-After') ?? '', 10);
-    return Number.isInteger(segundos) && segundos > 0 ? segundos : ESPERA_POR_DEFECTO;
-  }
-
   /** El número cambia en el botón; aria-live solo anuncia al empezar y al terminar */
   private iniciarEspera(segundos: number): void {
     this.detenerEspera();
     this.segundosEspera = segundos;
-    this.mostrarError(TEXTOS.esperaInicio(segundos));
+    this.mostrarError(textoEsperaInicio(segundos));
     this.intervalo = setInterval(() => {
       this.segundosEspera--;
       if (this.segundosEspera <= 0) {
