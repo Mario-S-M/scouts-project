@@ -20,14 +20,6 @@ async function bootstrap() {
   const hops = Number.parseInt(process.env.TRUST_PROXY_HOPS ?? '1', 10);
   app.set('trust proxy', Number.isFinite(hops) && hops >= 0 ? hops : 1);
 
-  // TEMPORAL (spec login): averiguar cuántos proxies hay delante. Se quita en la Tarea 17.
-  if (process.env.LOG_IP_LOGIN === '1') {
-    app.use('/api/auth/login', (req, _res, next) => {
-      console.log('[TEMPORAL ip-login]', JSON.stringify({ ip: req.ip, ips: req.ips, xff: req.headers['x-forwarded-for'], cf: req.headers['cf-connecting-ip'] }));
-      next();
-    });
-  }
-
   app.enableCors({
     origin: '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
