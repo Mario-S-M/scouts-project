@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
@@ -12,7 +13,20 @@ import * as path from 'path';
 import * as fs from 'fs';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Proxies propios delante del backend (1 = solo nginx). req.ip, y con él el límite
+  // de intentos del login, depende de este número.
+  const hops = Number.parseInt(process.env.TRUST_PROXY_HOPS ?? '1', 10);
+  app.set('trust proxy', Number.isFinite(hops) && hops >= 0 ? hops : 1);
+
+  // TEMPORAL (spec login): averiguar cuántos proxies hay delante. Se quita en la Tarea 17.
+  if (process.env.LOG_IP_LOGIN === '1') {
+    app.use('/api/auth/login', (req, _res, next) => {
+      console.log('[TEMPORAL ip-login]', JSON.stringify({ ip: req.ip, ips: req.ips, xff: req.headers['x-forwarded-for'], cf: req.headers['cf-connecting-ip'] }));
+      next();
+    });
+  }
 
   app.enableCors({
     origin: '*',
