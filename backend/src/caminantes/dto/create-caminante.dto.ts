@@ -1,4 +1,5 @@
 import { IsString, IsOptional, IsEmail, IsDateString } from 'class-validator';
+import { NormalizarCorreo } from '../../common/normalizar-correo';
 
 export class CreateCaminanteDto {
   @IsString()
@@ -35,6 +36,7 @@ export class CreateCaminanteDto {
   fechaPaseInicio?: string;
 
   @IsOptional()
+  @NormalizarCorreo()
   @IsEmail()
   email?: string;
 
